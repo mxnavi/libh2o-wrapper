@@ -25,6 +25,7 @@
 *                       Macro Definition Section                            *
 *****************************************************************************/
 #define UNIT_TEST 1
+// #define DEBUG_SERIAL 1
 
 #define NOTIFICATION_CONN 0
 #define NOTIFICATION_DATA 1
@@ -137,8 +138,12 @@ static struct notification_conn_t *notify_thread_connect(struct libh2o_socket_cl
     h2o_linklist_init_anchor(&msg->pending);
     h2o_linklist_init_anchor(&msg->sending);
 
+#ifdef DEBUG_SERIAL
     /* client handle */
     msg->clih.serial = __sync_fetch_and_add(&c->serial_counter, 1);
+#else
+    msg->clih.serial = UINT32_MAX;
+#endif
 
     /* request */
     memcpy(&msg->req, req, sizeof(*req));
@@ -156,7 +161,11 @@ static void notify_thread_data(struct notification_conn_t *conn, const void *buf
     msg->cmn.c = conn->cmn.c;
 
     msg->conn = conn;
+#ifdef DEBUG_SERIAL
     msg->serial = (uint64_t)conn->clih.serial << 32 | __sync_fetch_and_add(&conn->serial_counter, 1);
+#else
+    msg->serial = UINT64_MAX;
+#endif
 
     msg->data = h2o_iovec_init(buf, len);
 
@@ -281,11 +290,13 @@ static void write_pending(struct notification_conn_t *conn)
 
 static void release_notification_conn(struct notification_conn_t *conn)
 {
+#ifdef DEBUG_SERIAL
+    LOGV("release serial: %u", conn->clih.serial);
+#endif
     if (h2o_timer_is_linked(&conn->dispose_timeout)) {
         h2o_timer_unlink(&conn->dispose_timeout);
     }
 
-    LOGV("release serial: %u", conn->clih.serial);
     /* unlink from 'conns' */
     if (h2o_linklist_is_linked(&conn->cmn.super.link)) {
         h2o_linklist_unlink(&conn->cmn.super.link);
@@ -470,7 +481,7 @@ static void on_notification(h2o_multithread_receiver_t *receiver, h2o_linklist_t
             struct notification_data_t *data = (struct notification_data_t *)cmn;
             struct notification_conn_t *conn = data->conn;
             if (conn->sock == NULL) {
-                LOGI("caller want to send data without connected");
+                LOGW("caller want to send data without connection");
                 h2o_linklist_insert(&conn->pending, &msg->link);
             } else if (!h2o_socket_is_writing(conn->sock)) {
                 do_socket_write(conn, data);

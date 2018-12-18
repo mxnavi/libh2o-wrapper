@@ -26,10 +26,13 @@
 *                       Macro Definition Section                            *
 *****************************************************************************/
 #define UNIT_TEST 1
+// #define DEBUG_SERIAL 1
 
 #define NOTIFICATION_CONN 0
 #define NOTIFICATION_DATA 1
 #define NOTIFICATION_QUIT 0xFFFFFFFF
+
+#define DISPOSE_TIMEOUT_MS 1000
 
 #define LOGV(fmt, args...) ((void)fprintf(stderr, fmt "\n", ##args))
 #define LOGD(fmt, args...) ((void)fprintf(stderr, fmt "\n", ##args))
@@ -65,7 +68,7 @@ struct libh2o_websocket_client_ctx_t {
 };
 
 /**
- * web socket client handle
+ * websocket client handle
  */
 struct websocket_client_handle_t {
     uint32_t serial;
@@ -90,6 +93,7 @@ struct notification_conn_t {
     h2o_websocket_client_conn_t *wsconn;
     char *sec_websock_key;
     h2o_linklist_t pending; /* list for pending data sent */
+    h2o_timer_t dispose_timeout;
     uint32_t serial_counter;
     int fd; /* for nonce */
     h2o_url_t url_parsed;
@@ -123,7 +127,7 @@ static void on_error(struct notification_conn_t *conn, const char *prefix, const
 
 static void callback_on_sent(struct notification_conn_t *conn, void *buf, size_t len, int sent);
 
-static void callback_on_on_closed(struct notification_conn_t *conn, const char *err);
+static void callback_on_closed(struct notification_conn_t *conn, const char *err);
 
 /****************************************************************************
 *                       Functions Implement Section                         *
@@ -162,7 +166,11 @@ static struct notification_conn_t *notify_thread_connect(struct libh2o_websocket
 
     h2o_linklist_init_anchor(&msg->pending);
 
+#ifdef DEBUG_SERIAL
     msg->clih.serial = __sync_fetch_and_add(&c->serial_counter, 1);
+#else
+    msg->clih.serial = UINT32_MAX;
+#endif
 
     dup_req(&msg->req, req);
 
@@ -180,7 +188,11 @@ static void notify_thread_data(struct notification_conn_t *conn, const void *buf
 
     msg->conn = conn;
     msg->data = h2o_iovec_init(buf, len);
+#ifdef DEBUG_SERIAL
     msg->serial = (uint64_t)conn->clih.serial << 32 | __sync_fetch_and_add(&conn->serial_counter, 1);
+#else
+    msg->serial = UINT64_MAX;
+#endif
 
     h2o_multithread_send_message(&msg->cmn.c->notifications, &msg->cmn.super);
 }
@@ -211,9 +223,14 @@ static void release_pending_data_linklist(struct notification_conn_t *conn, int 
     }
 }
 
-static void release_notification_conn(struct notification_conn_t *conn, const char *err)
+static void release_notification_conn(struct notification_conn_t *conn)
 {
+#ifdef DEBUG_SERIAL
     LOGV("release serial: %u", conn->clih.serial);
+#endif
+    if (h2o_timer_is_linked(&conn->dispose_timeout)) {
+        h2o_timer_unlink(&conn->dispose_timeout);
+    }
     /* unlink from 'conns' */
     if (h2o_linklist_is_linked(&conn->cmn.super.link)) {
         h2o_linklist_unlink(&conn->cmn.super.link);
@@ -221,7 +238,6 @@ static void release_notification_conn(struct notification_conn_t *conn, const ch
 
     release_pending_data_linklist(conn, 0);
 
-    callback_on_on_closed(conn, err);
 
     /* release h2o websocket client conn */
     if (conn->wsconn) {
@@ -319,7 +335,7 @@ static void on_notification(h2o_multithread_receiver_t *receiver, h2o_linklist_t
                 callback_on_sent(conn, data->data.base, data->data.len, 1);
                 release_notification_data(data);
             } else {
-                LOGI("caller want to send data without hand shake complete");
+                LOGW("caller want to send data without connection");
                 h2o_linklist_insert(&conn->pending, &msg->link);
             }
         } else if (cmn->cmd == NOTIFICATION_CONN) {
@@ -385,7 +401,7 @@ static void callback_on_recv(struct notification_conn_t *conn, void *buf, size_t
     }
 }
 
-static void callback_on_on_closed(struct notification_conn_t *conn, const char *err)
+static void callback_on_closed(struct notification_conn_t *conn, const char *err)
 {
     struct libh2o_websocket_client_ctx_t *c = conn->cmn.c;
     struct websocket_client_init_t *p = &c->client_init;
@@ -404,7 +420,8 @@ static void release_conn_linkedlist(struct libh2o_websocket_client_ctx_t *c, h2o
         ASSERT(NOTIFICATION_CONN == conn->cmn.cmd);
         h2o_linklist_unlink(&msg->link);
 
-        release_notification_conn(conn, err);
+        callback_on_closed(conn, err);
+        release_notification_conn(conn);
     }
 }
 
@@ -413,11 +430,28 @@ static void release_conns(struct libh2o_websocket_client_ctx_t *c, const char *e
     release_conn_linkedlist(c, &c->conns, err);
 }
 
+static void dispose_timeout_cb(h2o_timer_t *entry)
+{
+    struct notification_conn_t *conn;
+
+    conn = H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, dispose_timeout, entry);
+    release_notification_conn(conn);
+}
+
 static void on_error(struct notification_conn_t *conn, const char *prefix, const char *err)
 {
+    struct libh2o_websocket_client_ctx_t *c;
     ASSERT(err != NULL);
     LOGW("%s:%s", prefix, err);
-    release_notification_conn(conn, err);
+    callback_on_closed(conn, err);
+    if (conn->wsconn) {
+        h2o_websocket_client_close(conn->wsconn);
+        conn->wsconn = NULL;
+    }
+
+    c = conn->cmn.c;
+    conn->dispose_timeout.cb = dispose_timeout_cb;
+    h2o_timer_link(c->ctx.loop, DISPOSE_TIMEOUT_MS, &conn->dispose_timeout);
 }
 
 static void on_ws_message(h2o_websocket_client_conn_t *_conn, const struct wslay_event_on_msg_recv_arg *arg)
@@ -578,12 +612,8 @@ static void *client_loop(void *arg)
         h2o_evloop_run(c->ctx.loop, INT32_MAX);
     }
 
-    int64_t io_timeout = (int64_t)c->client_init.io_timeout;
     while (!h2o_linklist_is_empty(&c->conns)) {
-        h2o_evloop_run(c->ctx.loop, 1000);
-        io_timeout -= 1000;
-        if (io_timeout < 0)
-            break;
+        h2o_evloop_run(c->ctx.loop, DISPOSE_TIMEOUT_MS);
     }
 
     ASSERT(h2o_linklist_is_empty(&c->conns));
@@ -739,7 +769,7 @@ static void cb_websocket_client_on_recv(void *param, void *buf, size_t len, stru
 {
     struct websock_clients_t *clients = param;
     (void)clients;
-    fwrite(buf, 1, len, stdout);
+    // fwrite(buf, 1, len, stdout);
 }
 
 static void cb_websocket_client_on_closed(void *param, const char *err, struct websocket_client_handle_t *clih)
@@ -788,7 +818,7 @@ int main(int argc, char **argv)
 
     /**
      * 2: create websocket client request
-     * on_host_resolved and on connected will be called back
+     * on_connected and on handshaked will be called back
      */
     struct websocket_client_req_t req = {"http://127.0.0.1:7890/", WEBSOCKET_FRAME_TYPE_TEXT};
     clients.clients[0].clih = libh2o_websocket_client_req(clients.c, &req);

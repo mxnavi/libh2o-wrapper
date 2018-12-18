@@ -26,6 +26,7 @@
 *                       Macro Definition Section                            *
 *****************************************************************************/
 #define UNIT_TEST 1
+// #define DEBUG_SERIAL 1
 
 #define NOTIFICATION_CONN 0
 #define NOTIFICATION_QUIT 0xFFFFFFFF
@@ -158,7 +159,11 @@ static struct notification_conn_t *notify_thread_connect(struct libh2o_http_clie
 
     dup_req(&msg->req, req);
 
+#ifdef DEBUG_SERIAL
     msg->clih.serial = __sync_fetch_and_add(&c->serial_counter, 1);
+#else
+    msg->clih.serial = UINT32_MAX;
+#endif
 
     h2o_multithread_send_message(&c->notifications, &msg->cmn.super);
     return msg;
@@ -166,7 +171,9 @@ static struct notification_conn_t *notify_thread_connect(struct libh2o_http_clie
 
 static void release_notification_conn(struct notification_conn_t *conn)
 {
+#ifdef DEBUG_SERIAL
     LOGV("release serial: %u", conn->clih.serial);
+#endif
     if (h2o_linklist_is_linked(&conn->cmn.super.link)) {
         h2o_linklist_unlink(&conn->cmn.super.link);
     }
