@@ -229,6 +229,7 @@ static void set_current_thread_index(struct server_context_t *c, int thread_inde
     p = pthread_getspecific(c->tls);
     if (p == NULL) {
         p = h2o_mem_alloc(sizeof(*p));
+        memset(p, 0x00, sizeof(*p));
         p->__thread_index = thread_index;
         pthread_setspecific(c->tls, p);
     }
@@ -1039,17 +1040,10 @@ static void *server_loop(void *_param)
     h2o_evloop_run(c->threads[thread_index].ctx.loop, 0);
 
     while (!h2o_linklist_is_empty(&c->threads[thread_index].ws_conns)) {
-        LOGD("ws_conn list is not empty, thread_index: %d", (unsigned)thread_index);
+        LOGD("ws_conn list is not empty, thread_index: %d", thread_index);
         h2o_evloop_run(c->threads[thread_index].ctx.loop, DISPOSE_TIMEOUT_MS);
     }
 
-#if 0
-    while (UINT64_MAX != h2o_timerwheel_get_wake_at(c->threads[thread_index].ctx.loop->_timeouts)) {
-        LOGD("1111 timeout is not empty, thread_index: %d", (unsigned)thread_index);
-        h2o_timerwheel_dump(c->threads[thread_index].ctx.loop->_timeouts);
-        h2o_evloop_run(c->threads[thread_index].ctx.loop, DISPOSE_TIMEOUT_MS);
-    }
-#endif
     h2o_context_request_shutdown(&c->threads[thread_index].ctx);
 
     /* wait until all the connection gets closed */
@@ -1062,8 +1056,8 @@ static void *server_loop(void *_param)
     }
 
     while (UINT64_MAX != h2o_timerwheel_get_wake_at(c->threads[thread_index].ctx.loop->_timeouts)) {
-        LOGD("timeout is not empty, thread_index: %d", (unsigned)thread_index);
-        h2o_timerwheel_dump(c->threads[thread_index].ctx.loop->_timeouts);
+        LOGD("timeout is not empty, thread_index: %d", thread_index);
+        // h2o_timerwheel_dump(c->threads[thread_index].ctx.loop->_timeouts);
         h2o_evloop_run(c->threads[thread_index].ctx.loop, DISPOSE_TIMEOUT_MS);
     }
     h2o_multithread_unregister_receiver(c->threads[thread_index].ctx.queue, &c->threads[thread_index].server_notifications);
