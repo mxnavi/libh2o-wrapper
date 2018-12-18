@@ -30,6 +30,8 @@
 #define NOTIFICATION_DATA 1
 #define NOTIFICATION_QUIT 0xFFFFFFFF
 
+#define DISPOSE_TIMEOUT_MS 1000
+
 #define LOGV(fmt, args...) ((void)fprintf(stderr, fmt "\n", ##args))
 #define LOGD(fmt, args...) ((void)fprintf(stderr, fmt "\n", ##args))
 #define LOGI(fmt, args...) ((void)fprintf(stderr, fmt "\n", ##args))
@@ -80,6 +82,7 @@ struct notification_conn_t {
     h2o_linklist_t pending; /* list for pending data waiting for sending */
     h2o_linklist_t sending; /* list for current sentding data */
     h2o_socket_t *sock;
+    h2o_timer_t dispose_timeout;
     uint32_t serial_counter; /* data serial counter */
     struct socket_client_req_t req;
     struct socket_client_handle_t clih;
@@ -104,6 +107,9 @@ struct notification_data_t {
 *                       Functions Prototype Section                         *
 *****************************************************************************/
 static void on_write(h2o_socket_t *sock, const char *err);
+
+static void dispose_timeout_cb(h2o_timer_t *entry);
+static void write_timeout_cb(h2o_timer_t *entry);
 
 /****************************************************************************
 *                       Functions Implement Section                         *
@@ -228,6 +234,22 @@ static void release_sending(struct notification_conn_t *conn)
     release_data_linkedlist(conn, &conn->sending, 1);
 }
 
+static void do_socket_write(struct notification_conn_t *conn, struct notification_data_t *data)
+{
+    struct libh2o_socket_client_ctx_t *c = conn->cmn.c;
+
+    /**
+     * link to sending list and send
+     */
+    h2o_linklist_insert(&conn->sending, &data->cmn.super.link);
+
+    /* I/O timeout */
+    conn->dispose_timeout.cb = write_timeout_cb;
+    h2o_timer_link(c->loop, c->client_init.io_timeout, &conn->dispose_timeout);
+
+    h2o_socket_write(conn->sock, &data->data, 1, on_write);
+}
+
 static void write_pending(struct notification_conn_t *conn)
 {
     struct libh2o_socket_client_ctx_t *c = conn->cmn.c;
@@ -254,15 +276,15 @@ static void write_pending(struct notification_conn_t *conn)
     ASSERT(NOTIFICATION_DATA == data->cmn.cmd);
     h2o_linklist_unlink(&msg->link);
 
-    /**
-     * link to sending list and send
-     */
-    h2o_linklist_insert(&conn->sending, &msg->link);
-    h2o_socket_write(conn->sock, &data->data, 1, on_write);
+    do_socket_write(conn, data);
 }
 
-static void release_notification_conn(struct notification_conn_t *conn, const char *err)
+static void release_notification_conn(struct notification_conn_t *conn)
 {
+    if (h2o_timer_is_linked(&conn->dispose_timeout)) {
+        h2o_timer_unlink(&conn->dispose_timeout);
+    }
+
     LOGV("release serial: %u", conn->clih.serial);
     /* unlink from 'conns' */
     if (h2o_linklist_is_linked(&conn->cmn.super.link)) {
@@ -272,7 +294,6 @@ static void release_notification_conn(struct notification_conn_t *conn, const ch
     release_data_linkedlist(conn, &conn->pending, 0);
     release_data_linkedlist(conn, &conn->sending, 0);
 
-    callback_on_closed(conn, err);
     if (conn->sock) {
         h2o_socket_close(conn->sock);
         conn->sock = NULL;
@@ -280,12 +301,37 @@ static void release_notification_conn(struct notification_conn_t *conn, const ch
     free(conn);
 }
 
+static void dispose_timeout_cb(h2o_timer_t *entry)
+{
+    struct notification_conn_t *conn;
+
+    conn = H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, dispose_timeout, entry);
+    release_notification_conn(conn);
+}
+
 static void on_error(struct notification_conn_t *conn, const char *prefix, const char *err)
 {
+    struct libh2o_socket_client_ctx_t *c;
     ASSERT(err != NULL);
 
     LOGW("%s:%s", prefix, err);
-    release_notification_conn(conn, err);
+    callback_on_closed(conn, err);
+    if (conn->sock) {
+        h2o_socket_close(conn->sock);
+        conn->sock = NULL;
+    }
+
+    c = conn->cmn.c;
+    conn->dispose_timeout.cb = dispose_timeout_cb;
+    h2o_timer_link(c->loop, DISPOSE_TIMEOUT_MS, &conn->dispose_timeout);
+}
+
+static void write_timeout_cb(h2o_timer_t *entry)
+{
+    struct notification_conn_t *conn;
+
+    conn = H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, dispose_timeout, entry);
+    on_error(conn, "write_timeout_cb", "I/O timeout");
 }
 
 static void on_read(h2o_socket_t *sock, const char *err)
@@ -305,6 +351,10 @@ static void on_read(h2o_socket_t *sock, const char *err)
 static void on_write(h2o_socket_t *sock, const char *err)
 {
     struct notification_conn_t *conn = sock->data;
+
+    if (h2o_timer_is_linked(&conn->dispose_timeout)) {
+        h2o_timer_unlink(&conn->dispose_timeout);
+    }
 
     if (err != NULL) {
         /* write failed */
@@ -398,7 +448,8 @@ static void release_conn_linkedlist(struct libh2o_socket_client_ctx_t *c, h2o_li
         ASSERT(NOTIFICATION_CONN == conn->cmn.cmd);
         h2o_linklist_unlink(&msg->link);
 
-        release_notification_conn(conn, err);
+        callback_on_closed(conn, err);
+        release_notification_conn(conn);
     }
 }
 
@@ -422,8 +473,7 @@ static void on_notification(h2o_multithread_receiver_t *receiver, h2o_linklist_t
                 LOGI("caller want to send data without connected");
                 h2o_linklist_insert(&conn->pending, &msg->link);
             } else if (!h2o_socket_is_writing(conn->sock)) {
-                h2o_linklist_insert(&conn->sending, &msg->link);
-                h2o_socket_write(conn->sock, &data->data, 1, on_write);
+                do_socket_write(conn, data);
             } else {
                 h2o_linklist_insert(&conn->pending, &msg->link);
             }
@@ -480,13 +530,10 @@ static void *client_loop(void *arg)
         h2o_evloop_run(c->loop, INT32_MAX);
     }
 
-    int64_t io_timeout = (int64_t)c->client_init.io_timeout;
     while (!h2o_linklist_is_empty(&c->conns)) {
-        h2o_evloop_run(c->loop, 1000);
-        io_timeout -= 1000;
-        if (io_timeout < 0)
-            break;
+        h2o_evloop_run(c->loop, DISPOSE_TIMEOUT_MS);
     }
+
     ASSERT(h2o_linklist_is_empty(&c->conns));
     release_conns(c, "event loop quiting");
     release_openssl(c);
