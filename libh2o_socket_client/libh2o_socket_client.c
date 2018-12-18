@@ -141,6 +141,7 @@ static struct notification_conn_t *notify_thread_connect(struct libh2o_socket_cl
 #ifdef DEBUG_SERIAL
     /* client handle */
     msg->clih.serial = __sync_fetch_and_add(&c->serial_counter, 1);
+    LOGV("create serial: %u", msg->clih.serial);
 #else
     msg->clih.serial = UINT32_MAX;
 #endif
@@ -163,6 +164,7 @@ static void notify_thread_data(struct notification_conn_t *conn, const void *buf
     msg->conn = conn;
 #ifdef DEBUG_SERIAL
     msg->serial = (uint64_t)conn->clih.serial << 32 | __sync_fetch_and_add(&conn->serial_counter, 1);
+// LOGV("create data serial: %lld", (long long)msg->serial);
 #else
     msg->serial = UINT64_MAX;
 #endif
@@ -222,6 +224,17 @@ static void callback_on_closed(struct notification_conn_t *conn, const char *err
     }
 }
 
+static void release_notification_data(struct notification_data_t *msg)
+{
+#ifdef DEBUG_SERIAL
+// LOGV("release data serial: %lld", (long long)msg->serial);
+#endif
+    if (h2o_linklist_is_linked(&msg->cmn.super.link)) {
+        h2o_linklist_unlink(&msg->cmn.super.link);
+    }
+    free(msg);
+}
+
 static void release_data_linkedlist(struct notification_conn_t *conn, h2o_linklist_t *messages, int sent)
 {
     struct libh2o_socket_client_ctx_t *c = conn->cmn.c;
@@ -234,7 +247,7 @@ static void release_data_linkedlist(struct notification_conn_t *conn, h2o_linkli
         h2o_linklist_unlink(&msg->link);
 
         callback_on_sent(conn, data->data.base, data->data.len, sent);
-        free(msg);
+        release_notification_data(data);
     }
 }
 
@@ -776,7 +789,7 @@ int main(int argc, char **argv)
             running = 0;
             continue;
         }
-        usleep(1000);
+        usleep(1000000);
     }
     libh2o_socket_client_stop(clients.c);
 

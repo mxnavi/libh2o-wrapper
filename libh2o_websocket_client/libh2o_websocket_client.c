@@ -168,6 +168,7 @@ static struct notification_conn_t *notify_thread_connect(struct libh2o_websocket
 
 #ifdef DEBUG_SERIAL
     msg->clih.serial = __sync_fetch_and_add(&c->serial_counter, 1);
+    LOGV("create serial: %u", msg->clih.serial);
 #else
     msg->clih.serial = UINT32_MAX;
 #endif
@@ -190,6 +191,7 @@ static void notify_thread_data(struct notification_conn_t *conn, const void *buf
     msg->data = h2o_iovec_init(buf, len);
 #ifdef DEBUG_SERIAL
     msg->serial = (uint64_t)conn->clih.serial << 32 | __sync_fetch_and_add(&conn->serial_counter, 1);
+// LOGV("create data serial: %lld", (long long)msg->serial);
 #else
     msg->serial = UINT64_MAX;
 #endif
@@ -199,7 +201,9 @@ static void notify_thread_data(struct notification_conn_t *conn, const void *buf
 
 static void release_notification_data(struct notification_data_t *msg)
 {
-    /* unlink from 'pending' */
+#ifdef DEBUG_SERIAL
+// LOGV("release data serial: %lld", (long long)msg->serial);
+#endif
     if (h2o_linklist_is_linked(&msg->cmn.super.link)) {
         h2o_linklist_unlink(&msg->cmn.super.link);
     }
