@@ -722,6 +722,8 @@ size_t libh2o_websocket_client_send(struct websocket_client_handle_t *clih, cons
 }
 
 #ifdef UNIT_TEST
+#include <signal.h>
+
 #define WEBSOCKET_CLIENT_STATE_CONNECTED 0x01
 #define WEBSOCKET_CLIENT_STATE_HANDSHAKED 0x02
 #define WEBSOCKET_CLIENT_STATE_CLOSED 0xFFFFFFFF
@@ -795,6 +797,8 @@ int main(int argc, char **argv)
      */
     struct websock_clients_t clients;
     int running = 1;
+
+    signal(SIGPIPE, SIG_IGN);
 
     /**
      * client init param

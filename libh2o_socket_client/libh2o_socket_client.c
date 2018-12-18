@@ -643,6 +643,8 @@ size_t libh2o_socket_client_send(struct socket_client_handle_t *clih, const void
 }
 
 #ifdef UNIT_TEST
+#include <signal.h>
+
 #define SOCKET_CLIENT_STATE_HOSTRESOLVED 0x01
 #define SOCKET_CLIENT_STATE_CONNECTED 0x02
 #define SOCKET_CLIENT_STATE_CLOSED 0xFFFFFFFF
@@ -715,6 +717,8 @@ int main(int argc, char **argv)
      */
     struct sock_clients_t clients;
     int running = 1;
+
+    signal(SIGPIPE, SIG_IGN);
 
     /**
      * client init param

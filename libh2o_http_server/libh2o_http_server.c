@@ -417,7 +417,7 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
 
 #ifdef DEBUG_SERIAL
         conn->clih.serial = __sync_fetch_and_add(&c->ws_serial_counter, 1);
-        LOGD("%s() serial: %u websocket conn: %p wsconn: %p open", __FUNCTION__, conn->clih.serial, conn, wsconn);
+// LOGD("%s() serial: %u websocket conn: %p wsconn: %p open", __FUNCTION__, conn->clih.serial, conn, wsconn);
 #endif
         callback_on_ws_connected(conn);
 
@@ -433,7 +433,7 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
 
 #ifdef DEBUG_SERIAL
         conn->req.serial = __sync_fetch_and_add(&c->serial_counter, 1);
-        LOGD("%s() serial: %u http req: %p conn: %p open", __FUNCTION__, conn->req.serial, req, conn);
+// LOGD("%s() serial: %u http req: %p conn: %p open", __FUNCTION__, conn->req.serial, req, conn);
 #endif
         h2o_linklist_insert(&c->threads[thread_index].conns, &conn->node);
         callback_on_http_req(conn);
@@ -1333,7 +1333,7 @@ static void registerSigHandler()
 
 static void http_server_on_http_request_cb(void *param, struct http_request_t *data)
 {
-    LOGD("%s() req: %p", __FUNCTION__, data->req);
+    // LOGD("%s() req: %p", __FUNCTION__, data->req);
 
     data->resp.status = 200;
     data->resp.header[0].token = H2O_TOKEN_CONTENT_TYPE;
@@ -1348,7 +1348,7 @@ static void http_server_on_http_request_cb(void *param, struct http_request_t *d
 
 static void http_server_on_finish_http_request_cb(void *param, struct http_request_t *data)
 {
-    LOGD("%s() req: %p", __FUNCTION__, data->req);
+    // LOGD("%s() req: %p", __FUNCTION__, data->req);
     /*FIXME: data->req->http1_is_persistent = 0; */
 }
 
