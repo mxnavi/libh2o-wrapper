@@ -24,7 +24,8 @@ extern "C" {
 /****************************************************************************
 *                       Macro Definition Section                            *
 *****************************************************************************/
-#define HTTP_RESPONSE_BODY_IOV_MAX 2
+#define HTTP_RESPONSE_BODY_IOV_MAX 4
+#define HTTP_RESPONSE_HEADER_MAX 4
 
 /****************************************************************************
 *                       Type Definition Section                             *
@@ -52,7 +53,8 @@ struct http_response_body_t {
  */
 struct http_response_t {
     int status; /* http response code */
-    struct http_response_header_t header[1];
+    const char *reason; /* reason, if NULL, default is 'OK' */
+    struct http_response_header_t header[HTTP_RESPONSE_HEADER_MAX];
     struct http_response_body_t body;
 };
 

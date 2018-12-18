@@ -769,14 +769,19 @@ static void notify_threads_quit(struct server_context_t *c)
 static void process_ready_req_item(struct notification_http_conn_t *conn)
 {
     static h2o_generator_t generator = {NULL, NULL};
+    int i;
 
     h2o_linklist_unlink(&conn->node);
 
     conn->req.req->res.status = conn->req.resp.status;
-    conn->req.req->res.reason = "OK";
+    conn->req.req->res.reason = conn->req.resp.reason != NULL ? conn->req.resp.reason : "OK";
 
-    h2o_add_header(&conn->req.req->pool, &conn->req.req->res.headers, conn->req.resp.header[0].token, NULL,
-                   conn->req.resp.header[0].value.base, conn->req.resp.header[0].value.len);
+    for (i = 0; i < HTTP_RESPONSE_HEADER_MAX; ++i) {
+        if (conn->req.resp.header[i].token == NULL)
+            break;
+        h2o_add_header(&conn->req.req->pool, &conn->req.req->res.headers, conn->req.resp.header[i].token, NULL,
+                       conn->req.resp.header[i].value.base, conn->req.resp.header[i].value.len);
+    }
     h2o_start_response(conn->req.req, &generator);
 
     /**
@@ -1185,6 +1190,9 @@ void libh2o_http_server_stop(struct server_context_t *c)
 {
     size_t i;
 
+    if (c == NULL)
+        return;
+
     notify_threads_quit(c);
     for (i = 0; i < c->server_init.num_threads; ++i) {
         pthread_join(c->threads[i].tid, NULL);
@@ -1194,6 +1202,7 @@ void libh2o_http_server_stop(struct server_context_t *c)
     remove_all_listeners(c);
     free_server_thread_data(c);
     pthread_key_delete(c->tls);
+    free(c);
 }
 
 static void notify_thread_resp(struct notification_http_conn_t *conn)
