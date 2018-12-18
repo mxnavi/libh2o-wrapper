@@ -25,7 +25,7 @@
 *                       Macro Definition Section                            *
 *****************************************************************************/
 #define UNIT_TEST 1
-// #define DEBUG_SERIAL 1
+#define DEBUG_SERIAL 1
 
 #define NOTIFICATION_CONN 0
 #define NOTIFICATION_DATA 1
@@ -709,6 +709,7 @@ int main(int argc, char **argv)
     struct socket_client_init_t client_init;
     memset(&client_init, 0x00, sizeof(client_init));
 
+    client_init.io_timeout = 10000;
     client_init.cb.on_host_resolved = cb_socket_client_on_host_resolved;
     client_init.cb.on_connected = cb_socket_client_on_connected;
     client_init.cb.on_data = cb_socket_client_on_data;

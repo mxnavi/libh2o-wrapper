@@ -26,7 +26,7 @@
 *                       Macro Definition Section                            *
 *****************************************************************************/
 #define UNIT_TEST 1
-// #define DEBUG_SERIAL 1
+#define DEBUG_SERIAL 1
 
 #define NOTIFICATION_CONN 0
 #define NOTIFICATION_QUIT 0xFFFFFFFF

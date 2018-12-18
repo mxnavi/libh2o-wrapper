@@ -39,7 +39,7 @@
 *                       Macro Definition Section                            *
 *****************************************************************************/
 #define UNIT_TEST 1
-// #define DEBUG_SERIAL 1
+#define DEBUG_SERIAL 1
 
 #define USE_HTTPS 0
 #define USE_MEMCACHED 0
