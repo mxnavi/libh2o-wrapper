@@ -1,0 +1,11 @@
+# requires clang-format >= 3.6
+BasedOnStyle: "LLVM"
+IndentWidth: 4
+ColumnLimit: 80
+BreakBeforeBraces: Linux
+AllowShortFunctionsOnASingleLine: All
+#AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+SortIncludes: false
