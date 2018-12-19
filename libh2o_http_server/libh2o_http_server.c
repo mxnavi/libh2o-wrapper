@@ -44,13 +44,14 @@
 #define USE_HTTPS 0
 #define USE_MEMCACHED 0
 
-#define CONNECTION_DISPOSED 0x80000000
-
 #define NOTIFICATION_HTTP_RESP 0
 #define NOTIFICATION_WS_DATA 1
 #define NOTIFICATION_WS_BROADCAST 2
 #define NOTIFICATION_QUIT 0xFFFFFFFF
 
+/**
+ * timeout for websocket connection released after disconnected
+ */
 #define DISPOSE_TIMEOUT_MS 1000
 
 #define LOGV(fmt, args...) ((void)fprintf(stderr, fmt "\n", ##args))
@@ -63,6 +64,9 @@
 #define ASSERT assert
 #endif
 
+/**
+ * for security reason, disable it for now
+ */
 #undef SO_REUSEPORT
 
 /****************************************************************************
@@ -120,8 +124,8 @@ struct server_context_t {
         pthread_t tid;
         int exit_loop;
         h2o_context_t ctx;
-        h2o_linklist_t conns;             /* http connections */
-        h2o_linklist_t ws_conns;          /* websocket connection list */
+        h2o_linklist_t conns;    /* http connections */
+        h2o_linklist_t ws_conns; /* websocket connection list */
         h2o_multithread_receiver_t server_notifications;
 #if USE_MEMCACHED
         h2o_multithread_receiver_t memcached;
@@ -180,8 +184,8 @@ struct notification_http_conn_t {
  */
 struct notification_ws_conn_t {
     struct notification_cmn_t cmn;
-    int thread_index;             /* to which thread this connection belongs to */
-    h2o_linklist_t pending;       /* list for pending data sent */
+    int thread_index;       /* to which thread this connection belongs to */
+    h2o_linklist_t pending; /* list for pending data sent */
     h2o_timer_t dispose_timeout;
     h2o_websocket_conn_t *wsconn; /* real connection */
     uint32_t serial_counter;      /* data serial counter */
@@ -214,6 +218,10 @@ static void process_ready_req_item(struct notification_http_conn_t *conn);
 /****************************************************************************
 *                       Functions Implement Section                         *
 *****************************************************************************/
+
+/**
+ * MUST tbe called in event loop thread
+ */
 static int get_current_thread_index(struct server_context_t *c)
 {
     struct server_tls_data_t *p;
@@ -223,6 +231,9 @@ static int get_current_thread_index(struct server_context_t *c)
     return p->__thread_index;
 }
 
+/**
+ * MUST tbe called in event loop thread
+ */
 static void set_current_thread_index(struct server_context_t *c, int thread_index)
 {
     struct server_tls_data_t *p;
@@ -402,6 +413,7 @@ static void process_timeout_req_item(struct notification_http_conn_t *conn)
     h2o_linklist_unlink(&conn->node);
 
     h2o_send_error_503(conn->req.req, "Service Unavailable", "please try again later", 0);
+    callback_on_finish_http_req(conn);
 }
 
 static void resp_timeout_cb(h2o_timer_t *entry)
@@ -459,7 +471,6 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
         struct notification_http_conn_t *conn = h2o_mem_alloc_pool(&req->pool, *conn, 1);
         memset(conn, 0x00, sizeof(*conn));
 
-
         conn->cmn.c = c;
         conn->thread_index = thread_index;
         conn->req.req = req;
@@ -496,26 +507,23 @@ static void on_accept(h2o_socket_t *listener, const char *err)
 {
     struct listener_ctx_t *ctx = listener->data;
     struct server_context_t *c = ctx->c;
+    h2o_socket_t *sock;
 
     if (H2O_UNLIKELY(err != NULL)) {
         LOGW("%s() thread_index: %d err: %s", __FUNCTION__, get_current_thread_index(c), err);
         return;
     }
 
-    {
-        h2o_socket_t *sock;
-
-        if ((sock = h2o_evloop_socket_accept(listener)) == NULL) {
-            return;
-        }
-        // LOGD("%s() thread_index: %d sock: %p data: %p", __FUNCTION__, get_current_thread_index(c), sock, ctx->accept_ctx.ctx);
-
-        num_connections(c, 1);
-
-        sock->on_close.cb = on_socketclose;
-        sock->on_close.data = c;
-        h2o_accept(&ctx->accept_ctx, sock);
+    if ((sock = h2o_evloop_socket_accept(listener)) == NULL) {
+        return;
     }
+    // LOGD("%s() thread_index: %d sock: %p data: %p", __FUNCTION__, get_current_thread_index(c), sock, ctx->accept_ctx.ctx);
+
+    num_connections(c, 1);
+
+    sock->on_close.cb = on_socketclose;
+    sock->on_close.data = c;
+    h2o_accept(&ctx->accept_ctx, sock);
 }
 
 static struct listener_config_t *find_listener(struct server_context_t *c, struct sockaddr *addr, socklen_t addrlen)
@@ -744,7 +752,7 @@ static void setup_ecc_key(SSL_CTX *ssl_ctx)
 #endif
 }
 
-static int libh2o_setup_ssl(struct server_context_t *c, const char *cert_file, const char *key_file, const char *ciphers)
+static int setup_ssl(struct server_context_t *c, const char *cert_file, const char *key_file, const char *ciphers)
 {
     SSL_load_error_strings();
     SSL_library_init();
@@ -1187,7 +1195,7 @@ struct server_context_t *libh2o_http_server_start(const struct http_server_init_
     }
 
 #if USE_HTTPS
-    if (libh2o_setup_ssl(c, server_init->ssl_init.cert_file, server_init->ssl_init.key_file, server_init->ssl_init.ciphers) != 0) {
+    if (setup_ssl(c, server_init->ssl_init.cert_file, server_init->ssl_init.key_file, server_init->ssl_init.ciphers) != 0) {
         LOGE("failed to setup ssl");
         goto ERROR;
     }
