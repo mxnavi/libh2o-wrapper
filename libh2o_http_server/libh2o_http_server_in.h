@@ -73,9 +73,12 @@ struct http_request_t {
  * @param param parameter from user
  * @param data pointer of http_request_t
  */
-typedef void (*http_server_on_http_request)(void * /* param */, struct http_request_t * /* data */);
-typedef void (*http_server_on_http_resp_timeout)(void * /* param */, struct http_request_t * /* data */);
-typedef void (*http_server_on_finish_http_request)(void * /* param */, struct http_request_t * /* data */);
+typedef void (*http_server_on_http_request)(void * /* param */,
+                                            struct http_request_t * /* data */);
+typedef void (*http_server_on_http_resp_timeout)(
+    void * /* param */, struct http_request_t * /* data */);
+typedef void (*http_server_on_finish_http_request)(
+    void * /* param */, struct http_request_t * /* data */);
 
 /**
  * websocket connection handle
@@ -90,12 +93,16 @@ struct websocket_handle_t;
  * @param len  message length
  * @param clih websocket connection handle
  */
-typedef void (*http_server_on_ws_connected)(void * /* param */, struct websocket_handle_t * /* clih */);
-typedef void (*http_server_on_ws_recv)(void * /* param */, void * /* buf */, size_t /* len */,
+typedef void (*http_server_on_ws_connected)(
+    void * /* param */, struct websocket_handle_t * /* clih */);
+typedef void (*http_server_on_ws_recv)(void * /* param */, void * /* buf */,
+                                       size_t /* len */,
                                        struct websocket_handle_t * /* clih */);
-typedef void (*http_server_on_ws_sent)(void * /* param */, void * /* buf */, size_t /* len */,
+typedef void (*http_server_on_ws_sent)(void * /* param */, void * /* buf */,
+                                       size_t /* len */,
                                        struct websocket_handle_t * /* clih */);
-typedef void (*http_server_on_ws_closed)(void * /* param */, struct websocket_handle_t * /* clih */);
+typedef void (*http_server_on_ws_closed)(
+    void * /* param */, struct websocket_handle_t * /* clih */);
 
 /**
  * user callback interface
@@ -159,7 +166,8 @@ struct server_ssl_init_t {
 struct http_server_init_t {
     const char *host;
     const char **port;
-    int resp_timeout; /* response timeout in miliseconds, 0: not response timeout */
+    int resp_timeout; /* response timeout in miliseconds, 0: not response
+                         timeout */
     int num_threads;
     const char *doc_root;
     struct server_ssl_init_t ssl_init;
@@ -179,4 +187,3 @@ struct http_server_init_t {
 #endif
 
 #endif /* __INCLUDE_LIBH2O_HTTP_SERVER_IN_H__ */
-

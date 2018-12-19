@@ -41,14 +41,20 @@ struct socket_client_handle_t;
  *
  * @param param parameter from user
  */
-typedef void (*socket_client_on_host_resolved)(void * /* param */, struct addrinfo * /* addr */,
-                                               struct socket_client_handle_t * /* clih */);
-typedef void (*socket_client_on_connected)(void * /* param */, struct socket_client_handle_t * /* clih */);
-typedef void (*socket_client_on_data)(void * /* param */, void * /* buf */, size_t /* len */,
-                                      struct socket_client_handle_t * /* clih */);
-typedef void (*socket_client_on_sent)(void * /* param */, void * /* buf */, size_t /* len */, int sent,
-                                      struct socket_client_handle_t * /* clih */);
-typedef void (*socket_client_on_closed)(void * /* param */, const char * /* err */, struct socket_client_handle_t * /* clih */);
+typedef void (*socket_client_on_host_resolved)(
+    void * /* param */, struct addrinfo * /* addr */,
+    struct socket_client_handle_t * /* clih */);
+typedef void (*socket_client_on_connected)(
+    void * /* param */, struct socket_client_handle_t * /* clih */);
+typedef void (*socket_client_on_data)(
+    void * /* param */, void * /* buf */, size_t /* len */,
+    struct socket_client_handle_t * /* clih */);
+typedef void (*socket_client_on_sent)(
+    void * /* param */, void * /* buf */, size_t /* len */, int sent,
+    struct socket_client_handle_t * /* clih */);
+typedef void (*socket_client_on_closed)(
+    void * /* param */, const char * /* err */,
+    struct socket_client_handle_t * /* clih */);
 
 /**
  * user callback interface
@@ -114,4 +120,3 @@ struct socket_client_init_t {
 #endif
 
 #endif /* __INCLUDE_LIBH2O_SOCKET_CLIENT_IN_H__ */
-

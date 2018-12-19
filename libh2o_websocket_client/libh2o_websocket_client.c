@@ -77,7 +77,8 @@ struct websocket_client_handle_t {
  * MUST the first member for sub struct
  */
 struct notification_cmn_t {
-    h2o_multithread_message_t super; /* used to call h2o_multithread_send_message() */
+    h2o_multithread_message_t
+        super; /* used to call h2o_multithread_send_message() */
     struct libh2o_websocket_client_ctx_t *c;
     uint32_t cmd;
 };
@@ -115,18 +116,25 @@ struct notification_data_t {
 /****************************************************************************
 *                       Functions Prototype Section                         *
 *****************************************************************************/
-static h2o_httpclient_head_cb on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *method, h2o_url_t *url,
-                                         const h2o_header_t **headers, size_t *num_headers, h2o_iovec_t *body,
-                                         h2o_httpclient_proceed_req_cb *proceed_req_cb, h2o_httpclient_properties_t *props,
-                                         h2o_url_t *origin);
-static h2o_httpclient_body_cb on_head(h2o_httpclient_t *client, const char *errstr, int version, int status, h2o_iovec_t msg,
-                                      h2o_header_t *headers, size_t num_headers, int header_requires_dup);
+static h2o_httpclient_head_cb
+on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *method,
+           h2o_url_t *url, const h2o_header_t **headers, size_t *num_headers,
+           h2o_iovec_t *body, h2o_httpclient_proceed_req_cb *proceed_req_cb,
+           h2o_httpclient_properties_t *props, h2o_url_t *origin);
+static h2o_httpclient_body_cb on_head(h2o_httpclient_t *client,
+                                      const char *errstr, int version,
+                                      int status, h2o_iovec_t msg,
+                                      h2o_header_t *headers, size_t num_headers,
+                                      int header_requires_dup);
 
-static void on_error(struct notification_conn_t *conn, const char *prefix, const char *err);
+static void on_error(struct notification_conn_t *conn, const char *prefix,
+                     const char *err);
 
-static void callback_on_sent(struct notification_conn_t *conn, void *buf, size_t len, int sent);
+static void callback_on_sent(struct notification_conn_t *conn, void *buf,
+                             size_t len, int sent);
 
-static void callback_on_closed(struct notification_conn_t *conn, const char *err);
+static void callback_on_closed(struct notification_conn_t *conn,
+                               const char *err);
 
 /****************************************************************************
 *                       Functions Implement Section                         *
@@ -142,7 +150,8 @@ static void notify_thread_quit(struct libh2o_websocket_client_ctx_t *c)
     h2o_multithread_send_message(&c->notifications, &msg->cmn.super);
 }
 
-static void dup_req(struct websocket_client_req_t *dst, const struct websocket_client_req_t *src)
+static void dup_req(struct websocket_client_req_t *dst,
+                    const struct websocket_client_req_t *src)
 {
     dst->url = strdup(src->url);
     dst->opcode = src->opcode;
@@ -154,8 +163,9 @@ static void free_req(struct websocket_client_req_t *req)
     free(req->url);
 }
 
-static struct notification_conn_t *notify_thread_connect(struct libh2o_websocket_client_ctx_t *c,
-                                                         const struct websocket_client_req_t *req)
+static struct notification_conn_t *
+notify_thread_connect(struct libh2o_websocket_client_ctx_t *c,
+                      const struct websocket_client_req_t *req)
 {
     struct notification_conn_t *msg = h2o_mem_alloc(sizeof(*msg));
     memset(msg, 0x00, sizeof(*msg));
@@ -178,7 +188,8 @@ static struct notification_conn_t *notify_thread_connect(struct libh2o_websocket
     return msg;
 }
 
-static void notify_thread_data(struct notification_conn_t *conn, const void *buf, size_t len)
+static void notify_thread_data(struct notification_conn_t *conn,
+                               const void *buf, size_t len)
 {
     struct notification_data_t *msg = h2o_mem_alloc(sizeof(*msg));
     memset(msg, 0x00, sizeof(*msg));
@@ -189,7 +200,8 @@ static void notify_thread_data(struct notification_conn_t *conn, const void *buf
     msg->conn = conn;
     msg->data = h2o_iovec_init(buf, len);
 #ifdef DEBUG_SERIAL
-    msg->serial = (uint64_t)conn->clih.serial << 32 | __sync_fetch_and_add(&conn->serial_counter, 1);
+    msg->serial = (uint64_t)conn->clih.serial << 32 |
+                  __sync_fetch_and_add(&conn->serial_counter, 1);
 // LOGV("create data serial: %lld", (long long)msg->serial);
 #else
     msg->serial = UINT64_MAX;
@@ -209,13 +221,15 @@ static void release_notification_data(struct notification_data_t *msg)
     free(msg);
 }
 
-static void release_pending_data_linklist(struct notification_conn_t *conn, int sent)
+static void release_pending_data_linklist(struct notification_conn_t *conn,
+                                          int sent)
 {
     h2o_linklist_t *messages = &conn->pending;
     struct libh2o_websocket_client_ctx_t *c = conn->cmn.c;
 
     while (!h2o_linklist_is_empty(messages)) {
-        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(h2o_multithread_message_t, link, messages->next);
+        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(
+            h2o_multithread_message_t, link, messages->next);
         struct notification_data_t *data = (struct notification_data_t *)msg;
         ASSERT(c == data->cmn.c);
         ASSERT(NOTIFICATION_DATA == data->cmn.cmd);
@@ -241,23 +255,23 @@ static void release_notification_conn(struct notification_conn_t *conn)
 
     release_pending_data_linklist(conn, 0);
 
-
     /* release h2o websocket client conn */
     if (conn->wsconn) {
         h2o_websocket_client_close(conn->wsconn);
         conn->wsconn = NULL;
     }
 
-    if (conn->fd > 0)
-        close(conn->fd);
+    if (conn->fd > 0) close(conn->fd);
     free_req(&conn->req);
     h2o_mem_clear_pool(&conn->pool);
     free(conn);
 }
 
-static void queue_websocket_data(struct notification_conn_t *conn, struct notification_data_t *data)
+static void queue_websocket_data(struct notification_conn_t *conn,
+                                 struct notification_data_t *data)
 {
-    struct wslay_event_msg msgarg = {conn->req.opcode, (const uint8_t *)data->data.base, data->data.len};
+    struct wslay_event_msg msgarg = {
+        conn->req.opcode, (const uint8_t *)data->data.base, data->data.len};
     ASSERT(conn == data->conn);
     wslay_event_queue_msg(conn->wsconn->ws_ctx, &msgarg);
 }
@@ -281,11 +295,11 @@ static void flush_pending_data_linklist(struct notification_conn_t *conn)
     c = conn->cmn.c;
 
     ASSERT(conn->wsconn != NULL);
-    if (conn->wsconn == NULL)
-        return;
+    if (conn->wsconn == NULL) return;
 
     while (!h2o_linklist_is_empty(messages)) {
-        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(h2o_multithread_message_t, link, messages->next);
+        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(
+            h2o_multithread_message_t, link, messages->next);
         struct notification_data_t *data = (struct notification_data_t *)msg;
         ASSERT(c == data->cmn.c);
         ASSERT(NOTIFICATION_DATA == data->cmn.cmd);
@@ -298,7 +312,9 @@ static void flush_pending_data_linklist(struct notification_conn_t *conn)
     }
 }
 
-static int foreach_conn(struct libh2o_websocket_client_ctx_t *c, int (*cb)(struct notification_conn_t *conn, void *cbdata),
+static int foreach_conn(struct libh2o_websocket_client_ctx_t *c,
+                        int (*cb)(struct notification_conn_t *conn,
+                                  void *cbdata),
                         void *cbdata)
 {
     h2o_linklist_t *node;
@@ -306,13 +322,13 @@ static int foreach_conn(struct libh2o_websocket_client_ctx_t *c, int (*cb)(struc
     for (node = c->conns.next; node != &c->conns; node = node->next) {
         struct notification_conn_t *conn = (struct notification_conn_t *)(node);
         int ret = cb(conn, cbdata);
-        if (ret != 0)
-            return ret;
+        if (ret != 0) return ret;
     }
     return 0;
 }
 
-static int queue_websocket_close_cb(struct notification_conn_t *conn, void *cbdata)
+static int queue_websocket_close_cb(struct notification_conn_t *conn,
+                                    void *cbdata)
 {
     if (conn->wsconn != NULL) {
         queue_websocket_close(conn);
@@ -321,16 +337,19 @@ static int queue_websocket_close_cb(struct notification_conn_t *conn, void *cbda
     return 0;
 }
 
-static void on_notification(h2o_multithread_receiver_t *receiver, h2o_linklist_t *messages)
+static void on_notification(h2o_multithread_receiver_t *receiver,
+                            h2o_linklist_t *messages)
 {
     while (!h2o_linklist_is_empty(messages)) {
-        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(h2o_multithread_message_t, link, messages->next);
+        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(
+            h2o_multithread_message_t, link, messages->next);
         struct notification_cmn_t *cmn = (struct notification_cmn_t *)msg;
         struct libh2o_websocket_client_ctx_t *c = cmn->c;
 
         h2o_linklist_unlink(&msg->link);
         if (cmn->cmd == NOTIFICATION_DATA) {
-            struct notification_data_t *data = (struct notification_data_t *)cmn;
+            struct notification_data_t *data =
+                (struct notification_data_t *)cmn;
             struct notification_conn_t *conn = data->conn;
             if (conn->wsconn != NULL) {
                 queue_websocket_data(conn, data);
@@ -342,17 +361,20 @@ static void on_notification(h2o_multithread_receiver_t *receiver, h2o_linklist_t
                 h2o_linklist_insert(&conn->pending, &msg->link);
             }
         } else if (cmn->cmd == NOTIFICATION_CONN) {
-            struct notification_conn_t *conn = (struct notification_conn_t *)cmn;
+            struct notification_conn_t *conn =
+                (struct notification_conn_t *)cmn;
             h2o_mem_init_pool(&conn->pool);
             /* parse URL */
-            if (h2o_url_parse(conn->req.url, SIZE_MAX, &conn->url_parsed) != 0) {
+            if (h2o_url_parse(conn->req.url, SIZE_MAX, &conn->url_parsed) !=
+                0) {
                 LOGW("unrecognized type of URL: %s", conn->req.url);
                 on_error(conn, "on_notification", "URL error");
                 continue;
             }
             h2o_linklist_insert(&c->conns, &msg->link);
-            h2o_httpclient_connect(&conn->client, &conn->pool, conn, &conn->cmn.c->ctx, conn->cmn.c->connpool, &conn->url_parsed,
-                                   on_connect);
+            h2o_httpclient_connect(&conn->client, &conn->pool, conn,
+                                   &conn->cmn.c->ctx, conn->cmn.c->connpool,
+                                   &conn->url_parsed, on_connect);
         } else if (cmn->cmd == NOTIFICATION_QUIT) {
             foreach_conn(c, queue_websocket_close_cb, NULL);
             c->exit_loop = 1;
@@ -384,7 +406,8 @@ static void callback_on_handshaked(struct notification_conn_t *conn)
     }
 }
 
-static void callback_on_sent(struct notification_conn_t *conn, void *buf, size_t len, int sent)
+static void callback_on_sent(struct notification_conn_t *conn, void *buf,
+                             size_t len, int sent)
 {
     struct libh2o_websocket_client_ctx_t *c = conn->cmn.c;
     struct websocket_client_init_t *p = &c->client_init;
@@ -394,7 +417,8 @@ static void callback_on_sent(struct notification_conn_t *conn, void *buf, size_t
     }
 }
 
-static void callback_on_recv(struct notification_conn_t *conn, void *buf, size_t len)
+static void callback_on_recv(struct notification_conn_t *conn, void *buf,
+                             size_t len)
 {
     struct libh2o_websocket_client_ctx_t *c = conn->cmn.c;
     struct websocket_client_init_t *p = &c->client_init;
@@ -404,7 +428,8 @@ static void callback_on_recv(struct notification_conn_t *conn, void *buf, size_t
     }
 }
 
-static void callback_on_closed(struct notification_conn_t *conn, const char *err)
+static void callback_on_closed(struct notification_conn_t *conn,
+                               const char *err)
 {
     struct libh2o_websocket_client_ctx_t *c = conn->cmn.c;
     struct websocket_client_init_t *p = &c->client_init;
@@ -414,10 +439,12 @@ static void callback_on_closed(struct notification_conn_t *conn, const char *err
     }
 }
 
-static void release_conn_linkedlist(struct libh2o_websocket_client_ctx_t *c, h2o_linklist_t *messages, const char *err)
+static void release_conn_linkedlist(struct libh2o_websocket_client_ctx_t *c,
+                                    h2o_linklist_t *messages, const char *err)
 {
     while (!h2o_linklist_is_empty(messages)) {
-        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(h2o_multithread_message_t, link, messages->next);
+        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(
+            h2o_multithread_message_t, link, messages->next);
         struct notification_conn_t *conn = (struct notification_conn_t *)msg;
         ASSERT(c == conn->cmn.c);
         ASSERT(NOTIFICATION_CONN == conn->cmn.cmd);
@@ -428,7 +455,8 @@ static void release_conn_linkedlist(struct libh2o_websocket_client_ctx_t *c, h2o
     }
 }
 
-static void release_conns(struct libh2o_websocket_client_ctx_t *c, const char *err)
+static void release_conns(struct libh2o_websocket_client_ctx_t *c,
+                          const char *err)
 {
     release_conn_linkedlist(c, &c->conns, err);
 }
@@ -437,11 +465,13 @@ static void dispose_timeout_cb(h2o_timer_t *entry)
 {
     struct notification_conn_t *conn;
 
-    conn = H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, dispose_timeout, entry);
+    conn = H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, dispose_timeout,
+                                  entry);
     release_notification_conn(conn);
 }
 
-static void on_error(struct notification_conn_t *conn, const char *prefix, const char *err)
+static void on_error(struct notification_conn_t *conn, const char *prefix,
+                     const char *err)
 {
     struct libh2o_websocket_client_ctx_t *c;
     ASSERT(err != NULL);
@@ -457,7 +487,8 @@ static void on_error(struct notification_conn_t *conn, const char *prefix, const
     h2o_timer_link(c->ctx.loop, DISPOSE_TIMEOUT_MS, &conn->dispose_timeout);
 }
 
-static void on_ws_message(h2o_websocket_client_conn_t *_conn, const struct wslay_event_on_msg_recv_arg *arg)
+static void on_ws_message(h2o_websocket_client_conn_t *_conn,
+                          const struct wslay_event_on_msg_recv_arg *arg)
 {
     struct notification_conn_t *conn = _conn->data;
     if (arg == NULL) {
@@ -471,8 +502,10 @@ static void on_ws_message(h2o_websocket_client_conn_t *_conn, const struct wslay
     }
 }
 
-h2o_httpclient_body_cb on_head(h2o_httpclient_t *client, const char *errstr, int version, int status, h2o_iovec_t msg,
-                               h2o_header_t *headers, size_t num_headers, int header_requires_dup)
+h2o_httpclient_body_cb on_head(h2o_httpclient_t *client, const char *errstr,
+                               int version, int status, h2o_iovec_t msg,
+                               h2o_header_t *headers, size_t num_headers,
+                               int header_requires_dup)
 {
     struct notification_conn_t *conn = client->data;
 
@@ -499,12 +532,14 @@ h2o_httpclient_body_cb on_head(h2o_httpclient_t *client, const char *errstr, int
     printf("\n");
 #endif
 
-    if (0 != h2o_is_websocket_respheader(version, status, conn->sec_websock_key, headers, num_headers)) {
+    if (0 != h2o_is_websocket_respheader(version, status, conn->sec_websock_key,
+                                         headers, num_headers)) {
         LOGE("No websocket response header");
         on_error(conn, "on_head error", "No websocket response header");
         return NULL;
     }
-    conn->wsconn = h2o_upgrade_to_websocket_client(client, conn, version, conn->fd, on_ws_message);
+    conn->wsconn = h2o_upgrade_to_websocket_client(client, conn, version,
+                                                   conn->fd, on_ws_message);
     conn->client = NULL;
     callback_on_handshaked(conn);
 
@@ -516,14 +551,14 @@ h2o_httpclient_body_cb on_head(h2o_httpclient_t *client, const char *errstr, int
      */
     flush_pending_data_linklist(conn);
 
-
     return NULL;
 }
 
-h2o_httpclient_head_cb on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *_method, h2o_url_t *url,
-                                  const h2o_header_t **headers, size_t *num_headers, h2o_iovec_t *body,
-                                  h2o_httpclient_proceed_req_cb *proceed_req_cb, h2o_httpclient_properties_t *props,
-                                  h2o_url_t *origin)
+h2o_httpclient_head_cb
+on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *_method,
+           h2o_url_t *url, const h2o_header_t **headers, size_t *num_headers,
+           h2o_iovec_t *body, h2o_httpclient_proceed_req_cb *proceed_req_cb,
+           h2o_httpclient_properties_t *props, h2o_url_t *origin)
 {
     h2o_header_t *_headers;
     const h2o_url_t *url_parsed;
@@ -539,7 +574,8 @@ h2o_httpclient_head_cb on_connect(h2o_httpclient_t *client, const char *errstr, 
     url_parsed = &conn->url_parsed;
     *_method = h2o_iovec_init(H2O_STRLIT("GET"));
     *url = conn->url_parsed;
-    *num_headers = h2o_websocket_client_create_headers(&conn->pool, url_parsed, conn->fd, &_headers, &conn->sec_websock_key);
+    *num_headers = h2o_websocket_client_create_headers(
+        &conn->pool, url_parsed, conn->fd, &_headers, &conn->sec_websock_key);
     ASSERT(*num_headers > 0);
     ASSERT(_headers != NULL);
 #if 0
@@ -570,8 +606,11 @@ static void init_openssl(struct libh2o_websocket_client_ctx_t *c)
 
     if (c->client_init.ssl_init.cert_file) {
         c->ssl_ctx = SSL_CTX_new(TLSv1_client_method());
-        SSL_CTX_load_verify_locations(c->ssl_ctx, c->client_init.ssl_init.cert_file, NULL);
-        SSL_CTX_set_verify(c->ssl_ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
+        SSL_CTX_load_verify_locations(c->ssl_ctx,
+                                      c->client_init.ssl_init.cert_file, NULL);
+        SSL_CTX_set_verify(c->ssl_ctx,
+                           SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
+                           NULL);
     }
 }
 
@@ -589,7 +628,8 @@ static void init_conn_poll(struct libh2o_websocket_client_ctx_t *c)
     connpool = h2o_mem_alloc(sizeof(*connpool));
     sockpool = h2o_mem_alloc(sizeof(*sockpool));
     h2o_socketpool_init_global(sockpool, 128);
-    h2o_socketpool_set_timeout(sockpool, c->client_init.io_timeout + 10000 /* in msec */);
+    h2o_socketpool_set_timeout(sockpool,
+                               c->client_init.io_timeout + 10000 /* in msec */);
     h2o_socketpool_register_loop(sockpool, c->ctx.loop);
     h2o_httpclient_connection_pool_init(connpool, sockpool);
     c->connpool = connpool;
@@ -632,17 +672,14 @@ static void *client_loop(void *arg)
     return 0;
 }
 
-const char *libh2o_websocket_client_get_version(void)
-{
-    return H2O_VERSION;
-}
+const char *libh2o_websocket_client_get_version(void) { return H2O_VERSION; }
 
-struct libh2o_websocket_client_ctx_t *libh2o_websocket_client_start(const struct websocket_client_init_t *client_init)
+struct libh2o_websocket_client_ctx_t *
+libh2o_websocket_client_start(const struct websocket_client_init_t *client_init)
 {
     struct libh2o_websocket_client_ctx_t *c;
 
-    if (!client_init)
-        return NULL;
+    if (!client_init) return NULL;
 
     c = h2o_mem_alloc(sizeof(*c));
     if (c) {
@@ -665,8 +702,10 @@ struct libh2o_websocket_client_ctx_t *libh2o_websocket_client_start(const struct
         memset(&c->ctx.http2, 0x00, sizeof(c->ctx.http2));
 
         c->queue = h2o_multithread_create_queue(c->ctx.loop);
-        h2o_multithread_register_receiver(c->queue, &c->getaddr_receiver, h2o_hostinfo_getaddr_receiver);
-        h2o_multithread_register_receiver(c->queue, &c->notifications, on_notification);
+        h2o_multithread_register_receiver(c->queue, &c->getaddr_receiver,
+                                          h2o_hostinfo_getaddr_receiver);
+        h2o_multithread_register_receiver(c->queue, &c->notifications,
+                                          on_notification);
         memcpy(&c->client_init, client_init, sizeof(*client_init));
 
         h2o_multithread_create_thread(&c->tid, NULL, client_loop, (void *)c);
@@ -690,13 +729,13 @@ void libh2o_websocket_client_stop(struct libh2o_websocket_client_ctx_t *c)
     free(c);
 }
 
-struct websocket_client_handle_t *libh2o_websocket_client_req(struct libh2o_websocket_client_ctx_t *c,
-                                                              const struct websocket_client_req_t *req)
+struct websocket_client_handle_t *
+libh2o_websocket_client_req(struct libh2o_websocket_client_ctx_t *c,
+                            const struct websocket_client_req_t *req)
 {
     struct notification_conn_t *conn;
 
-    if (c == NULL || req == NULL || req->url == NULL)
-        return NULL;
+    if (c == NULL || req == NULL || req->url == NULL) return NULL;
 
     if (req->opcode != WSLAY_TEXT_FRAME && req->opcode != WSLAY_BINARY_FRAME) {
         return NULL;
@@ -705,14 +744,13 @@ struct websocket_client_handle_t *libh2o_websocket_client_req(struct libh2o_webs
     return &conn->clih;
 }
 
-size_t libh2o_websocket_client_send(struct websocket_client_handle_t *clih, const void *buf, size_t len)
+size_t libh2o_websocket_client_send(struct websocket_client_handle_t *clih,
+                                    const void *buf, size_t len)
 {
     struct notification_conn_t *conn;
 
-    if (clih == NULL)
-        return 0;
-    if (buf == NULL || len == 0)
-        return 0;
+    if (clih == NULL) return 0;
+    if (buf == NULL || len == 0) return 0;
 
     conn = H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, clih, clih);
 
@@ -739,52 +777,63 @@ struct websock_clients_t {
 
 struct websock_clients_t sock_clients;
 
-static void cb_websocket_client_on_connected(void *param, struct websocket_client_handle_t *clih)
+static void
+cb_websocket_client_on_connected(void *param,
+                                 struct websocket_client_handle_t *clih)
 {
     LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
     struct websock_clients_t *clients = param;
     int i;
     for (i = 0; i < clients->nclients; ++i) {
         if (clients->clients[i].clih == clih) {
-            __sync_fetch_and_or(&clients->clients[i].state, WEBSOCKET_CLIENT_STATE_CONNECTED);
+            __sync_fetch_and_or(&clients->clients[i].state,
+                                WEBSOCKET_CLIENT_STATE_CONNECTED);
         }
     }
 }
 
-static void cb_websocket_client_on_handshaked(void *param, struct websocket_client_handle_t *clih)
+static void
+cb_websocket_client_on_handshaked(void *param,
+                                  struct websocket_client_handle_t *clih)
 {
     LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
     struct websock_clients_t *clients = param;
     int i;
     for (i = 0; i < clients->nclients; ++i) {
         if (clients->clients[i].clih == clih) {
-            __sync_fetch_and_or(&clients->clients[i].state, WEBSOCKET_CLIENT_STATE_HANDSHAKED);
+            __sync_fetch_and_or(&clients->clients[i].state,
+                                WEBSOCKET_CLIENT_STATE_HANDSHAKED);
         }
     }
 }
 
-static void cb_websocket_client_on_sent(void *param, void *buf, size_t len, struct websocket_client_handle_t *clih)
+static void cb_websocket_client_on_sent(void *param, void *buf, size_t len,
+                                        struct websocket_client_handle_t *clih)
 {
     struct websock_clients_t *clients = param;
     (void)clients;
     free(buf);
 }
 
-static void cb_websocket_client_on_recv(void *param, void *buf, size_t len, struct websocket_client_handle_t *clih)
+static void cb_websocket_client_on_recv(void *param, void *buf, size_t len,
+                                        struct websocket_client_handle_t *clih)
 {
     struct websock_clients_t *clients = param;
     (void)clients;
     // fwrite(buf, 1, len, stdout);
 }
 
-static void cb_websocket_client_on_closed(void *param, const char *err, struct websocket_client_handle_t *clih)
+static void
+cb_websocket_client_on_closed(void *param, const char *err,
+                              struct websocket_client_handle_t *clih)
 {
     LOGV("%s() @line: %d err: %s", __FUNCTION__, __LINE__, err ? err : "");
     struct websock_clients_t *clients = param;
     int i;
     for (i = 0; i < clients->nclients; ++i) {
         if (clients->clients[i].clih == clih) {
-            __sync_fetch_and_or(&clients->clients[i].state, WEBSOCKET_CLIENT_STATE_CLOSED);
+            __sync_fetch_and_or(&clients->clients[i].state,
+                                WEBSOCKET_CLIENT_STATE_CLOSED);
         }
     }
 }
@@ -821,13 +870,15 @@ int main(int argc, char **argv)
 
     clients.nclients = argc;
     clients.clients = malloc(sizeof(struct websocket_client_state_t) * argc);
-    memset(clients.clients, 0x00, sizeof(struct websocket_client_state_t) * argc);
+    memset(clients.clients, 0x00,
+           sizeof(struct websocket_client_state_t) * argc);
 
     /**
      * 2: create websocket client request
      * on_connected and on handshaked will be called back
      */
-    struct websocket_client_req_t req = {"http://127.0.0.1:7890/", WEBSOCKET_FRAME_TYPE_TEXT};
+    struct websocket_client_req_t req = {"http://127.0.0.1:7890/",
+                                         WEBSOCKET_FRAME_TYPE_TEXT};
     clients.clients[0].clih = libh2o_websocket_client_req(clients.c, &req);
 
     int i;

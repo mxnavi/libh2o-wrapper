@@ -47,7 +47,8 @@ const char *libh2o_http_client_get_version(void);
  * @param client_init init parameters
  * @return client context for success or else error
  */
-struct libh2o_http_client_ctx_t *libh2o_http_client_start(const struct http_client_init_t *client_init);
+struct libh2o_http_client_ctx_t *
+libh2o_http_client_start(const struct http_client_init_t *client_init);
 
 /**
  * moudle stop, will stop work thread for libh2o http client and
@@ -64,11 +65,12 @@ void libh2o_http_client_stop(struct libh2o_http_client_ctx_t *c);
  * @param req  http request
  * @return http client request handle for success or else NULL when error
  */
-struct http_client_handle_t *libh2o_http_client_req(struct libh2o_http_client_ctx_t *c, struct http_client_req_t *req);
+struct http_client_handle_t *
+libh2o_http_client_req(struct libh2o_http_client_ctx_t *c,
+                       struct http_client_req_t *req);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* __INCLUDE_LIBH2O_HTTP_CLIENT_H__ */
-

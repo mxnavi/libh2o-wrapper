@@ -47,7 +47,8 @@ const char *libh2o_websocket_client_get_version(void);
  * @param client_init init parameters
  * @return client context for success or else error
  */
-struct libh2o_websocket_client_ctx_t *libh2o_websocket_client_start(const struct websocket_client_init_t *client_init);
+struct libh2o_websocket_client_ctx_t *libh2o_websocket_client_start(
+    const struct websocket_client_init_t *client_init);
 
 /**
  * moudle stop, will stop event loop thread for libh2o websocket client and
@@ -62,10 +63,12 @@ void libh2o_websocket_client_stop(struct libh2o_websocket_client_ctx_t *c);
  * request a websocket connection to server
  * @param c websocket client context pointer
  * @param req request info
- * @return websocket client connection handle for success or else NULL when error
+ * @return websocket client connection handle for success or else NULL when
+ * error
  */
-struct websocket_client_handle_t *libh2o_websocket_client_req(struct libh2o_websocket_client_ctx_t *c,
-                                                              const struct websocket_client_req_t *req);
+struct websocket_client_handle_t *
+libh2o_websocket_client_req(struct libh2o_websocket_client_ctx_t *c,
+                            const struct websocket_client_req_t *req);
 
 /**
  * queue data to event loop for sending
@@ -73,13 +76,14 @@ struct websocket_client_handle_t *libh2o_websocket_client_req(struct libh2o_webs
  * @param buf buffer pointer
  * @param len buffer length in bytes
  * @return len for success or else 0 when error
- * @note buf should be allocated from  heap and *MUST* be valid until on_sent callback
+ * @note buf should be allocated from  heap and *MUST* be valid until on_sent
+ * callback
  */
-size_t libh2o_websocket_client_send(struct websocket_client_handle_t *clih, const void *buf, size_t len);
+size_t libh2o_websocket_client_send(struct websocket_client_handle_t *clih,
+                                    const void *buf, size_t len);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* __INCLUDE_LIBH2O_WEBSOCKET_CLIENT_H__ */
-

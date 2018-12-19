@@ -72,7 +72,8 @@ struct socket_client_handle_t {
  * MUST the first member for sub struct
  */
 struct notification_cmn_t {
-    h2o_multithread_message_t super; /* used to call h2o_multithread_send_message() */
+    h2o_multithread_message_t
+        super; /* used to call h2o_multithread_send_message() */
     struct libh2o_socket_client_ctx_t *c;
     uint32_t cmd;
 };
@@ -125,8 +126,9 @@ static void notify_thread_quit(struct libh2o_socket_client_ctx_t *c)
     h2o_multithread_send_message(&c->notifications, &msg->cmn.super);
 }
 
-static struct notification_conn_t *notify_thread_connect(struct libh2o_socket_client_ctx_t *c,
-                                                         const struct socket_client_req_t *req)
+static struct notification_conn_t *
+notify_thread_connect(struct libh2o_socket_client_ctx_t *c,
+                      const struct socket_client_req_t *req)
 {
     struct notification_conn_t *msg = h2o_mem_alloc(sizeof(*msg));
     memset(msg, 0x00, sizeof(*msg));
@@ -152,7 +154,8 @@ static struct notification_conn_t *notify_thread_connect(struct libh2o_socket_cl
     return msg;
 }
 
-static void notify_thread_data(struct notification_conn_t *conn, const void *buf, size_t len)
+static void notify_thread_data(struct notification_conn_t *conn,
+                               const void *buf, size_t len)
 {
     struct notification_data_t *msg = h2o_mem_alloc(sizeof(*msg));
     memset(msg, 0x00, sizeof(*msg));
@@ -162,7 +165,8 @@ static void notify_thread_data(struct notification_conn_t *conn, const void *buf
 
     msg->conn = conn;
 #ifdef DEBUG_SERIAL
-    msg->serial = (uint64_t)conn->clih.serial << 32 | __sync_fetch_and_add(&conn->serial_counter, 1);
+    msg->serial = (uint64_t)conn->clih.serial << 32 |
+                  __sync_fetch_and_add(&conn->serial_counter, 1);
 // LOGV("create data serial: %lld", (long long)msg->serial);
 #else
     msg->serial = UINT64_MAX;
@@ -173,7 +177,8 @@ static void notify_thread_data(struct notification_conn_t *conn, const void *buf
     h2o_multithread_send_message(&conn->cmn.c->notifications, &msg->cmn.super);
 }
 
-static void callback_on_host_resolved(struct notification_conn_t *conn, struct addrinfo *addr)
+static void callback_on_host_resolved(struct notification_conn_t *conn,
+                                      struct addrinfo *addr)
 {
     struct libh2o_socket_client_ctx_t *c = conn->cmn.c;
     struct socket_client_init_t *p = &c->client_init;
@@ -193,7 +198,8 @@ static void callback_on_connected(struct notification_conn_t *conn)
     }
 }
 
-static void callback_on_data(struct notification_conn_t *conn, void *buf, size_t len)
+static void callback_on_data(struct notification_conn_t *conn, void *buf,
+                             size_t len)
 {
     struct libh2o_socket_client_ctx_t *c = conn->cmn.c;
     struct socket_client_init_t *p = &c->client_init;
@@ -203,7 +209,8 @@ static void callback_on_data(struct notification_conn_t *conn, void *buf, size_t
     }
 }
 
-static void callback_on_sent(struct notification_conn_t *conn, void *buf, size_t len, int sent)
+static void callback_on_sent(struct notification_conn_t *conn, void *buf,
+                             size_t len, int sent)
 {
     struct libh2o_socket_client_ctx_t *c = conn->cmn.c;
     struct socket_client_init_t *p = &c->client_init;
@@ -213,7 +220,8 @@ static void callback_on_sent(struct notification_conn_t *conn, void *buf, size_t
     }
 }
 
-static void callback_on_closed(struct notification_conn_t *conn, const char *err)
+static void callback_on_closed(struct notification_conn_t *conn,
+                               const char *err)
 {
     struct libh2o_socket_client_ctx_t *c = conn->cmn.c;
     struct socket_client_init_t *p = &c->client_init;
@@ -234,12 +242,14 @@ static void release_notification_data(struct notification_data_t *msg)
     free(msg);
 }
 
-static void release_data_linkedlist(struct notification_conn_t *conn, h2o_linklist_t *messages, int sent)
+static void release_data_linkedlist(struct notification_conn_t *conn,
+                                    h2o_linklist_t *messages, int sent)
 {
     struct libh2o_socket_client_ctx_t *c = conn->cmn.c;
 
     while (!h2o_linklist_is_empty(messages)) {
-        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(h2o_multithread_message_t, link, messages->next);
+        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(
+            h2o_multithread_message_t, link, messages->next);
         struct notification_data_t *data = (struct notification_data_t *)msg;
         ASSERT(c == data->cmn.c);
         ASSERT(NOTIFICATION_DATA == data->cmn.cmd);
@@ -255,7 +265,8 @@ static void release_sending(struct notification_conn_t *conn)
     release_data_linkedlist(conn, &conn->sending, 1);
 }
 
-static void do_socket_write(struct notification_conn_t *conn, struct notification_data_t *data)
+static void do_socket_write(struct notification_conn_t *conn,
+                            struct notification_data_t *data)
 {
     struct libh2o_socket_client_ctx_t *c = conn->cmn.c;
 
@@ -293,7 +304,8 @@ static void write_pending(struct notification_conn_t *conn)
      * remove one message from pending list
      * FIXME: we can remove more message for single write
      */
-    msg = H2O_STRUCT_FROM_MEMBER(h2o_multithread_message_t, link, messages->next);
+    msg =
+        H2O_STRUCT_FROM_MEMBER(h2o_multithread_message_t, link, messages->next);
     data = (struct notification_data_t *)msg;
     ASSERT(c == data->cmn.c);
     ASSERT(NOTIFICATION_DATA == data->cmn.cmd);
@@ -334,7 +346,8 @@ static void dispose_timeout_cb(h2o_timer_t *entry)
     release_notification_conn(conn);
 }
 
-static void on_error(struct notification_conn_t *conn, const char *prefix, const char *err)
+static void on_error(struct notification_conn_t *conn, const char *prefix,
+                     const char *err)
 {
     struct libh2o_socket_client_ctx_t *c;
     ASSERT(err != NULL);
@@ -419,14 +432,17 @@ static void on_connect(h2o_socket_t *sock, const char *err)
     }
 
     if (c->ssl_ctx != NULL) {
-        h2o_socket_ssl_handshake(sock, c->ssl_ctx, conn->req.host, h2o_iovec_init(NULL, 0), on_handshake_complete);
+        h2o_socket_ssl_handshake(sock, c->ssl_ctx, conn->req.host,
+                                 h2o_iovec_init(NULL, 0),
+                                 on_handshake_complete);
     } else {
         callback_on_connected(conn);
         h2o_socket_read_start(sock, on_read);
     }
 }
 
-static void on_getaddr(h2o_hostinfo_getaddr_req_t *getaddr_req, const char *err, struct addrinfo *res, void *_conn)
+static void on_getaddr(h2o_hostinfo_getaddr_req_t *getaddr_req, const char *err,
+                       struct addrinfo *res, void *_conn)
 {
     struct notification_conn_t *conn = (struct notification_conn_t *)_conn;
     struct libh2o_socket_client_ctx_t *c = conn->cmn.c;
@@ -440,7 +456,8 @@ static void on_getaddr(h2o_hostinfo_getaddr_req_t *getaddr_req, const char *err,
     }
 
     selected = h2o_hostinfo_select_one(res);
-    sock = h2o_socket_connect(c->loop, selected->ai_addr, selected->ai_addrlen, on_connect);
+    sock = h2o_socket_connect(c->loop, selected->ai_addr, selected->ai_addrlen,
+                              on_connect);
     if (sock == NULL) {
         /* create socket failed */
         on_error(conn, "failed to create socket", strerror(errno));
@@ -452,7 +469,9 @@ static void on_getaddr(h2o_hostinfo_getaddr_req_t *getaddr_req, const char *err,
     return;
 }
 
-static int foreach_conn(struct libh2o_socket_client_ctx_t *c, int (*cb)(struct notification_conn_t *conn, void *cbdata),
+static int foreach_conn(struct libh2o_socket_client_ctx_t *c,
+                        int (*cb)(struct notification_conn_t *conn,
+                                  void *cbdata),
                         void *cbdata)
 {
     h2o_linklist_t *node;
@@ -460,16 +479,17 @@ static int foreach_conn(struct libh2o_socket_client_ctx_t *c, int (*cb)(struct n
     for (node = c->conns.next; node != &c->conns; node = node->next) {
         struct notification_conn_t *conn = (struct notification_conn_t *)(node);
         int ret = cb(conn, cbdata);
-        if (ret != 0)
-            return ret;
+        if (ret != 0) return ret;
     }
     return 0;
 }
 
-static void release_conn_linkedlist(struct libh2o_socket_client_ctx_t *c, h2o_linklist_t *messages, const char *err)
+static void release_conn_linkedlist(struct libh2o_socket_client_ctx_t *c,
+                                    h2o_linklist_t *messages, const char *err)
 {
     while (!h2o_linklist_is_empty(messages)) {
-        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(h2o_multithread_message_t, link, messages->next);
+        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(
+            h2o_multithread_message_t, link, messages->next);
         struct notification_conn_t *conn = (struct notification_conn_t *)msg;
         ASSERT(c == conn->cmn.c);
         ASSERT(NOTIFICATION_CONN == conn->cmn.cmd);
@@ -485,16 +505,19 @@ static void release_conns(struct libh2o_socket_client_ctx_t *c, const char *err)
     release_conn_linkedlist(c, &c->conns, err);
 }
 
-static void on_notification(h2o_multithread_receiver_t *receiver, h2o_linklist_t *messages)
+static void on_notification(h2o_multithread_receiver_t *receiver,
+                            h2o_linklist_t *messages)
 {
     while (!h2o_linklist_is_empty(messages)) {
-        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(h2o_multithread_message_t, link, messages->next);
+        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(
+            h2o_multithread_message_t, link, messages->next);
         struct notification_cmn_t *cmn = (struct notification_cmn_t *)msg;
         struct libh2o_socket_client_ctx_t *c = cmn->c;
 
         h2o_linklist_unlink(&msg->link);
         if (cmn->cmd == NOTIFICATION_DATA) {
-            struct notification_data_t *data = (struct notification_data_t *)cmn;
+            struct notification_data_t *data =
+                (struct notification_data_t *)cmn;
             struct notification_conn_t *conn = data->conn;
             if (conn->sock == NULL) {
                 LOGW("caller want to send data without connection");
@@ -505,14 +528,19 @@ static void on_notification(h2o_multithread_receiver_t *receiver, h2o_linklist_t
                 h2o_linklist_insert(&conn->pending, &msg->link);
             }
         } else if (cmn->cmd == NOTIFICATION_CONN) {
-            struct notification_conn_t *conn = (struct notification_conn_t *)cmn;
-            h2o_iovec_t iov_name = h2o_iovec_init(conn->req.host, strlen(conn->req.host));
-            h2o_iovec_t iov_serv = h2o_iovec_init(conn->req.port, strlen(conn->req.port));
+            struct notification_conn_t *conn =
+                (struct notification_conn_t *)cmn;
+            h2o_iovec_t iov_name =
+                h2o_iovec_init(conn->req.host, strlen(conn->req.host));
+            h2o_iovec_t iov_serv =
+                h2o_iovec_init(conn->req.port, strlen(conn->req.port));
 
             h2o_linklist_insert(&c->conns, &msg->link);
             /* resolve host name */
-            h2o_hostinfo_getaddr(&c->getaddr_receiver, iov_name, iov_serv, AF_UNSPEC, SOCK_STREAM, IPPROTO_TCP,
-                                 AI_ADDRCONFIG | AI_NUMERICSERV, on_getaddr, conn);
+            h2o_hostinfo_getaddr(&c->getaddr_receiver, iov_name, iov_serv,
+                                 AF_UNSPEC, SOCK_STREAM, IPPROTO_TCP,
+                                 AI_ADDRCONFIG | AI_NUMERICSERV, on_getaddr,
+                                 conn);
 
         } else if (cmn->cmd == NOTIFICATION_QUIT) {
             c->exit_loop = 1;
@@ -535,8 +563,11 @@ static void init_openssl(struct libh2o_socket_client_ctx_t *c)
 
     if (c->client_init.ssl_init.cert_file) {
         c->ssl_ctx = SSL_CTX_new(TLSv1_client_method());
-        SSL_CTX_load_verify_locations(c->ssl_ctx, c->client_init.ssl_init.cert_file, NULL);
-        SSL_CTX_set_verify(c->ssl_ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
+        SSL_CTX_load_verify_locations(c->ssl_ctx,
+                                      c->client_init.ssl_init.cert_file, NULL);
+        SSL_CTX_set_verify(c->ssl_ctx,
+                           SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
+                           NULL);
     }
 }
 
@@ -572,17 +603,14 @@ static void *client_loop(void *arg)
     return 0;
 }
 
-const char *libh2o_socket_client_get_version(void)
-{
-    return H2O_VERSION;
-}
+const char *libh2o_socket_client_get_version(void) { return H2O_VERSION; }
 
-struct libh2o_socket_client_ctx_t *libh2o_socket_client_start(const struct socket_client_init_t *client_init)
+struct libh2o_socket_client_ctx_t *
+libh2o_socket_client_start(const struct socket_client_init_t *client_init)
 {
     struct libh2o_socket_client_ctx_t *c;
 
-    if (!client_init)
-        return NULL;
+    if (!client_init) return NULL;
 
     c = h2o_mem_alloc(sizeof(*c));
     if (c) {
@@ -591,8 +619,10 @@ struct libh2o_socket_client_ctx_t *libh2o_socket_client_start(const struct socke
         h2o_linklist_init_anchor(&c->conns);
 
         c->queue = h2o_multithread_create_queue(c->loop);
-        h2o_multithread_register_receiver(c->queue, &c->getaddr_receiver, h2o_hostinfo_getaddr_receiver);
-        h2o_multithread_register_receiver(c->queue, &c->notifications, on_notification);
+        h2o_multithread_register_receiver(c->queue, &c->getaddr_receiver,
+                                          h2o_hostinfo_getaddr_receiver);
+        h2o_multithread_register_receiver(c->queue, &c->notifications,
+                                          on_notification);
         memcpy(&c->client_init, client_init, sizeof(*client_init));
 
         h2o_multithread_create_thread(&c->tid, NULL, client_loop, (void *)c);
@@ -616,12 +646,13 @@ void libh2o_socket_client_stop(struct libh2o_socket_client_ctx_t *c)
     free(c);
 }
 
-struct socket_client_handle_t *libh2o_socket_client_req(struct libh2o_socket_client_ctx_t *c, const struct socket_client_req_t *req)
+struct socket_client_handle_t *
+libh2o_socket_client_req(struct libh2o_socket_client_ctx_t *c,
+                         const struct socket_client_req_t *req)
 {
     struct notification_conn_t *conn;
 
-    if (c == NULL || req == NULL)
-        return NULL;
+    if (c == NULL || req == NULL) return NULL;
 
     if (req->host == NULL || req->port == NULL) {
         return NULL;
@@ -630,14 +661,13 @@ struct socket_client_handle_t *libh2o_socket_client_req(struct libh2o_socket_cli
     return &conn->clih;
 }
 
-size_t libh2o_socket_client_send(struct socket_client_handle_t *clih, const void *buf, size_t len)
+size_t libh2o_socket_client_send(struct socket_client_handle_t *clih,
+                                 const void *buf, size_t len)
 {
     struct notification_conn_t *conn;
 
-    if (clih == NULL)
-        return 0;
-    if (buf == NULL || len == 0)
-        return 0;
+    if (clih == NULL) return 0;
+    if (buf == NULL || len == 0) return 0;
 
     conn = H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, clih, clih);
 
@@ -664,51 +694,61 @@ struct sock_clients_t {
 
 struct sock_clients_t sock_clients;
 
-static void cb_socket_client_on_host_resolved(void *param, struct addrinfo *addr, struct socket_client_handle_t *clih)
+static void
+cb_socket_client_on_host_resolved(void *param, struct addrinfo *addr,
+                                  struct socket_client_handle_t *clih)
 {
     struct sock_clients_t *clients = param;
     int i;
     for (i = 0; i < clients->nclients; ++i) {
         if (clients->clients[i].clih == clih) {
-            __sync_fetch_and_or(&clients->clients[i].state, SOCKET_CLIENT_STATE_HOSTRESOLVED);
+            __sync_fetch_and_or(&clients->clients[i].state,
+                                SOCKET_CLIENT_STATE_HOSTRESOLVED);
         }
     }
 }
 
-static void cb_socket_client_on_connected(void *param, struct socket_client_handle_t *clih)
+static void cb_socket_client_on_connected(void *param,
+                                          struct socket_client_handle_t *clih)
 {
     LOGV("%s() @line: %d clih: %p", __FUNCTION__, __LINE__, clih);
     struct sock_clients_t *clients = param;
     int i;
     for (i = 0; i < clients->nclients; ++i) {
         if (clients->clients[i].clih == clih) {
-            __sync_fetch_and_or(&clients->clients[i].state, SOCKET_CLIENT_STATE_CONNECTED);
+            __sync_fetch_and_or(&clients->clients[i].state,
+                                SOCKET_CLIENT_STATE_CONNECTED);
         }
     }
 }
 
-static void cb_socket_client_on_data(void *param, void *buf, size_t len, struct socket_client_handle_t *clih)
+static void cb_socket_client_on_data(void *param, void *buf, size_t len,
+                                     struct socket_client_handle_t *clih)
 {
     struct sock_clients_t *clients = param;
     (void)clients;
     fwrite(buf, 1, len, stdout);
 }
 
-static void cb_socket_client_on_sent(void *param, void *buf, size_t len, int sent, struct socket_client_handle_t *clih)
+static void cb_socket_client_on_sent(void *param, void *buf, size_t len,
+                                     int sent,
+                                     struct socket_client_handle_t *clih)
 {
     struct sock_clients_t *clients = param;
     (void)clients;
     free(buf);
 }
 
-static void cb_socket_client_on_closed(void *param, const char *err, struct socket_client_handle_t *clih)
+static void cb_socket_client_on_closed(void *param, const char *err,
+                                       struct socket_client_handle_t *clih)
 {
     LOGV("%s() @line: %d clih: %p", __FUNCTION__, __LINE__, clih);
     struct sock_clients_t *clients = param;
     int i;
     for (i = 0; i < clients->nclients; ++i) {
         if (clients->clients[i].clih == clih) {
-            __sync_fetch_and_or(&clients->clients[i].state, SOCKET_CLIENT_STATE_CLOSED);
+            __sync_fetch_and_or(&clients->clients[i].state,
+                                SOCKET_CLIENT_STATE_CLOSED);
         }
     }
 }

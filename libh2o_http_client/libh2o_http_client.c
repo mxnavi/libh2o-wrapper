@@ -75,7 +75,8 @@ struct http_client_handle_t {
  * MUST the first member for sub struct
  */
 struct notification_cmn_t {
-    h2o_multithread_message_t super; /* used to call h2o_multithread_send_message() */
+    h2o_multithread_message_t
+        super; /* used to call h2o_multithread_send_message() */
     struct libh2o_http_client_ctx_t *c;
     uint32_t cmd;
 };
@@ -105,14 +106,19 @@ struct st_timeout_ctx {
 *                       Functions Prototype Section                         *
 *****************************************************************************/
 
-static h2o_httpclient_head_cb on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *method, h2o_url_t *url,
-                                         const h2o_header_t **headers, size_t *num_headers, h2o_iovec_t *body,
-                                         h2o_httpclient_proceed_req_cb *proceed_req_cb, h2o_httpclient_properties_t *props,
-                                         h2o_url_t *origin);
-static h2o_httpclient_body_cb on_head(h2o_httpclient_t *client, const char *errstr, int version, int status, h2o_iovec_t msg,
-                                      h2o_header_t *headers, size_t num_headers, int header_requires_dup);
+static h2o_httpclient_head_cb
+on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *method,
+           h2o_url_t *url, const h2o_header_t **headers, size_t *num_headers,
+           h2o_iovec_t *body, h2o_httpclient_proceed_req_cb *proceed_req_cb,
+           h2o_httpclient_properties_t *props, h2o_url_t *origin);
+static h2o_httpclient_body_cb on_head(h2o_httpclient_t *client,
+                                      const char *errstr, int version,
+                                      int status, h2o_iovec_t msg,
+                                      h2o_header_t *headers, size_t num_headers,
+                                      int header_requires_dup);
 
-static void on_error(struct notification_conn_t *conn, const char *prefix, const char *err);
+static void on_error(struct notification_conn_t *conn, const char *prefix,
+                     const char *err);
 
 /****************************************************************************
 *                       Functions Implement Section                         *
@@ -128,7 +134,8 @@ static void notify_thread_quit(struct libh2o_http_client_ctx_t *c)
     h2o_multithread_send_message(&c->notifications, &msg->cmn.super);
 }
 
-static void dup_req(struct http_client_req_t *dst, const struct http_client_req_t *src)
+static void dup_req(struct http_client_req_t *dst,
+                    const struct http_client_req_t *src)
 {
     dst->url = strdup(src->url);
     dst->method = src->method; /* const string */
@@ -148,7 +155,9 @@ static void free_req(struct http_client_req_t *req)
     }
 }
 
-static struct notification_conn_t *notify_thread_connect(struct libh2o_http_client_ctx_t *c, struct http_client_req_t *req)
+static struct notification_conn_t *
+notify_thread_connect(struct libh2o_http_client_ctx_t *c,
+                      struct http_client_req_t *req)
 {
     struct notification_conn_t *msg = h2o_mem_alloc(sizeof(*msg));
     memset(msg, 0x00, sizeof(*msg));
@@ -181,26 +190,31 @@ static void release_notification_conn(struct notification_conn_t *conn)
     free(conn);
 }
 
-static void on_notification(h2o_multithread_receiver_t *receiver, h2o_linklist_t *messages)
+static void on_notification(h2o_multithread_receiver_t *receiver,
+                            h2o_linklist_t *messages)
 {
     while (!h2o_linklist_is_empty(messages)) {
-        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(h2o_multithread_message_t, link, messages->next);
+        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(
+            h2o_multithread_message_t, link, messages->next);
         struct notification_cmn_t *cmn = (struct notification_cmn_t *)msg;
         struct libh2o_http_client_ctx_t *c = cmn->c;
 
         h2o_linklist_unlink(&msg->link);
         if (cmn->cmd == NOTIFICATION_CONN) {
-            struct notification_conn_t *conn = (struct notification_conn_t *)cmn;
+            struct notification_conn_t *conn =
+                (struct notification_conn_t *)cmn;
             h2o_mem_init_pool(&conn->pool);
             /* parse URL */
-            if (h2o_url_parse(conn->req.url, SIZE_MAX, &conn->url_parsed) != 0) {
+            if (h2o_url_parse(conn->req.url, SIZE_MAX, &conn->url_parsed) !=
+                0) {
                 LOGW("unrecognized type of URL: %s", conn->req.url);
                 on_error(conn, "on_notification", "URL error");
                 continue;
             }
             h2o_linklist_insert(&c->conns, &msg->link);
-            h2o_httpclient_connect(&conn->client, &conn->pool, conn, &conn->cmn.c->ctx, conn->cmn.c->connpool, &conn->url_parsed,
-                                   on_connect);
+            h2o_httpclient_connect(&conn->client, &conn->pool, conn,
+                                   &conn->cmn.c->ctx, conn->cmn.c->connpool,
+                                   &conn->url_parsed, on_connect);
         } else if (cmn->cmd == NOTIFICATION_QUIT) {
             c->exit_loop = 1;
             free(msg);
@@ -221,18 +235,21 @@ static void callback_on_connected(struct notification_conn_t *conn)
     }
 }
 
-static void callback_on_head(struct notification_conn_t *conn, int version, int status, h2o_iovec_t msg, h2o_header_t *headers,
+static void callback_on_head(struct notification_conn_t *conn, int version,
+                             int status, h2o_iovec_t msg, h2o_header_t *headers,
                              size_t num_headers)
 {
     struct libh2o_http_client_ctx_t *c = conn->cmn.c;
     struct http_client_init_t *p = &c->client_init;
 
     if (p->cb.on_head) {
-        p->cb.on_head(p->cb.param, version, status, msg, headers, num_headers, &conn->clih);
+        p->cb.on_head(p->cb.param, version, status, msg, headers, num_headers,
+                      &conn->clih);
     }
 }
 
-static void callback_on_body(struct notification_conn_t *conn, void *buf, size_t len)
+static void callback_on_body(struct notification_conn_t *conn, void *buf,
+                             size_t len)
 {
     struct libh2o_http_client_ctx_t *c = conn->cmn.c;
     struct http_client_init_t *p = &c->client_init;
@@ -242,7 +259,8 @@ static void callback_on_body(struct notification_conn_t *conn, void *buf, size_t
     }
 }
 
-static void callback_on_on_finish(struct notification_conn_t *conn, const char *err)
+static void callback_on_on_finish(struct notification_conn_t *conn,
+                                  const char *err)
 {
     struct libh2o_http_client_ctx_t *c = conn->cmn.c;
     struct http_client_init_t *p = &c->client_init;
@@ -252,10 +270,12 @@ static void callback_on_on_finish(struct notification_conn_t *conn, const char *
     }
 }
 
-static void release_linkedlist(struct libh2o_http_client_ctx_t *c, h2o_linklist_t *messages, const char *err)
+static void release_linkedlist(struct libh2o_http_client_ctx_t *c,
+                               h2o_linklist_t *messages, const char *err)
 {
     while (!h2o_linklist_is_empty(messages)) {
-        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(h2o_multithread_message_t, link, messages->next);
+        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(
+            h2o_multithread_message_t, link, messages->next);
         struct notification_conn_t *conn = (struct notification_conn_t *)msg;
         ASSERT(c == conn->cmn.c);
         ASSERT(NOTIFICATION_CONN == conn->cmn.cmd);
@@ -271,7 +291,8 @@ static void release_conns(struct libh2o_http_client_ctx_t *c, const char *err)
     release_linkedlist(c, &c->conns, err);
 }
 
-static void on_error(struct notification_conn_t *conn, const char *prefix, const char *err)
+static void on_error(struct notification_conn_t *conn, const char *prefix,
+                     const char *err)
 {
     ASSERT(err != NULL);
     // LOGW("%s:%s", prefix, err);
@@ -297,8 +318,10 @@ static int on_body(h2o_httpclient_t *client, const char *errstr)
     return 0;
 }
 
-h2o_httpclient_body_cb on_head(h2o_httpclient_t *client, const char *errstr, int version, int status, h2o_iovec_t msg,
-                               h2o_header_t *headers, size_t num_headers, int header_requires_dup)
+h2o_httpclient_body_cb on_head(h2o_httpclient_t *client, const char *errstr,
+                               int version, int status, h2o_iovec_t msg,
+                               h2o_header_t *headers, size_t num_headers,
+                               int header_requires_dup)
 {
     struct notification_conn_t *conn = client->data;
 
@@ -331,7 +354,8 @@ static void fill_body(struct notification_conn_t *conn, h2o_iovec_t *reqbuf)
 static void timeout_cb(h2o_timer_t *entry)
 {
     h2o_iovec_t reqbuf;
-    struct st_timeout_ctx *tctx = H2O_STRUCT_FROM_MEMBER(struct st_timeout_ctx, _timeout, entry);
+    struct st_timeout_ctx *tctx =
+        H2O_STRUCT_FROM_MEMBER(struct st_timeout_ctx, _timeout, entry);
     struct notification_conn_t *conn = tctx->client->data;
 
     fill_body(conn, &reqbuf);
@@ -342,7 +366,8 @@ static void timeout_cb(h2o_timer_t *entry)
     return;
 }
 
-static void proceed_request(h2o_httpclient_t *client, size_t written, int is_end_stream)
+static void proceed_request(h2o_httpclient_t *client, size_t written,
+                            int is_end_stream)
 {
     struct notification_conn_t *conn = client->data;
     if (conn->req.body.len > 0) {
@@ -351,14 +376,16 @@ static void proceed_request(h2o_httpclient_t *client, size_t written, int is_end
         memset(tctx, 0, sizeof(*tctx));
         tctx->client = client;
         tctx->_timeout.cb = timeout_cb;
-        h2o_timer_link(client->ctx->loop, conn->cmn.c->delay_interval_ms, &tctx->_timeout);
+        h2o_timer_link(client->ctx->loop, conn->cmn.c->delay_interval_ms,
+                       &tctx->_timeout);
     }
 }
 
-h2o_httpclient_head_cb on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *_method, h2o_url_t *url,
-                                  const h2o_header_t **headers, size_t *num_headers, h2o_iovec_t *body,
-                                  h2o_httpclient_proceed_req_cb *proceed_req_cb, h2o_httpclient_properties_t *props,
-                                  h2o_url_t *origin)
+h2o_httpclient_head_cb
+on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *_method,
+           h2o_url_t *url, const h2o_header_t **headers, size_t *num_headers,
+           h2o_iovec_t *body, h2o_httpclient_proceed_req_cb *proceed_req_cb,
+           h2o_httpclient_properties_t *props, h2o_url_t *origin)
 {
     struct notification_conn_t *conn = client->data;
     if (errstr != NULL) {
@@ -375,10 +402,12 @@ h2o_httpclient_head_cb on_connect(h2o_httpclient_t *client, const char *errstr, 
     *body = h2o_iovec_init(NULL, 0);
 
     if (conn->req.body.len > 0) {
-        char *clbuf = h2o_mem_alloc_pool(&conn->pool, char, sizeof(H2O_UINT32_LONGEST_STR) - 1);
+        char *clbuf = h2o_mem_alloc_pool(&conn->pool, char,
+                                         sizeof(H2O_UINT32_LONGEST_STR) - 1);
         size_t clbuf_len = sprintf(clbuf, "%d", (int)conn->req.body.len);
         h2o_headers_t headers_vec = (h2o_headers_t){NULL};
-        h2o_add_header(&conn->pool, &headers_vec, H2O_TOKEN_CONTENT_LENGTH, NULL, clbuf, clbuf_len);
+        h2o_add_header(&conn->pool, &headers_vec, H2O_TOKEN_CONTENT_LENGTH,
+                       NULL, clbuf, clbuf_len);
         *headers = headers_vec.entries;
         *num_headers = 1;
 
@@ -389,7 +418,8 @@ h2o_httpclient_head_cb on_connect(h2o_httpclient_t *client, const char *errstr, 
         memset(tctx, 0, sizeof(*tctx));
         tctx->client = client;
         tctx->_timeout.cb = timeout_cb;
-        h2o_timer_link(client->ctx->loop, conn->cmn.c->delay_interval_ms, &tctx->_timeout);
+        h2o_timer_link(client->ctx->loop, conn->cmn.c->delay_interval_ms,
+                       &tctx->_timeout);
     }
 
     return on_head;
@@ -406,8 +436,11 @@ static void init_openssl(struct libh2o_http_client_ctx_t *c)
 
     if (c->client_init.ssl_init.cert_file) {
         c->ssl_ctx = SSL_CTX_new(TLSv1_client_method());
-        SSL_CTX_load_verify_locations(c->ssl_ctx, c->client_init.ssl_init.cert_file, NULL);
-        SSL_CTX_set_verify(c->ssl_ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
+        SSL_CTX_load_verify_locations(c->ssl_ctx,
+                                      c->client_init.ssl_init.cert_file, NULL);
+        SSL_CTX_set_verify(c->ssl_ctx,
+                           SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
+                           NULL);
     }
 }
 
@@ -425,7 +458,8 @@ static void init_conn_poll(struct libh2o_http_client_ctx_t *c)
     connpool = h2o_mem_alloc(sizeof(*connpool));
     sockpool = h2o_mem_alloc(sizeof(*sockpool));
     h2o_socketpool_init_global(sockpool, 128);
-    h2o_socketpool_set_timeout(sockpool, c->client_init.io_timeout + 1000 /* in msec */);
+    h2o_socketpool_set_timeout(sockpool,
+                               c->client_init.io_timeout + 1000 /* in msec */);
     h2o_socketpool_register_loop(sockpool, c->ctx.loop);
     h2o_httpclient_connection_pool_init(connpool, sockpool);
     c->connpool = connpool;
@@ -468,17 +502,14 @@ static void *client_loop(void *arg)
     return 0;
 }
 
-const char *libh2o_http_client_get_version(void)
-{
-    return H2O_VERSION;
-}
+const char *libh2o_http_client_get_version(void) { return H2O_VERSION; }
 
-struct libh2o_http_client_ctx_t *libh2o_http_client_start(const struct http_client_init_t *client_init)
+struct libh2o_http_client_ctx_t *
+libh2o_http_client_start(const struct http_client_init_t *client_init)
 {
     struct libh2o_http_client_ctx_t *c;
 
-    if (!client_init)
-        return NULL;
+    if (!client_init) return NULL;
 
     c = h2o_mem_alloc(sizeof(*c));
     if (c) {
@@ -501,8 +532,10 @@ struct libh2o_http_client_ctx_t *libh2o_http_client_start(const struct http_clie
         memset(&c->ctx.http2, 0x00, sizeof(c->ctx.http2));
 
         c->queue = h2o_multithread_create_queue(c->ctx.loop);
-        h2o_multithread_register_receiver(c->queue, &c->getaddr_receiver, h2o_hostinfo_getaddr_receiver);
-        h2o_multithread_register_receiver(c->queue, &c->notifications, on_notification);
+        h2o_multithread_register_receiver(c->queue, &c->getaddr_receiver,
+                                          h2o_hostinfo_getaddr_receiver);
+        h2o_multithread_register_receiver(c->queue, &c->notifications,
+                                          on_notification);
         memcpy(&c->client_init, client_init, sizeof(*client_init));
 
         h2o_multithread_create_thread(&c->tid, NULL, client_loop, (void *)c);
@@ -526,27 +559,30 @@ void libh2o_http_client_stop(struct libh2o_http_client_ctx_t *c)
     free(c);
 }
 
-struct http_client_handle_t *libh2o_http_client_req(struct libh2o_http_client_ctx_t *c, struct http_client_req_t *req)
+struct http_client_handle_t *
+libh2o_http_client_req(struct libh2o_http_client_ctx_t *c,
+                       struct http_client_req_t *req)
 {
     struct notification_conn_t *msg;
 
-    if (c == NULL || req == NULL || req->url == NULL)
-        return NULL;
+    if (c == NULL || req == NULL || req->url == NULL) return NULL;
 
-    if (req->method == NULL)
-        req->method = "GET";
+    if (req->method == NULL) req->method = "GET";
 
     msg = notify_thread_connect(c, req);
     return &msg->clih;
 }
 
 #ifdef LIBH2O_UNIT_TEST
-static void cb_http_client_on_connected(void *param, struct http_client_handle_t *clih)
+static void cb_http_client_on_connected(void *param,
+                                        struct http_client_handle_t *clih)
 {
     // LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
 }
 
-static void cb_http_client_on_head(void *param, int version, int status, h2o_iovec_t msg, h2o_header_t *headers, size_t num_headers,
+static void cb_http_client_on_head(void *param, int version, int status,
+                                   h2o_iovec_t msg, h2o_header_t *headers,
+                                   size_t num_headers,
                                    struct http_client_handle_t *clih)
 {
 #if 0
@@ -568,13 +604,15 @@ static void cb_http_client_on_head(void *param, int version, int status, h2o_iov
 #endif
 }
 
-static void cb_http_client_on_body(void *param, void *buf, size_t len, struct http_client_handle_t *clih)
+static void cb_http_client_on_body(void *param, void *buf, size_t len,
+                                   struct http_client_handle_t *clih)
 {
     // LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
     // fwrite(buf, 1, len, stdout);
 }
 
-static void cb_http_client_on_finish(void *param, const char *err, struct http_client_handle_t *clih)
+static void cb_http_client_on_finish(void *param, const char *err,
+                                     struct http_client_handle_t *clih)
 {
     LOGV("%s() @line: %d err: %s", __FUNCTION__, __LINE__, err);
 }
@@ -595,7 +633,11 @@ int main(int argc, char **argv)
 
     int counter = 10;
     while (counter-- > 0) {
-        struct http_client_req_t req = {argc > 1 ? argv[1] : "http://192.168.3.26:8008/styleguide/cppguide.html", NULL, {0}};
+        struct http_client_req_t req = {
+            argc > 1 ? argv[1]
+                     : "http://192.168.3.26:8008/styleguide/cppguide.html",
+            NULL,
+            {0}};
         struct http_client_handle_t *clih;
         clih = libh2o_http_client_req(c, &req);
         usleep(100000);
