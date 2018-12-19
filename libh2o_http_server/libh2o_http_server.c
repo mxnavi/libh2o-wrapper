@@ -219,10 +219,8 @@ static int get_current_thread_index(struct server_context_t *c)
     struct server_tls_data_t *p;
 
     p = pthread_getspecific(c->tls);
-    if (H2O_LIKELY(p != NULL)) {
-        return p->__thread_index;
-    }
-    return -1;
+    ASSERT(p);
+    return p->__thread_index;
 }
 
 static void set_current_thread_index(struct server_context_t *c, int thread_index)
@@ -278,8 +276,7 @@ static int add_lock_callback(int *num, int amount, int type, const char *file, i
 static void init_openssl(void)
 {
     static int openssl_inited = 0;
-    if (openssl_inited == 0) {
-        openssl_inited = 1;
+    if (openssl_inited++ == 0) {
         int nlocks = CRYPTO_num_locks(), i;
         mutexes = h2o_mem_alloc(sizeof(*mutexes) * nlocks);
         for (i = 0; i != nlocks; ++i)
@@ -379,9 +376,6 @@ static void on_ws_message(h2o_websocket_conn_t *_conn, const struct wslay_event_
     struct notification_ws_conn_t *conn = _conn->data;
     struct server_context_t *c = conn->cmn.c;
     int thread_index = conn->thread_index;
-
-    ASSERT(conn->wsconn == _conn);
-    ASSERT(thread_index == get_current_thread_index(c));
 
     if (arg == NULL) {
         callback_on_ws_closed(conn, "NULL");
@@ -1011,7 +1005,7 @@ static void *server_loop(void *_param)
     size_t i;
 
     LOGV("%s(%d)...", __FUNCTION__, thread_index);
-    ASSERT(thread_index >= 0);
+    ASSERT(thread_index >= 0 && thread_index < c->server_init.num_threads);
 
     free(_param);
 
@@ -1249,13 +1243,12 @@ static void notify_thread_resp(struct notification_http_conn_t *conn)
     int thread_index;
 
     ASSERT(conn->cmn.c);
-    ASSERT(!conn->cmn.cmd);
 
     c = conn->cmn.c;
     conn->cmn.cmd = NOTIFICATION_HTTP_RESP;
 
     thread_index = conn->thread_index;
-    ASSERT(conn->thread_index >= 0 && conn->thread_index < c->server_init.num_threads);
+    ASSERT(thread_index >= 0 && thread_index < c->server_init.num_threads);
 
     h2o_multithread_send_message(&c->threads[thread_index].server_notifications, &conn->cmn.super);
 }
@@ -1289,7 +1282,7 @@ static void notify_thread_data(struct notification_ws_conn_t *conn, const void *
     msg->serial = (uint64_t)conn->clih.serial << 32 | __sync_fetch_and_add(&conn->serial_counter, 1);
 #endif
     thread_index = conn->thread_index;
-    ASSERT(conn->thread_index >= 0 && conn->thread_index < c->server_init.num_threads);
+    ASSERT(thread_index >= 0 && thread_index < c->server_init.num_threads);
 
     h2o_multithread_send_message(&c->threads[thread_index].server_notifications, &msg->cmn.super);
 }
