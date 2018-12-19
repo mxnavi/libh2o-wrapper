@@ -83,7 +83,7 @@ struct notification_conn_t {
     h2o_linklist_t pending; /* list for pending data waiting for sending */
     h2o_linklist_t sending; /* list for current sentding data */
     h2o_socket_t *sock;
-    h2o_timer_t dispose_timeout;
+    h2o_timer_t _timeout;
     uint32_t serial_counter; /* data serial counter */
     struct socket_client_req_t req;
     struct socket_client_handle_t clih;
@@ -265,9 +265,11 @@ static void do_socket_write(struct notification_conn_t *conn, struct notificatio
      */
     h2o_linklist_insert(&conn->sending, &data->cmn.super.link);
 
-    /* I/O timeout */
-    conn->dispose_timeout.cb = write_timeout_cb;
-    h2o_timer_link(c->loop, c->client_init.io_timeout, &conn->dispose_timeout);
+    if (c->client_init.io_timeout > 0) {
+        /* I/O timeout */
+        conn->_timeout.cb = write_timeout_cb;
+        h2o_timer_link(c->loop, c->client_init.io_timeout, &conn->_timeout);
+    }
 
     h2o_socket_write(conn->sock, &data->data, 1, on_write);
 }
@@ -306,8 +308,8 @@ static void release_notification_conn(struct notification_conn_t *conn)
 #ifdef DEBUG_SERIAL
     LOGV("release serial: %u", conn->clih.serial);
 #endif
-    if (h2o_timer_is_linked(&conn->dispose_timeout)) {
-        h2o_timer_unlink(&conn->dispose_timeout);
+    if (h2o_timer_is_linked(&conn->_timeout)) {
+        h2o_timer_unlink(&conn->_timeout);
     }
 
     /* unlink from 'conns' */
@@ -329,7 +331,7 @@ static void dispose_timeout_cb(h2o_timer_t *entry)
 {
     struct notification_conn_t *conn;
 
-    conn = H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, dispose_timeout, entry);
+    conn = H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, _timeout, entry);
     release_notification_conn(conn);
 }
 
@@ -346,15 +348,17 @@ static void on_error(struct notification_conn_t *conn, const char *prefix, const
     }
 
     c = conn->cmn.c;
-    conn->dispose_timeout.cb = dispose_timeout_cb;
-    h2o_timer_link(c->loop, DISPOSE_TIMEOUT_MS, &conn->dispose_timeout);
+    ASSERT(!h2o_timer_is_linked(&conn->_timeout));
+    conn->_timeout.cb = dispose_timeout_cb;
+    h2o_timer_link(c->loop, DISPOSE_TIMEOUT_MS, &conn->_timeout);
 }
 
 static void write_timeout_cb(h2o_timer_t *entry)
 {
     struct notification_conn_t *conn;
 
-    conn = H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, dispose_timeout, entry);
+    conn = H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, _timeout, entry);
+    h2o_timer_unlink(&conn->_timeout);
     on_error(conn, "write_timeout_cb", "I/O timeout");
 }
 
@@ -376,8 +380,8 @@ static void on_write(h2o_socket_t *sock, const char *err)
 {
     struct notification_conn_t *conn = sock->data;
 
-    if (h2o_timer_is_linked(&conn->dispose_timeout)) {
-        h2o_timer_unlink(&conn->dispose_timeout);
+    if (h2o_timer_is_linked(&conn->_timeout)) {
+        h2o_timer_unlink(&conn->_timeout);
     }
 
     if (err != NULL) {
@@ -793,7 +797,7 @@ int main(int argc, char **argv)
             running = 0;
             continue;
         }
-        usleep(1000000);
+        usleep(1000);
     }
     libh2o_socket_client_stop(clients.c);
 

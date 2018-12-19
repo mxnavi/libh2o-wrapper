@@ -96,7 +96,7 @@ struct socket_client_ssl_init_t {
  * init infos
  */
 struct socket_client_init_t {
-    uint64_t io_timeout; /* io timeout in msec */
+    int io_timeout; /* io timeout in msec */
     struct socket_client_callback_t cb;
     struct socket_client_ssl_init_t ssl_init;
 };
