@@ -171,6 +171,7 @@ struct notification_http_conn_t {
     struct notification_cmn_t cmn;
     int thread_index;    /* to which thread this connection belongs to */
     h2o_linklist_t node; /* linked to server context 'conns' */
+    h2o_timer_t _timeout;
     struct http_request_t req;
 };
 
@@ -207,6 +208,8 @@ static pthread_mutex_t *mutexes;
 *                       Functions Prototype Section                         *
 *****************************************************************************/
 static void release_notification_ws_conn(struct notification_ws_conn_t *conn);
+
+static void process_ready_req_item(struct notification_http_conn_t *conn);
 
 /****************************************************************************
 *                       Functions Implement Section                         *
@@ -303,6 +306,16 @@ static void callback_on_http_req(struct notification_http_conn_t *conn)
     }
 }
 
+static void callback_on_http_resp_timeout(struct notification_http_conn_t *conn)
+{
+    struct server_context_t *c = conn->cmn.c;
+    struct http_server_init_t *p = &c->server_init;
+
+    if (p->cb.on_http_req) {
+        p->cb.on_http_resp_timeout(p->cb.param, &conn->req);
+    }
+}
+
 static void callback_on_finish_http_req(struct notification_http_conn_t *conn)
 {
     struct server_context_t *c = conn->cmn.c;
@@ -385,6 +398,32 @@ static void on_ws_message(h2o_websocket_conn_t *_conn, const struct wslay_event_
     }
 }
 
+static void process_timeout_req_item(struct notification_http_conn_t *conn)
+{
+    if (h2o_timer_is_linked(&conn->_timeout)) {
+        h2o_timer_unlink(&conn->_timeout);
+    }
+
+    ASSERT(h2o_linklist_is_linked(&conn->node));
+    h2o_linklist_unlink(&conn->node);
+
+    h2o_send_error_503(conn->req.req, "Service Unavailable", "please try again later", 0);
+}
+
+static void resp_timeout_cb(h2o_timer_t *entry)
+{
+    struct notification_http_conn_t *conn;
+
+    conn = H2O_STRUCT_FROM_MEMBER(struct notification_http_conn_t, _timeout, entry);
+    callback_on_http_resp_timeout(conn);
+
+    if (conn->req.resp.status == 0) {
+        process_timeout_req_item(conn);
+    } else {
+        process_ready_req_item(conn);
+    }
+}
+
 static void on_handler_dispose(h2o_handler_t *self)
 {
 }
@@ -436,6 +475,12 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
 // LOGD("%s() serial: %u http req: %p conn: %p open", __FUNCTION__, conn->req.serial, req, conn);
 #endif
         h2o_linklist_insert(&c->threads[thread_index].conns, &conn->node);
+
+        if (c->server_init.resp_timeout > 0) {
+            /* response timeout */
+            conn->_timeout.cb = resp_timeout_cb;
+            h2o_timer_link(c->threads[thread_index].ctx.loop, c->server_init.resp_timeout, &conn->_timeout);
+        }
         callback_on_http_req(conn);
     }
 
@@ -771,6 +816,11 @@ static void process_ready_req_item(struct notification_http_conn_t *conn)
     static h2o_generator_t generator = {NULL, NULL};
     int i;
 
+    if (h2o_timer_is_linked(&conn->_timeout)) {
+        h2o_timer_unlink(&conn->_timeout);
+    }
+
+    ASSERT(h2o_linklist_is_linked(&conn->node));
     h2o_linklist_unlink(&conn->node);
 
     conn->req.req->res.status = conn->req.resp.status;
@@ -907,19 +957,6 @@ static void queue_ws_connection_close(struct server_context_t *c, int thread_ind
     foreach_ws_conn(&c->threads[thread_index].ws_conns, queue_websocket_close_cb, NULL);
 }
 
-static int foreach_ws_conn_safe(h2o_linklist_t *list, int (*cb)(struct notification_ws_conn_t *conn, void *cbdata), void *cbdata)
-{
-    h2o_linklist_t *node, *n;
-
-    for (node = list->next, n = node->next; node != list; node = n, n = node->next) {
-        struct notification_ws_conn_t *conn = (struct notification_ws_conn_t *)(node);
-        int ret = cb(conn, cbdata);
-        if (ret != 0)
-            return ret;
-    }
-    return 0;
-}
-
 static void on_server_notification(h2o_multithread_receiver_t *receiver, h2o_linklist_t *messages)
 {
     while (!h2o_linklist_is_empty(messages)) {
@@ -949,6 +986,7 @@ static void on_server_notification(h2o_multithread_receiver_t *receiver, h2o_lin
             int thread_index = get_current_thread_index(c);
 
             ASSERT(data->conn == NULL);
+            ASSERT(data->data.base);
             process_ws_broadcast(c, thread_index, data);
             free(data->data.base);
             release_notification_data(data);
@@ -1346,10 +1384,14 @@ static void http_server_on_http_request_cb(void *param, struct http_request_t *d
     libh2o_http_server_queue_response(data);
 }
 
+static void http_server_on_http_resp_timeout_cb(void *param, struct http_request_t *data)
+{
+    LOGD("%s() req: %p", __FUNCTION__, data->req);
+}
+
 static void http_server_on_finish_http_request_cb(void *param, struct http_request_t *data)
 {
     // LOGD("%s() req: %p", __FUNCTION__, data->req);
-    /*FIXME: data->req->http1_is_persistent = 0; */
 }
 
 static void http_server_on_ws_recv_cb(void *param, void *buf, size_t len, struct websocket_handle_t *clih)
@@ -1379,6 +1421,9 @@ int main(int argc, char *argv[])
 {
     struct server_context_t *c;
 
+    /**
+     * 1: init server parameters
+     */
     struct http_server_init_t server_init;
     const char *ports[3];
     ports[0] = "7890";
@@ -1390,12 +1435,14 @@ int main(int argc, char *argv[])
     /* server_init.host = "ip6-localhost"; */
     server_init.port = ports;
     server_init.doc_root = "/";
+    server_init.resp_timeout = 10000;
     server_init.ssl_init.cert_file = "examples/h2o/server.crt";
     server_init.ssl_init.key_file = "examples/h2o/server.key";
     server_init.ssl_init.ciphers = "DEFAULT:!MD5:!DSS:!DES:!RC4:!RC2:!SEED:!IDEA:!NULL:!ADH:!EXP:!SRP:!PSK";
 
     server_init.cb.param = NULL;
     server_init.cb.on_http_req = http_server_on_http_request_cb;
+    server_init.cb.on_http_resp_timeout = http_server_on_http_resp_timeout_cb;
     server_init.cb.on_finish_http_req = http_server_on_finish_http_request_cb;
     server_init.cb.on_ws_connected = http_server_on_ws_connected_cb;
     server_init.cb.on_ws_recv = http_server_on_ws_recv_cb;
@@ -1417,6 +1464,10 @@ int main(int argc, char *argv[])
     }
 
 #else
+
+    /**
+     * 2, create server context
+     */
     c = libh2o_http_server_start(&server_init);
 
     while (!g_Aborted) {
@@ -1428,6 +1479,9 @@ int main(int argc, char *argv[])
         libh2o_http_server_broadcast_ws_message(c, p, strlen(p) + 1);
     }
 
+    /**
+     * 3, stop serve threads and release server context
+     */
     libh2o_http_server_stop(c);
 #endif
     return 0;

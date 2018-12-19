@@ -52,7 +52,7 @@ struct http_response_body_t {
  * http response data, filled by user
  */
 struct http_response_t {
-    int status; /* http response code */
+    int status;         /* http response code */
     const char *reason; /* reason, if NULL, default is 'OK' */
     struct http_response_header_t header[HTTP_RESPONSE_HEADER_MAX];
     struct http_response_body_t body;
@@ -73,8 +73,9 @@ struct http_request_t {
  * @param param parameter from user
  * @param data pointer of http_request_t
  */
-typedef void (*http_server_on_http_request_t)(void * /* param */, struct http_request_t * /* data */);
-typedef void (*http_server_on_finish_http_request_t)(void * /* param */, struct http_request_t * /* data */);
+typedef void (*http_server_on_http_request)(void * /* param */, struct http_request_t * /* data */);
+typedef void (*http_server_on_http_resp_timeout)(void * /* param */, struct http_request_t * /* data */);
+typedef void (*http_server_on_finish_http_request)(void * /* param */, struct http_request_t * /* data */);
 
 struct ws_connection_wrapper_t;
 
@@ -109,13 +110,18 @@ struct server_callback_t {
     /**
      * called in evloop thread when client http request comes
      */
-    http_server_on_http_request_t on_http_req;
+    http_server_on_http_request on_http_req;
+
+    /**
+     * called in evloop thread when user not queue respone in *resp_timeout*
+     */
+    http_server_on_http_resp_timeout on_http_resp_timeout;
 
     /**
      * called in evloop thread when http response data has been sent
      * can be used for free memory for response header or body
      */
-    http_server_on_finish_http_request_t on_finish_http_req;
+    http_server_on_finish_http_request on_finish_http_req;
 
     /**
      * called in event loop thread when websocket connection established
@@ -154,6 +160,7 @@ struct server_ssl_init_t {
 struct http_server_init_t {
     const char *host;
     const char **port;
+    int resp_timeout; /* response timeout in miliseconds, 0: not response timeout */
     int num_threads;
     const char *doc_root;
     struct server_ssl_init_t ssl_init;
