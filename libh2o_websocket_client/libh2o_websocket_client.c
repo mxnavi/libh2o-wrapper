@@ -806,7 +806,7 @@ int main(int argc, char **argv)
     struct websocket_client_init_t client_init;
     memset(&client_init, 0x00, sizeof(client_init));
 
-    client_init.io_timeout = 15000; /* 15 sec */
+    client_init.io_timeout = 10000; /* 10 sec */
     client_init.cb.on_connected = cb_websocket_client_on_connected;
     client_init.cb.on_handshaked = cb_websocket_client_on_handshaked;
     client_init.cb.on_sent = cb_websocket_client_on_sent;

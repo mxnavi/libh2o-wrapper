@@ -13,10 +13,7 @@
 /****************************************************************************
 *                       Include File Section                                *
 *****************************************************************************/
-#include <sys/socket.h>
 #include <sys/types.h>
-#include <netdb.h>
-#include "h2o.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,6 +34,9 @@ struct websocket_client_req_t {
     uint8_t opcode;       /* websocket opc code: 0x01 for text frame, 0x02 for binary frame */
 };
 
+/**
+ * websocket client handle
+ */
 struct websocket_client_handle_t;
 
 /**
@@ -99,7 +99,7 @@ struct websocket_client_ssl_init_t {
  * init infos
  */
 struct websocket_client_init_t {
-    uint64_t io_timeout; /* TODO: io timeout in msec */
+    int io_timeout; /* io timeout in msec */
     struct websocket_client_callback_t cb;
     struct websocket_client_ssl_init_t ssl_init;
 };

@@ -1373,7 +1373,7 @@ static void registerSigHandler()
 static void http_server_on_http_request_cb(void *param, struct http_request_t *data)
 {
     // LOGD("%s() req: %p", __FUNCTION__, data->req);
-
+#if 1
     data->resp.status = 200;
     data->resp.header[0].token = H2O_TOKEN_CONTENT_TYPE;
     data->resp.header[0].value = h2o_iovec_init(H2O_STRLIT("text/plain"));
@@ -1383,6 +1383,7 @@ static void http_server_on_http_request_cb(void *param, struct http_request_t *d
     data->resp.body.data[1] = h2o_strdup(&data->req->pool, "test...\n", SIZE_MAX);
 
     libh2o_http_server_queue_response(data);
+#endif
 }
 
 static void http_server_on_http_resp_timeout_cb(void *param, struct http_request_t *data)
@@ -1431,12 +1432,14 @@ int main(int argc, char *argv[])
     ports[1] = "7891";
     ports[2] = NULL;
 
+    memset(&server_init, 0x00, sizeof(server_init));
+
     server_init.num_threads = 2;
     server_init.host = "0.0.0.0";
     /* server_init.host = "ip6-localhost"; */
     server_init.port = ports;
     server_init.doc_root = "/";
-    server_init.resp_timeout = 10000;
+    server_init.resp_timeout = 15000;
     server_init.ssl_init.cert_file = "examples/h2o/server.crt";
     server_init.ssl_init.key_file = "examples/h2o/server.key";
     server_init.ssl_init.ciphers = "DEFAULT:!MD5:!DSS:!DES:!RC4:!RC2:!SEED:!IDEA:!NULL:!ADH:!EXP:!SRP:!PSK";

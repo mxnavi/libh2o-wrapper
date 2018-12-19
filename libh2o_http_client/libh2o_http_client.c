@@ -45,7 +45,7 @@
 *                       Type Definition Section                             *
 *****************************************************************************/
 /**
- * socket client context type
+ * http client context type
  */
 struct libh2o_http_client_ctx_t {
     pthread_t tid;            /* event loop thread id */
@@ -584,7 +584,8 @@ int main(int argc, char **argv)
 {
     struct http_client_init_t client_init;
     memset(&client_init, 0x00, sizeof(client_init));
-    client_init.io_timeout = 15000; /* 15 sec */
+
+    client_init.io_timeout = 10000; /* 10 sec */
     client_init.cb.on_connected = cb_http_client_on_connected;
     client_init.cb.on_head = cb_http_client_on_head;
     client_init.cb.on_body = cb_http_client_on_body;
