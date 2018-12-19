@@ -24,7 +24,6 @@
 /****************************************************************************
 *                       Macro Definition Section                            *
 *****************************************************************************/
-#define UNIT_TEST 1
 #define DEBUG_SERIAL 1
 
 #define NOTIFICATION_CONN 0
@@ -646,7 +645,7 @@ size_t libh2o_socket_client_send(struct socket_client_handle_t *clih, const void
     return len;
 }
 
-#ifdef UNIT_TEST
+#ifdef LIBH2O_UNIT_TEST
 #include <signal.h>
 
 #define SOCKET_CLIENT_STATE_HOSTRESOLVED 0x01

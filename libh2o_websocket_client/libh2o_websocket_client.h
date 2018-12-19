@@ -5,7 +5,8 @@
 *   MODULE      : libh2o_websocket_client
 *   AUTHOR      : chenbd
 *---------------------------------------------------------------------------*
-*   MEMO        :
+*   MEMO        : this is a websock client library based on libh2o-evloop which
+*                   can run multi clients in one event loop
 *****************************************************************************/
 #ifndef __INCLUDE_LIBH2O_WEBSOCKET_CLIENT_H__
 #define __INCLUDE_LIBH2O_WEBSOCKET_CLIENT_H__
@@ -52,8 +53,8 @@ struct libh2o_websocket_client_ctx_t *libh2o_websocket_client_start(const struct
  * moudle stop, will stop event loop thread for libh2o websocket client and
  * release all resources
  * @param c websocket client context
- * @return
- * @note stoo will be blocked waiting for event loop thread quiting
+ * @return void
+ * @note the caller will be blocked waiting for event loop thread quiting
  */
 void libh2o_websocket_client_stop(struct libh2o_websocket_client_ctx_t *c);
 

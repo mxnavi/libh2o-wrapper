@@ -25,7 +25,6 @@
 /****************************************************************************
 *                       Macro Definition Section                            *
 *****************************************************************************/
-#define UNIT_TEST 1
 #define DEBUG_SERIAL 1
 
 #define NOTIFICATION_CONN 0
@@ -721,7 +720,7 @@ size_t libh2o_websocket_client_send(struct websocket_client_handle_t *clih, cons
     return len;
 }
 
-#ifdef UNIT_TEST
+#ifdef LIBH2O_UNIT_TEST
 #include <signal.h>
 
 #define WEBSOCKET_CLIENT_STATE_CONNECTED 0x01

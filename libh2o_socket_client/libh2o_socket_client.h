@@ -5,7 +5,8 @@
 *   MODULE      : libh2o_socket_client
 *   AUTHOR      : chenbd
 *---------------------------------------------------------------------------*
-*   MEMO        :
+*   MEMO        : this is a socket client library based on libh2o-evloop which
+*                   can run multi clients in one event loop
 *****************************************************************************/
 #ifndef __INCLUDE_LIBH2O_SOCKET_CLIENT_H__
 #define __INCLUDE_LIBH2O_SOCKET_CLIENT_H__

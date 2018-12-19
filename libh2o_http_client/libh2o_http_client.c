@@ -25,7 +25,6 @@
 /****************************************************************************
 *                       Macro Definition Section                            *
 *****************************************************************************/
-#define UNIT_TEST 1
 #define DEBUG_SERIAL 1
 
 #define NOTIFICATION_CONN 0
@@ -541,7 +540,7 @@ struct http_client_handle_t *libh2o_http_client_req(struct libh2o_http_client_ct
     return &msg->clih;
 }
 
-#ifdef UNIT_TEST
+#ifdef LIBH2O_UNIT_TEST
 static void cb_http_client_on_connected(void *param, struct http_client_handle_t *clih)
 {
     // LOGV("%s() @line: %d", __FUNCTION__, __LINE__);

@@ -38,7 +38,6 @@
 /****************************************************************************
 *                       Macro Definition Section                            *
 *****************************************************************************/
-#define UNIT_TEST 1
 #define DEBUG_SERIAL 1
 
 #define USE_HTTPS 0
@@ -1347,7 +1346,7 @@ size_t libh2o_http_server_broadcast_ws_message(struct server_context_t *c, const
     return len;
 }
 
-#ifdef UNIT_TEST
+#ifdef LIBH2O_UNIT_TEST
 #include <signal.h>
 
 static int g_Aborted = 0;
