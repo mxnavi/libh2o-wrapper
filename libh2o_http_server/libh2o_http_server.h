@@ -67,8 +67,8 @@ void libh2o_http_server_queue_response(struct http_request_t *req);
 /**
  * queue websocket message to event loop for sending to the specific client
  * @param clih target client of the websocket message
- * @param buf pointer of message and length of data for sending
- * @param len  message length
+ * @param buf pointer of message data for sending
+ * @param len  message length in bytes
  * @return > 0 when success or else 0
  * @note user need alloc msg buffer from heap, and can be freed in on_finish_ws_msg callback.
  */
@@ -76,8 +76,8 @@ size_t libh2o_http_server_queue_ws_message(struct websocket_handle_t *clih, cons
 
 /**
  * queue websocket broadcast message to event loop for sending to all clients
- * @param buf pointer of message and length of data for sending
- * @param len  message length
+ * @param buf pointer of message data for sending
+ * @param len  message length in bytes
  * @return > 0 when success or else 0
  * @note NO callback will be issued for broadcast messages
  */

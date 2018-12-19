@@ -62,8 +62,8 @@ struct http_response_t {
  * http request and response data wrapper
  */
 struct http_request_t {
-    uint32_t serial;
-    h2o_req_t *req;              /* real request data */
+    uint32_t serial;             /* serial no */
+    h2o_req_t *req;              /* real http request data */
     struct http_response_t resp; /* filled by user */
 };
 
@@ -77,19 +77,18 @@ typedef void (*http_server_on_http_request)(void * /* param */, struct http_requ
 typedef void (*http_server_on_http_resp_timeout)(void * /* param */, struct http_request_t * /* data */);
 typedef void (*http_server_on_finish_http_request)(void * /* param */, struct http_request_t * /* data */);
 
-struct ws_connection_wrapper_t;
-
+/**
+ * websocket connection handle
+ */
 struct websocket_handle_t;
 
-struct websocket_msg_t {
-    h2o_iovec_t data;
-};
-
 /**
- * libh2o_http_server websocket message callback defination
+ * libh2o_http_server websocket callback defination
  *
  * @param param parameter from user
- * @param data pointer of http_request_t
+ * @param buf pointer of message and length of data for sent/recv
+ * @param len  message length
+ * @param clih websocket connection handle
  */
 typedef void (*http_server_on_ws_connected)(void * /* param */, struct websocket_handle_t * /* clih */);
 typedef void (*http_server_on_ws_recv)(void * /* param */, void * /* buf */, size_t /* len */,
@@ -113,7 +112,7 @@ struct server_callback_t {
     http_server_on_http_request on_http_req;
 
     /**
-     * called in evloop thread when user not queue respone in *resp_timeout*
+     * called in evloop thread when user not queue respone after *resp_timeout*
      */
     http_server_on_http_resp_timeout on_http_resp_timeout;
 
