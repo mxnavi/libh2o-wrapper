@@ -48,18 +48,18 @@ struct websocket_client_handle_t {
  * @param param parameter from user
  */
 typedef void (*websocket_client_on_connected)(
-    void * /* param */, struct websocket_client_handle_t * /* clih */);
+    void * /* param */, const struct websocket_client_handle_t * /* clih */);
 typedef void (*websocket_client_on_handshaked)(
-    void * /* param */, struct websocket_client_handle_t * /* clih */);
+    void * /* param */, const struct websocket_client_handle_t * /* clih */);
 typedef void (*websocket_client_on_sent)(
     void * /* param */, void * /* buf */, size_t /* len */,
-    struct websocket_client_handle_t * /* clih */);
+    const struct websocket_client_handle_t * /* clih */);
 typedef void (*websocket_client_on_recv)(
     void * /* param */, void * /* buf */, size_t /* len */,
-    struct websocket_client_handle_t * /* clih */);
+    const struct websocket_client_handle_t * /* clih */);
 typedef void (*websocket_client_on_closed)(
     void * /* param */, const char * /* err */,
-    struct websocket_client_handle_t * /* clih */);
+    const struct websocket_client_handle_t * /* clih */);
 
 /**
  * user callback interface

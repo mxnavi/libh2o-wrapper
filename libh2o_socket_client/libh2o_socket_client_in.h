@@ -48,18 +48,18 @@ struct socket_client_handle_t {
  */
 typedef void (*socket_client_on_host_resolved)(
     void * /* param */, struct addrinfo * /* addr */,
-    struct socket_client_handle_t * /* clih */);
+    const struct socket_client_handle_t * /* clih */);
 typedef void (*socket_client_on_connected)(
-    void * /* param */, struct socket_client_handle_t * /* clih */);
+    void * /* param */, const struct socket_client_handle_t * /* clih */);
 typedef void (*socket_client_on_data)(
     void * /* param */, void * /* buf */, size_t /* len */,
-    struct socket_client_handle_t * /* clih */);
+    const struct socket_client_handle_t * /* clih */);
 typedef void (*socket_client_on_sent)(
-    void * /* param */, void * /* buf */, size_t /* len */, int sent,
-    struct socket_client_handle_t * /* clih */);
+    void * /* param */, void * /* buf */, size_t /* len */, int /* sent */,
+    const struct socket_client_handle_t * /* clih */);
 typedef void (*socket_client_on_closed)(
     void * /* param */, const char * /* err */,
-    struct socket_client_handle_t * /* clih */);
+    const struct socket_client_handle_t * /* clih */);
 
 /**
  * user callback interface

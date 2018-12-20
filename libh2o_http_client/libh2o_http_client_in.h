@@ -48,17 +48,17 @@ struct http_client_handle_t {
  * @param param parameter from user
  */
 typedef void (*http_client_on_connected)(
-    void * /* param */, struct http_client_handle_t * /* clih */);
-typedef void (*http_client_on_head)(void * /* param */, int version, int status,
-                                    h2o_iovec_t msg, h2o_header_t *headers,
-                                    size_t num_headers,
-                                    struct http_client_handle_t * /* clih */);
-typedef void (*http_client_on_body)(void * /* param */, void * /* buf */,
-                                    size_t /* len */,
-                                    struct http_client_handle_t * /* clih */);
-typedef void (*http_client_on_finish)(void * /* param */,
-                                      const char * /* err */,
-                                      struct http_client_handle_t * /* clih */);
+    void * /* param */, const struct http_client_handle_t * /* clih */);
+typedef void (*http_client_on_head)(
+    void * /* param */, int version, int status, h2o_iovec_t msg,
+    h2o_header_t *headers, size_t num_headers,
+    const struct http_client_handle_t * /* clih */);
+typedef void (*http_client_on_body)(
+    void * /* param */, void * /* buf */, size_t /* len */,
+    const struct http_client_handle_t * /* clih */);
+typedef void (*http_client_on_finish)(
+    void * /* param */, const char * /* err */,
+    const struct http_client_handle_t * /* clih */);
 
 /**
  * user callback interface

@@ -64,7 +64,7 @@ void libh2o_socket_client_stop(struct libh2o_socket_client_ctx_t *c);
  * @param req request info
  * @return socket client connection handle for success or else NULL when error
  */
-struct socket_client_handle_t *
+const struct socket_client_handle_t *
 libh2o_socket_client_req(struct libh2o_socket_client_ctx_t *c,
                          const struct socket_client_req_t *req);
 
@@ -77,7 +77,7 @@ libh2o_socket_client_req(struct libh2o_socket_client_ctx_t *c,
  * @note buf should be allocated from  heap and *MUST* be valid until on_sent
  * callback
  */
-size_t libh2o_socket_client_send(struct socket_client_handle_t *clih,
+size_t libh2o_socket_client_send(const struct socket_client_handle_t *clih,
                                  const void *buf, size_t len);
 
 #ifdef __cplusplus

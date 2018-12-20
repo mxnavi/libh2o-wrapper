@@ -722,7 +722,7 @@ void libh2o_websocket_client_stop(struct libh2o_websocket_client_ctx_t *c)
     free(c);
 }
 
-struct websocket_client_handle_t *
+const struct websocket_client_handle_t *
 libh2o_websocket_client_req(struct libh2o_websocket_client_ctx_t *c,
                             const struct websocket_client_req_t *req)
 {
@@ -737,8 +737,9 @@ libh2o_websocket_client_req(struct libh2o_websocket_client_ctx_t *c,
     return &conn->clih;
 }
 
-size_t libh2o_websocket_client_send(struct websocket_client_handle_t *clih,
-                                    const void *buf, size_t len)
+size_t
+libh2o_websocket_client_send(const struct websocket_client_handle_t *clih,
+                             const void *buf, size_t len)
 {
     struct notification_conn_t *conn;
 
@@ -758,7 +759,7 @@ size_t libh2o_websocket_client_send(struct websocket_client_handle_t *clih,
 #define WEBSOCKET_CLIENT_STATE_HANDSHAKED 0x02
 #define WEBSOCKET_CLIENT_STATE_CLOSED 0xFFFFFFFF
 struct websocket_client_state_t {
-    struct websocket_client_handle_t *clih;
+    const struct websocket_client_handle_t *clih;
     int32_t state;
 };
 
@@ -772,7 +773,7 @@ struct websock_clients_t sock_clients;
 
 static void
 cb_websocket_client_on_connected(void *param,
-                                 struct websocket_client_handle_t *clih)
+                                 const struct websocket_client_handle_t *clih)
 {
     LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
     struct websock_clients_t *clients = param;
@@ -787,7 +788,7 @@ cb_websocket_client_on_connected(void *param,
 
 static void
 cb_websocket_client_on_handshaked(void *param,
-                                  struct websocket_client_handle_t *clih)
+                                  const struct websocket_client_handle_t *clih)
 {
     LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
     struct websock_clients_t *clients = param;
@@ -800,16 +801,18 @@ cb_websocket_client_on_handshaked(void *param,
     }
 }
 
-static void cb_websocket_client_on_sent(void *param, void *buf, size_t len,
-                                        struct websocket_client_handle_t *clih)
+static void
+cb_websocket_client_on_sent(void *param, void *buf, size_t len,
+                            const struct websocket_client_handle_t *clih)
 {
     struct websock_clients_t *clients = param;
     (void)clients;
     free(buf);
 }
 
-static void cb_websocket_client_on_recv(void *param, void *buf, size_t len,
-                                        struct websocket_client_handle_t *clih)
+static void
+cb_websocket_client_on_recv(void *param, void *buf, size_t len,
+                            const struct websocket_client_handle_t *clih)
 {
     struct websock_clients_t *clients = param;
     (void)clients;
@@ -818,7 +821,7 @@ static void cb_websocket_client_on_recv(void *param, void *buf, size_t len,
 
 static void
 cb_websocket_client_on_closed(void *param, const char *err,
-                              struct websocket_client_handle_t *clih)
+                              const struct websocket_client_handle_t *clih)
 {
     LOGV("%s() @line: %d err: %s", __FUNCTION__, __LINE__, err ? err : "");
     struct websock_clients_t *clients = param;

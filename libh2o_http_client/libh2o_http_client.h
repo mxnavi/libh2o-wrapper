@@ -65,7 +65,7 @@ void libh2o_http_client_stop(struct libh2o_http_client_ctx_t *c);
  * @param req  http request
  * @return http client request handle for success or else NULL when error
  */
-struct http_client_handle_t *
+const struct http_client_handle_t *
 libh2o_http_client_req(struct libh2o_http_client_ctx_t *c,
                        struct http_client_req_t *req);
 

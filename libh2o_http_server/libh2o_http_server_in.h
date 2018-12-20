@@ -101,15 +101,15 @@ struct websocket_handle_t;
  * @param clih websocket connection handle
  */
 typedef void (*http_server_on_ws_connected)(
-    void * /* param */, struct websocket_handle_t * /* clih */);
-typedef void (*http_server_on_ws_recv)(void * /* param */, void * /* buf */,
-                                       size_t /* len */,
-                                       struct websocket_handle_t * /* clih */);
-typedef void (*http_server_on_ws_sent)(void * /* param */, void * /* buf */,
-                                       size_t /* len */,
-                                       struct websocket_handle_t * /* clih */);
+    void * /* param */, const struct websocket_handle_t * /* clih */);
+typedef void (*http_server_on_ws_recv)(
+    void * /* param */, void * /* buf */, size_t /* len */,
+    const struct websocket_handle_t * /* clih */);
+typedef void (*http_server_on_ws_sent)(
+    void * /* param */, void * /* buf */, size_t /* len */,
+    const struct websocket_handle_t * /* clih */);
 typedef void (*http_server_on_ws_closed)(
-    void * /* param */, struct websocket_handle_t * /* clih */);
+    void * /* param */, const struct websocket_handle_t * /* clih */);
 
 /**
  * user callback interface

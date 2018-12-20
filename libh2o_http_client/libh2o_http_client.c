@@ -551,7 +551,7 @@ void libh2o_http_client_stop(struct libh2o_http_client_ctx_t *c)
     free(c);
 }
 
-struct http_client_handle_t *
+const struct http_client_handle_t *
 libh2o_http_client_req(struct libh2o_http_client_ctx_t *c,
                        struct http_client_req_t *req)
 {
@@ -567,7 +567,7 @@ libh2o_http_client_req(struct libh2o_http_client_ctx_t *c,
 
 #ifdef LIBH2O_UNIT_TEST
 static void cb_http_client_on_connected(void *param,
-                                        struct http_client_handle_t *clih)
+                                        const struct http_client_handle_t *clih)
 {
     // LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
 }
@@ -575,7 +575,7 @@ static void cb_http_client_on_connected(void *param,
 static void cb_http_client_on_head(void *param, int version, int status,
                                    h2o_iovec_t msg, h2o_header_t *headers,
                                    size_t num_headers,
-                                   struct http_client_handle_t *clih)
+                                   const struct http_client_handle_t *clih)
 {
 #if 0
     size_t i;
@@ -597,14 +597,14 @@ static void cb_http_client_on_head(void *param, int version, int status,
 }
 
 static void cb_http_client_on_body(void *param, void *buf, size_t len,
-                                   struct http_client_handle_t *clih)
+                                   const struct http_client_handle_t *clih)
 {
     // LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
     // fwrite(buf, 1, len, stdout);
 }
 
 static void cb_http_client_on_finish(void *param, const char *err,
-                                     struct http_client_handle_t *clih)
+                                     const struct http_client_handle_t *clih)
 {
     LOGV("%s() @line: %d err: %s", __FUNCTION__, __LINE__, err);
 }
@@ -630,7 +630,7 @@ int main(int argc, char **argv)
                      : "http://192.168.3.26:8008/styleguide/cppguide.html",
             NULL,
             {0}};
-        struct http_client_handle_t *clih;
+        const struct http_client_handle_t *clih;
         clih = libh2o_http_client_req(c, &req);
         usleep(100000);
     }

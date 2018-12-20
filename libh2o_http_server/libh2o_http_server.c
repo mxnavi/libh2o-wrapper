@@ -117,7 +117,7 @@ struct server_context_t {
     uint32_t serial_counter;    /* http_request serial counter */
     uint32_t ws_serial_counter; /* websocket serial counter */
 #ifdef ENABLE_DATA_SERIAL
-    uint32_t broadcast_serial_counter;
+    uint32_t broadcast_serial_counter; /* websocket broadcast serial counter */
 #endif
 
     pthread_key_t tls;
@@ -126,7 +126,7 @@ struct server_context_t {
         pthread_t tid;
         int exit_loop;
         h2o_context_t ctx;
-        h2o_linklist_t conns;    /* http connections */
+        h2o_linklist_t conns;    /* http connection list */
         h2o_linklist_t ws_conns; /* websocket connection list */
         h2o_multithread_receiver_t server_notifications;
 #if USE_MEMCACHED
@@ -297,7 +297,6 @@ static void init_openssl(void)
         CRYPTO_set_add_lock_callback(add_lock_callback);
 
         /* Dynamic locks are only used by the CHIL engine at this time */
-
         SSL_load_error_strings();
         SSL_library_init();
         OpenSSL_add_all_algorithms();
@@ -1382,8 +1381,9 @@ static void notify_thread_data(struct notification_ws_conn_t *conn,
                                  &msg->cmn.super);
 }
 
-size_t libh2o_http_server_queue_ws_message(struct websocket_handle_t *clih,
-                                           const void *buf, size_t len)
+size_t
+libh2o_http_server_queue_ws_message(const struct websocket_handle_t *clih,
+                                    const void *buf, size_t len)
 {
     struct notification_ws_conn_t *conn;
 
@@ -1489,7 +1489,7 @@ static void http_server_on_finish_http_request_cb(void *param,
 }
 
 static void http_server_on_ws_recv_cb(void *param, void *buf, size_t len,
-                                      struct websocket_handle_t *clih)
+                                      const struct websocket_handle_t *clih)
 {
     const char *p = "hello websocket client";
 
@@ -1498,20 +1498,21 @@ static void http_server_on_ws_recv_cb(void *param, void *buf, size_t len,
 }
 
 static void http_server_on_ws_sent_cb(void *param, void *buf, size_t len,
-                                      struct websocket_handle_t *clih)
+                                      const struct websocket_handle_t *clih)
 {
     free(buf);
 }
 
-static void http_server_on_ws_connected_cb(void *param,
-                                           struct websocket_handle_t *clih)
+static void
+http_server_on_ws_connected_cb(void *param,
+                               const struct websocket_handle_t *clih)
 {
     LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
 }
 
 static void
 http_server_on_ws_connection_closed_cb(void *param,
-                                       struct websocket_handle_t *clih)
+                                       const struct websocket_handle_t *clih)
 {
     LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
 }

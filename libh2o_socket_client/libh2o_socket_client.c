@@ -639,7 +639,7 @@ void libh2o_socket_client_stop(struct libh2o_socket_client_ctx_t *c)
     free(c);
 }
 
-struct socket_client_handle_t *
+const struct socket_client_handle_t *
 libh2o_socket_client_req(struct libh2o_socket_client_ctx_t *c,
                          const struct socket_client_req_t *req)
 {
@@ -654,7 +654,7 @@ libh2o_socket_client_req(struct libh2o_socket_client_ctx_t *c,
     return &conn->clih;
 }
 
-size_t libh2o_socket_client_send(struct socket_client_handle_t *clih,
+size_t libh2o_socket_client_send(const struct socket_client_handle_t *clih,
                                  const void *buf, size_t len)
 {
     struct notification_conn_t *conn;
@@ -675,7 +675,7 @@ size_t libh2o_socket_client_send(struct socket_client_handle_t *clih,
 #define SOCKET_CLIENT_STATE_CONNECTED 0x02
 #define SOCKET_CLIENT_STATE_CLOSED 0xFFFFFFFF
 struct socket_client_state_t {
-    struct socket_client_handle_t *clih;
+    const struct socket_client_handle_t *clih;
     int32_t state;
 };
 
@@ -689,7 +689,7 @@ struct sock_clients_t sock_clients;
 
 static void
 cb_socket_client_on_host_resolved(void *param, struct addrinfo *addr,
-                                  struct socket_client_handle_t *clih)
+                                  const struct socket_client_handle_t *clih)
 {
     struct sock_clients_t *clients = param;
     int i;
@@ -701,8 +701,9 @@ cb_socket_client_on_host_resolved(void *param, struct addrinfo *addr,
     }
 }
 
-static void cb_socket_client_on_connected(void *param,
-                                          struct socket_client_handle_t *clih)
+static void
+cb_socket_client_on_connected(void *param,
+                              const struct socket_client_handle_t *clih)
 {
     LOGV("%s() @line: %d clih: %p", __FUNCTION__, __LINE__, clih);
     struct sock_clients_t *clients = param;
@@ -716,7 +717,7 @@ static void cb_socket_client_on_connected(void *param,
 }
 
 static void cb_socket_client_on_data(void *param, void *buf, size_t len,
-                                     struct socket_client_handle_t *clih)
+                                     const struct socket_client_handle_t *clih)
 {
     struct sock_clients_t *clients = param;
     (void)clients;
@@ -725,15 +726,16 @@ static void cb_socket_client_on_data(void *param, void *buf, size_t len,
 
 static void cb_socket_client_on_sent(void *param, void *buf, size_t len,
                                      int sent,
-                                     struct socket_client_handle_t *clih)
+                                     const struct socket_client_handle_t *clih)
 {
     struct sock_clients_t *clients = param;
     (void)clients;
     free(buf);
 }
 
-static void cb_socket_client_on_closed(void *param, const char *err,
-                                       struct socket_client_handle_t *clih)
+static void
+cb_socket_client_on_closed(void *param, const char *err,
+                           const struct socket_client_handle_t *clih)
 {
     LOGV("%s() @line: %d clih: %p", __FUNCTION__, __LINE__, clih);
     struct sock_clients_t *clients = param;
