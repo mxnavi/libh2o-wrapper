@@ -75,7 +75,7 @@ void libh2o_http_server_queue_response(struct http_request_t *req);
  * @param len  message length in bytes
  * @return > 0 when success or else 0
  * @note user need alloc msg buffer from heap, and can be freed in
- * on_finish_ws_msg callback.
+ * on_sent callback.
  */
 size_t
 libh2o_http_server_queue_ws_message(const struct websocket_handle_t *clih,

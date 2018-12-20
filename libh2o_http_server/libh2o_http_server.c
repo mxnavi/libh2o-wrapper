@@ -1583,7 +1583,7 @@ int main(int argc, char *argv[])
     }
 
     /**
-     * 3, stop serve threads and release server context
+     * 3, stop server threads and release server context
      */
     libh2o_http_server_stop(c);
 #endif
