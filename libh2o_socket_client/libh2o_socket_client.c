@@ -62,13 +62,6 @@ struct libh2o_socket_client_ctx_t {
 };
 
 /**
- * socket client handle
- */
-struct socket_client_handle_t {
-    uint32_t serial;
-};
-
-/**
  * MUST the first member for sub struct
  */
 struct notification_cmn_t {
@@ -97,7 +90,9 @@ struct notification_data_t {
     struct notification_cmn_t cmn;
     struct notification_conn_t *conn;
     h2o_iovec_t data;
+#ifdef ENABLE_DATA_SERIAL
     uint64_t serial;
+#endif
 };
 
 /****************************************************************************
@@ -139,12 +134,10 @@ notify_thread_connect(struct libh2o_socket_client_ctx_t *c,
     h2o_linklist_init_anchor(&msg->pending);
     h2o_linklist_init_anchor(&msg->sending);
 
-#ifdef DEBUG_SERIAL
     /* client handle */
     msg->clih.serial = __sync_fetch_and_add(&c->serial_counter, 1);
+#ifdef DEBUG_SERIAL
     LOGV("create serial: %u", msg->clih.serial);
-#else
-    msg->clih.serial = UINT32_MAX;
 #endif
 
     /* request */
@@ -164,12 +157,10 @@ static void notify_thread_data(struct notification_conn_t *conn,
     msg->cmn.c = conn->cmn.c;
 
     msg->conn = conn;
-#ifdef DEBUG_SERIAL
+#ifdef ENABLE_DATA_SERIAL
     msg->serial = (uint64_t)conn->clih.serial << 32 |
                   __sync_fetch_and_add(&conn->serial_counter, 1);
 // LOGV("create data serial: %lld", (long long)msg->serial);
-#else
-    msg->serial = UINT64_MAX;
 #endif
 
     msg->data = h2o_iovec_init(buf, len);
@@ -233,7 +224,7 @@ static void callback_on_closed(struct notification_conn_t *conn,
 
 static void release_notification_data(struct notification_data_t *msg)
 {
-#ifdef DEBUG_SERIAL
+#ifdef ENABLE_DATA_SERIAL
 // LOGV("release data serial: %lld", (long long)msg->serial);
 #endif
     if (h2o_linklist_is_linked(&msg->cmn.super.link)) {

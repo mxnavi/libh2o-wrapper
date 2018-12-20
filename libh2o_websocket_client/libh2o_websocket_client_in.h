@@ -38,7 +38,9 @@ struct websocket_client_req_t {
 /**
  * websocket client handle
  */
-struct websocket_client_handle_t;
+struct websocket_client_handle_t {
+    uint32_t serial;
+};
 
 /**
  * websocket client callback defination

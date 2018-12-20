@@ -35,7 +35,12 @@ struct http_client_req_t {
     h2o_iovec_t body;   /* optional request body */
 };
 
-struct http_client_handle_t;
+/**
+ * http client handle
+ */
+struct http_client_handle_t {
+    uint32_t serial;
+};
 
 /**
  * http client callback defination

@@ -65,13 +65,6 @@ struct libh2o_http_client_ctx_t {
 };
 
 /**
- * http client handle
- */
-struct http_client_handle_t {
-    uint32_t serial;
-};
-
-/**
  * MUST the first member for sub struct
  */
 struct notification_cmn_t {
@@ -167,10 +160,9 @@ notify_thread_connect(struct libh2o_http_client_ctx_t *c,
 
     dup_req(&msg->req, req);
 
-#ifdef DEBUG_SERIAL
     msg->clih.serial = __sync_fetch_and_add(&c->serial_counter, 1);
-#else
-    msg->clih.serial = UINT32_MAX;
+#ifdef DEBUG_SERIAL
+    LOGV("create serial: %u", msg->clih.serial);
 #endif
 
     h2o_multithread_send_message(&c->notifications, &msg->cmn.super);

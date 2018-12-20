@@ -68,6 +68,13 @@ struct http_request_t {
 };
 
 /**
+ * web socket connection handle
+ */
+struct websocket_handle_t {
+    uint32_t serial;
+};
+
+/**
  * libh2o_http_server http request callback defination
  *
  * @param param parameter from user

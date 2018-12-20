@@ -151,13 +151,6 @@ struct server_handler_t {
 };
 
 /**
- * web socket client handle
- */
-struct websocket_handle_t {
-    uint32_t serial;
-};
-
-/**
  * MUST the first member for sub struct
  */
 struct notification_cmn_t {
@@ -199,7 +192,9 @@ struct notification_data_t {
     struct notification_cmn_t cmn;
     struct notification_ws_conn_t *conn;
     h2o_iovec_t data;
+#ifdef ENABLE_DATA_SERIAL
     uint64_t serial;
+#endif
 };
 
 struct server_tls_data_t {
@@ -469,10 +464,10 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
 
         h2o_linklist_init_anchor(&conn->pending);
 
-#ifdef DEBUG_SERIAL
         conn->clih.serial = __sync_fetch_and_add(&c->ws_serial_counter, 1);
-// LOGD("%s() serial: %u websocket conn: %p wsconn: %p open", __FUNCTION__,
-// conn->clih.serial, conn, wsconn);
+#ifdef DEBUG_SERIAL
+        LOGV("%s() serial: %u websocket conn: %p wsconn: %p open", __FUNCTION__,
+             conn->clih.serial, conn, wsconn);
 #endif
         callback_on_ws_connected(conn);
 
@@ -487,10 +482,10 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
         conn->thread_index = thread_index;
         conn->req.req = req;
 
-#ifdef DEBUG_SERIAL
         conn->req.serial = __sync_fetch_and_add(&c->serial_counter, 1);
-// LOGD("%s() serial: %u http req: %p conn: %p open", __FUNCTION__,
-// conn->req.serial, req, conn);
+#ifdef DEBUG_SERIAL
+        LOGV("%s() serial: %u http req: %p conn: %p open", __FUNCTION__,
+             conn->req.serial, req, conn);
 #endif
         h2o_linklist_insert(&c->threads[thread_index].conns, &conn->node);
 
@@ -1372,7 +1367,7 @@ static void notify_thread_data(struct notification_ws_conn_t *conn,
 
     msg->conn = conn;
     msg->data = h2o_iovec_init(buf, len);
-#ifdef DEBUG_SERIAL
+#ifdef ENABLE_DATA_SERIAL
     msg->serial = (uint64_t)conn->clih.serial << 32 |
                   __sync_fetch_and_add(&conn->serial_counter, 1);
 #endif
@@ -1416,7 +1411,7 @@ static void notify_thread_broadcast(struct server_context_t *c, const void *buf,
         void *ptr = h2o_mem_alloc(len);
         memcpy(ptr, buf, len);
         msg->data = h2o_iovec_init(ptr, len);
-#ifdef DEBUG_SERIAL
+#ifdef ENABLE_DATA_SERIAL
         msg->serial = ((uint64_t)0xFFFFFFFF) << 32 |
                       __sync_fetch_and_add(&c->broadcast_serial_counter, 1);
 #endif

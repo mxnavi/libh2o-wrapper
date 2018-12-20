@@ -34,7 +34,12 @@ struct socket_client_req_t {
     const char *port; /* const string pointer from user */
 };
 
-struct socket_client_handle_t;
+/**
+ * socket client handle
+ */
+struct socket_client_handle_t {
+    uint32_t serial;
+};
 
 /**
  * socket client callback defination
