@@ -110,21 +110,35 @@ LOCAL_SRC_FILES := \
     $(LOCAL_PATH)/h2o/lib/http2/stream.c \
     $(LOCAL_PATH)/h2o/lib/http2/http2_debug_state.c \
 
-LOCAL_C_INCLUDES:= \
-		$(LOCAL_PATH)/../ \
-		$(LOCAL_PATH)/../include \
-		$(LOCAL_PATH)/h2o/include \
-		$(LOCAL_PATH)/h2o/include/h2o \
-		$(LOCAL_PATH)/h2o/deps/klib \
-		$(LOCAL_PATH)/h2o/deps/picohttpparser \
-		$(LOCAL_PATH)/h2o/deps/libyrmcds \
-		$(LOCAL_PATH)/h2o/deps/cloexec \
-		$(LOCAL_PATH)/h2o/deps/hiredis \
-		$(LOCAL_PATH)/h2o/deps/yoml \
-		$(LOCAL_PATH)/h2o/deps/libgkc \
-		$(LOCAL_PATH)/h2o/deps/golombset \
+LOCAL_SRC_FILES += \
+    $(LOCAL_PATH)/libh2o_socket_client/libh2o_socket_client.c \
+    $(LOCAL_PATH)/libh2o_http_client/libh2o_http_client.c \
+    $(LOCAL_PATH)/libh2o_http_server/libh2o_http_server.c \
 
-LOCAL_CFLAGS += -DH2O_USE_EPOLL=1
+# waiting upstrem
+#    $(LOCAL_PATH)/libh2o_websocket_client/libh2o_websocket_client.c \
+
+
+LOCAL_SRC_FILES += \
+    $(LOCAL_PATH)/wslay/lib/wslay_event.c \
+    $(LOCAL_PATH)/wslay/lib/wslay_frame.c \
+    $(LOCAL_PATH)/wslay/lib/wslay_net.c \
+    $(LOCAL_PATH)/wslay/lib/wslay_queue.c \
+    $(LOCAL_PATH)/wslay/lib/wslay_stack.c \
+
+LOCAL_C_INCLUDES:= \
+    $(LOCAL_PATH)/wslay/lib/includes \
+    $(LOCAL_PATH)/h2o/include \
+    $(LOCAL_PATH)/h2o/deps/klib \
+    $(LOCAL_PATH)/h2o/deps/picohttpparser \
+    $(LOCAL_PATH)/h2o/deps/libyrmcds \
+    $(LOCAL_PATH)/h2o/deps/cloexec \
+    $(LOCAL_PATH)/h2o/deps/hiredis \
+    $(LOCAL_PATH)/h2o/deps/yoml \
+    $(LOCAL_PATH)/h2o/deps/libgkc \
+    $(LOCAL_PATH)/h2o/deps/golombset \
+
+LOCAL_CFLAGS += -DH2O_USE_EPOLL=1 -DWSLAY_VERSION=\"1.0.1-DEV\"
 
 LOCAL_LIBNAMES += 
 LOCAL_LIBDIRS += 
