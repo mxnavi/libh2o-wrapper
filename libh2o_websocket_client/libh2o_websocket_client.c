@@ -87,7 +87,9 @@ struct notification_conn_t {
     char *sec_websock_key;
     h2o_linklist_t pending; /* list for pending data sent */
     h2o_timer_t dispose_timeout;
+#ifdef ENABLE_DATA_SERIAL
     uint32_t serial_counter;
+#endif
     int fd; /* for nonce */
     h2o_url_t url_parsed;
     struct websocket_client_req_t req;

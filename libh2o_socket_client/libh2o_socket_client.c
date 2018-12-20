@@ -77,7 +77,9 @@ struct notification_conn_t {
     h2o_linklist_t sending; /* list for current sentding data */
     h2o_socket_t *sock;
     h2o_timer_t _timeout;
+#ifdef ENABLE_DATA_SERIAL
     uint32_t serial_counter; /* data serial counter */
+#endif
     struct socket_client_req_t req;
     struct socket_client_handle_t clih;
 };

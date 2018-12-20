@@ -116,7 +116,9 @@ struct server_context_t {
 
     uint32_t serial_counter;    /* http_request serial counter */
     uint32_t ws_serial_counter; /* websocket serial counter */
+#ifdef ENABLE_DATA_SERIAL
     uint32_t broadcast_serial_counter;
+#endif
 
     pthread_key_t tls;
 
@@ -184,7 +186,9 @@ struct notification_ws_conn_t {
     h2o_linklist_t pending; /* list for pending data sent */
     h2o_timer_t dispose_timeout;
     h2o_websocket_conn_t *wsconn; /* real connection */
+#ifdef ENABLE_DATA_SERIAL
     uint32_t serial_counter;      /* data serial counter */
+#endif
     struct websocket_handle_t clih;
 };
 
