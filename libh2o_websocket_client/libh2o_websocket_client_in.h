@@ -100,7 +100,10 @@ struct websocket_client_callback_t {
  * ssl init infos
  */
 struct websocket_client_ssl_init_t {
-    const char *cert_file;
+    const char *cert_file;     /* server certificate file */
+    const char *cli_cert_file; /* client certificate file */
+    const char *cli_key_file;  /* client key file */
+    int (*passwd_cb)(char *buf, int size, int rwflag, void *u);
 };
 
 /**

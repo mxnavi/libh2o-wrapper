@@ -573,6 +573,18 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
     }
 }
 
+static int cli_key_file_passwd_cb_cb(char *buf, int size, int rwflag, void *u)
+{
+    struct libh2o_socket_client_ctx_t *c = u;
+
+    if (c->client_init.ssl_init.passwd_cb) {
+        return c->client_init.ssl_init.passwd_cb(buf, size, rwflag,
+                                                 c->client_init.cb.param);
+    }
+    ASSERT(0);
+    return 0;
+}
+
 static void init_openssl(struct libh2o_socket_client_ctx_t *c)
 {
     static int openssl_inited = 0;
@@ -589,6 +601,32 @@ static void init_openssl(struct libh2o_socket_client_ctx_t *c)
         SSL_CTX_set_verify(c->ssl_ctx,
                            SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
                            NULL);
+    }
+
+    if (c->client_init.ssl_init.cli_key_file) {
+        int type = SSL_FILETYPE_PEM;
+        const char *p = strchr(c->client_init.ssl_init.cli_key_file, '.');
+        if (p != NULL) {
+            if (strncasecmp(p + 1, "der", 3) == 0) {
+                type = SSL_FILETYPE_ASN1;
+            }
+        }
+        SSL_CTX_use_PrivateKey_file(c->ssl_ctx,
+                                    c->client_init.ssl_init.cli_key_file, type);
+
+        SSL_CTX_set_default_passwd_cb(c->ssl_ctx, cli_key_file_passwd_cb_cb);
+        SSL_CTX_set_default_passwd_cb_userdata(c->ssl_ctx, c);
+    }
+    if (c->client_init.ssl_init.cli_cert_file) {
+        int type = SSL_FILETYPE_PEM;
+        const char *p = strchr(c->client_init.ssl_init.cli_cert_file, '.');
+        if (p != NULL) {
+            if (strncasecmp(p + 1, "der", 3) == 0) {
+                type = SSL_FILETYPE_ASN1;
+            }
+        }
+        SSL_CTX_use_certificate_file(
+            c->ssl_ctx, c->client_init.ssl_init.cli_cert_file, type);
     }
 }
 
