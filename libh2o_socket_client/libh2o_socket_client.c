@@ -108,6 +108,7 @@ static void on_write(h2o_socket_t *sock, const char *err);
 
 static void dispose_timeout_cb(h2o_timer_t *entry);
 static void write_timeout_cb(h2o_timer_t *entry);
+static void conn_timeout_cb(h2o_timer_t *entry);
 
 /****************************************************************************
 *                       Functions Implement Section                         *
@@ -346,6 +347,12 @@ static void on_error(struct notification_conn_t *conn, const char *prefix,
     ASSERT(err != NULL);
 
     LOGW("%s:%s", prefix, err);
+
+    /* if connec timeout pending, unlink it first */
+    if (h2o_timer_is_linked(&conn->_timeout)) {
+        h2o_timer_unlink(&conn->_timeout);
+    }
+
     callback_on_closed(conn, err);
     if (conn->sock) {
         h2o_socket_close(conn->sock);
@@ -353,7 +360,6 @@ static void on_error(struct notification_conn_t *conn, const char *prefix,
     }
 
     c = conn->cmn.c;
-    ASSERT(!h2o_timer_is_linked(&conn->_timeout));
     conn->_timeout.cb = dispose_timeout_cb;
     h2o_timer_link(c->loop, DISPOSE_TIMEOUT_MS, &conn->_timeout);
 }
@@ -365,6 +371,15 @@ static void write_timeout_cb(h2o_timer_t *entry)
     conn = H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, _timeout, entry);
     h2o_timer_unlink(&conn->_timeout);
     on_error(conn, "write_timeout_cb", "I/O timeout");
+}
+
+static void conn_timeout_cb(h2o_timer_t *entry)
+{
+    struct notification_conn_t *conn;
+
+    conn = H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, _timeout, entry);
+    h2o_timer_unlink(&conn->_timeout);
+    on_error(conn, "conn_timeout_cb", "Connect timeout");
 }
 
 static void on_read(h2o_socket_t *sock, const char *err)
@@ -403,6 +418,9 @@ static void on_handshake_complete(h2o_socket_t *sock, const char *err)
 {
     struct notification_conn_t *conn = sock->data;
 
+    if (h2o_timer_is_linked(&conn->_timeout)) {
+        h2o_timer_unlink(&conn->_timeout);
+    }
     if (err != NULL) {
         /* TLS handshake failed */
         on_error(conn, "TLS handshake failure", err);
@@ -418,6 +436,9 @@ static void on_connect(h2o_socket_t *sock, const char *err)
     struct notification_conn_t *conn = sock->data;
     struct libh2o_socket_client_ctx_t *c = conn->cmn.c;
 
+    if (h2o_timer_is_linked(&conn->_timeout)) {
+        h2o_timer_unlink(&conn->_timeout);
+    }
     if (err != NULL) {
         /* connection failed */
         on_error(conn, "failed to connect to host", err);
@@ -529,6 +550,14 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
                 h2o_iovec_init(conn->req.port, strlen(conn->req.port));
 
             h2o_linklist_insert(&c->conns, &msg->link);
+
+            if (c->client_init.conn_timeout > 0) {
+                /* connect timeout */
+                conn->_timeout.cb = conn_timeout_cb;
+                h2o_timer_link(c->loop, c->client_init.conn_timeout,
+                               &conn->_timeout);
+            }
+
             /* resolve host name */
             h2o_hostinfo_getaddr(&c->getaddr_receiver, iov_name, iov_serv,
                                  AF_UNSPEC, SOCK_STREAM, IPPROTO_TCP,

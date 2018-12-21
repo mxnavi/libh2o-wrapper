@@ -16,7 +16,7 @@ PROJ = h2o-wrapper
 
 LOCAL_PATH:= $(shell pwd)
 
-####################################################  
+####################################################
 LOCAL_SRC_FILES := \
     $(LOCAL_PATH)/h2o/deps/cloexec/cloexec.c \
     $(LOCAL_PATH)/h2o/deps/hiredis/async.c \
