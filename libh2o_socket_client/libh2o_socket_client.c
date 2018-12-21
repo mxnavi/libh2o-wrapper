@@ -418,9 +418,6 @@ static void on_handshake_complete(h2o_socket_t *sock, const char *err)
 {
     struct notification_conn_t *conn = sock->data;
 
-    if (h2o_timer_is_linked(&conn->_timeout)) {
-        h2o_timer_unlink(&conn->_timeout);
-    }
     if (err != NULL) {
         /* TLS handshake failed */
         on_error(conn, "TLS handshake failure", err);
@@ -436,9 +433,11 @@ static void on_connect(h2o_socket_t *sock, const char *err)
     struct notification_conn_t *conn = sock->data;
     struct libh2o_socket_client_ctx_t *c = conn->cmn.c;
 
+    /* unlink 'connect timeout' */
     if (h2o_timer_is_linked(&conn->_timeout)) {
         h2o_timer_unlink(&conn->_timeout);
     }
+
     if (err != NULL) {
         /* connection failed */
         on_error(conn, "failed to connect to host", err);
