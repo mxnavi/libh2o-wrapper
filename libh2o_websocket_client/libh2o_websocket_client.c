@@ -602,47 +602,73 @@ static int cli_key_file_passwd_cb_cb(char *buf, int size, int rwflag, void *u)
 
 static void init_openssl(struct libh2o_websocket_client_ctx_t *c)
 {
-    static int openssl_inited = 0;
-    if (openssl_inited++ == 0) {
-        SSL_load_error_strings();
-        SSL_library_init();
-        OpenSSL_add_all_algorithms();
-    }
-
     if (c->client_init.ssl_init.cert_file) {
+        static int openssl_inited = 0;
+        int rc;
+
+        if (openssl_inited++ == 0) {
+            SSL_load_error_strings();
+            SSL_library_init();
+            OpenSSL_add_all_algorithms();
+        }
+
         c->ssl_ctx = SSL_CTX_new(TLSv1_client_method());
         SSL_CTX_load_verify_locations(c->ssl_ctx,
                                       c->client_init.ssl_init.cert_file, NULL);
         SSL_CTX_set_verify(c->ssl_ctx,
                            SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
                            NULL);
-    }
 
-    if (c->client_init.ssl_init.cli_key_file) {
-        int type = SSL_FILETYPE_PEM;
-        const char *p = strchr(c->client_init.ssl_init.cli_key_file, '.');
-        if (p != NULL) {
-            if (strncasecmp(p + 1, "der", 3) == 0) {
-                type = SSL_FILETYPE_ASN1;
+        if (c->client_init.ssl_init.cli_cert_file) {
+            int type = SSL_FILETYPE_PEM;
+            const char *p = strchr(c->client_init.ssl_init.cli_cert_file, '.');
+            if (p != NULL) {
+                if (strncasecmp(p + 1, "der", 3) == 0) {
+                    type = SSL_FILETYPE_ASN1;
+                }
+            }
+            rc = SSL_CTX_use_certificate_file(
+                c->ssl_ctx, c->client_init.ssl_init.cli_cert_file, type);
+            ASSERT(rc > 0);
+            if (rc <= 0) {
+                LOGW("Error setting the certificate file");
+                goto ERROR;
             }
         }
-        SSL_CTX_use_PrivateKey_file(c->ssl_ctx,
-                                    c->client_init.ssl_init.cli_key_file, type);
+        if (c->client_init.ssl_init.cli_key_file) {
+            int type = SSL_FILETYPE_PEM;
+            const char *p = strchr(c->client_init.ssl_init.cli_key_file, '.');
+            if (p != NULL) {
+                if (strncasecmp(p + 1, "der", 3) == 0) {
+                    type = SSL_FILETYPE_ASN1;
+                }
+            }
+            SSL_CTX_set_default_passwd_cb(c->ssl_ctx,
+                                          cli_key_file_passwd_cb_cb);
+            SSL_CTX_set_default_passwd_cb_userdata(c->ssl_ctx, c);
+            rc = SSL_CTX_use_PrivateKey_file(
+                c->ssl_ctx, c->client_init.ssl_init.cli_key_file, type);
+            ASSERT(rc > 0);
+            if (rc <= 0) {
+                LOGW("Error setting the key file");
+                goto ERROR;
+            }
 
-        SSL_CTX_set_default_passwd_cb(c->ssl_ctx, cli_key_file_passwd_cb_cb);
-        SSL_CTX_set_default_passwd_cb_userdata(c->ssl_ctx, c);
-    }
-    if (c->client_init.ssl_init.cli_cert_file) {
-        int type = SSL_FILETYPE_PEM;
-        const char *p = strchr(c->client_init.ssl_init.cli_cert_file, '.');
-        if (p != NULL) {
-            if (strncasecmp(p + 1, "der", 3) == 0) {
-                type = SSL_FILETYPE_ASN1;
+            /* Make sure the key and certificate file match */
+            rc = SSL_CTX_check_private_key(c->ssl_ctx);
+            ASSERT(rc > 0);
+            if (rc <= 0) {
+                LOGW("Private key does not match the certificate public key");
+                goto ERROR;
             }
         }
-        SSL_CTX_use_certificate_file(
-            c->ssl_ctx, c->client_init.ssl_init.cli_cert_file, type);
     }
+
+    return;
+
+ERROR:
+    c->exit_loop = 1;
+    return;
 }
 
 static void release_openssl(struct libh2o_websocket_client_ctx_t *c)
@@ -711,6 +737,26 @@ libh2o_websocket_client_start(const struct websocket_client_init_t *client_init)
     struct libh2o_websocket_client_ctx_t *c;
 
     if (!client_init) return NULL;
+
+    if (client_init->ssl_init.cli_cert_file &&
+        !client_init->ssl_init.cli_key_file) {
+        LOGW("missing client key file");
+        return NULL;
+    }
+
+    if (client_init->ssl_init.cli_key_file &&
+        !client_init->ssl_init.cli_cert_file) {
+        LOGW("missing client certificate file");
+        return NULL;
+    }
+
+    if (client_init->ssl_init.cli_cert_file ||
+        client_init->ssl_init.cli_key_file) {
+        if (!client_init->ssl_init.cert_file) {
+            LOGW("missing server certificate file");
+            return NULL;
+        }
+    }
 
     c = h2o_mem_alloc(sizeof(*c));
     if (c) {
