@@ -792,6 +792,8 @@ libh2o_websocket_client_start(const struct websocket_client_init_t *client_init)
 
 void libh2o_websocket_client_stop(struct libh2o_websocket_client_ctx_t *c)
 {
+    if (!c) return;
+
     notify_thread_quit(c);
     pthread_join(c->tid, NULL);
     if (c->queue) {

@@ -1313,7 +1313,7 @@ void libh2o_http_server_stop(struct server_context_t *c)
 {
     size_t i;
 
-    if (c == NULL) return;
+    if (!c) return;
 
     notify_threads_quit(c);
     for (i = 0; i < c->server_init.num_threads; ++i) {

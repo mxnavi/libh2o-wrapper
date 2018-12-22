@@ -737,6 +737,8 @@ libh2o_socket_client_start(const struct socket_client_init_t *client_init)
 
 void libh2o_socket_client_stop(struct libh2o_socket_client_ctx_t *c)
 {
+    if (!c) return;
+
     notify_thread_quit(c);
     pthread_join(c->tid, NULL);
     if (c->queue) {

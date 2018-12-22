@@ -622,6 +622,8 @@ libh2o_http_client_start(const struct http_client_init_t *client_init)
 
 void libh2o_http_client_stop(struct libh2o_http_client_ctx_t *c)
 {
+    if (!c) return;
+
     notify_thread_quit(c);
     pthread_join(c->tid, NULL);
     if (c->queue) {
