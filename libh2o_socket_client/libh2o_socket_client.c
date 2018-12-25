@@ -480,7 +480,11 @@ static void on_connect(h2o_socket_t *sock, const char *err)
     }
 
     if (c->ssl_ctx != NULL) {
-        h2o_socket_ssl_handshake(sock, c->ssl_ctx, conn->req.host,
+        const char *host = conn->req.host;
+        if (conn->req.alias_host) {
+            host = conn->req.alias_host;
+        }
+        h2o_socket_ssl_handshake(sock, c->ssl_ctx, host,
                                  h2o_iovec_init(NULL, 0),
                                  on_handshake_complete);
     } else {
