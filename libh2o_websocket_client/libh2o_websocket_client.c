@@ -440,7 +440,6 @@ static void release_conn_linkedlist(struct libh2o_websocket_client_ctx_t *c,
             h2o_multithread_message_t, link, messages->next);
         struct notification_conn_t *conn = (struct notification_conn_t *)msg;
         ASSERT(c == conn->cmn.c);
-        ASSERT(NOTIFICATION_CONN == conn->cmn.cmd);
         h2o_linklist_unlink(&msg->link);
 
         callback_on_closed(conn, err);

@@ -80,6 +80,14 @@ libh2o_socket_client_req(struct libh2o_socket_client_ctx_t *c,
 size_t libh2o_socket_client_send(const struct socket_client_handle_t *clih,
                                  const void *buf, size_t len);
 
+/**
+ * request close a connection
+ * @param clih socket client handle
+ * @return void
+ * @note Must be called after connected
+ */
+void libh2o_socket_client_release(const struct socket_client_handle_t *clih);
+
 #ifdef __cplusplus
 }
 #endif

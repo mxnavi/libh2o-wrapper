@@ -28,6 +28,7 @@
 
 #define NOTIFICATION_CONN 0
 #define NOTIFICATION_DATA 1
+#define NOTIFICATION_CLOSE 2
 #define NOTIFICATION_QUIT 0xFFFFFFFF
 
 #define DISPOSE_TIMEOUT_MS 1000
@@ -167,6 +168,19 @@ static void notify_thread_data(struct notification_conn_t *conn,
 #endif
 
     msg->data = h2o_iovec_init(buf, len);
+
+    h2o_multithread_send_message(&conn->cmn.c->notifications, &msg->cmn.super);
+}
+
+static void notify_thread_release(struct notification_conn_t *conn)
+{
+    struct notification_data_t *msg = h2o_mem_alloc(sizeof(*msg));
+    memset(msg, 0x00, sizeof(*msg));
+
+    msg->cmn.cmd = NOTIFICATION_CLOSE;
+    msg->cmn.c = conn->cmn.c;
+
+    msg->conn = conn;
 
     h2o_multithread_send_message(&conn->cmn.c->notifications, &msg->cmn.super);
 }
@@ -394,6 +408,11 @@ static void on_read(h2o_socket_t *sock, const char *err)
 
     callback_on_data(conn, sock->input->bytes, sock->input->size);
     h2o_buffer_consume(&sock->input, sock->input->size);
+
+    if (conn->cmn.cmd == NOTIFICATION_CLOSE) {
+        on_error(conn, "user close", "NO error");
+        return;
+    }
 }
 
 static void on_write(h2o_socket_t *sock, const char *err)
@@ -411,6 +430,12 @@ static void on_write(h2o_socket_t *sock, const char *err)
     }
 
     release_sending(conn);
+
+    if (conn->cmn.cmd == NOTIFICATION_CLOSE) {
+        on_error(conn, "user close", "NO error");
+        return;
+    }
+
     write_pending(conn);
 }
 
@@ -421,6 +446,11 @@ static void on_handshake_complete(h2o_socket_t *sock, const char *err)
     if (err != NULL) {
         /* TLS handshake failed */
         on_error(conn, "TLS handshake failure", err);
+        return;
+    }
+
+    if (conn->cmn.cmd == NOTIFICATION_CLOSE) {
+        on_error(conn, "user close", "NO error");
         return;
     }
 
@@ -441,6 +471,11 @@ static void on_connect(h2o_socket_t *sock, const char *err)
     if (err != NULL) {
         /* connection failed */
         on_error(conn, "failed to connect to host", err);
+        return;
+    }
+
+    if (conn->cmn.cmd == NOTIFICATION_CLOSE) {
+        on_error(conn, "user close", "NO error");
         return;
     }
 
@@ -465,6 +500,10 @@ static void on_getaddr(h2o_hostinfo_getaddr_req_t *getaddr_req, const char *err,
     if (err != NULL) {
         /* resolve host failed */
         on_error(conn, "failed to resolve host", err);
+        return;
+    }
+    if (conn->cmn.cmd == NOTIFICATION_CLOSE) {
+        on_error(conn, "user close", "NO error");
         return;
     }
 
@@ -505,7 +544,6 @@ static void release_conn_linkedlist(struct libh2o_socket_client_ctx_t *c,
             h2o_multithread_message_t, link, messages->next);
         struct notification_conn_t *conn = (struct notification_conn_t *)msg;
         ASSERT(c == conn->cmn.c);
-        ASSERT(NOTIFICATION_CONN == conn->cmn.cmd);
         h2o_linklist_unlink(&msg->link);
 
         callback_on_closed(conn, err);
@@ -562,6 +600,19 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
                                  AF_UNSPEC, SOCK_STREAM, IPPROTO_TCP,
                                  AI_ADDRCONFIG | AI_NUMERICSERV, on_getaddr,
                                  conn);
+
+        } else if (cmn->cmd == NOTIFICATION_CLOSE) {
+            struct notification_data_t *data =
+                (struct notification_data_t *)cmn;
+            struct notification_conn_t *conn = data->conn;
+            conn->cmn.cmd = NOTIFICATION_CLOSE;
+            if (conn->sock == NULL) {
+                LOGW("caller want to close without connection");
+            } else if (!h2o_socket_is_writing(conn->sock)) {
+                on_error(conn, "user close", "NO error");
+            } else {
+            }
+            free(msg);
 
         } else if (cmn->cmd == NOTIFICATION_QUIT) {
             c->exit_loop = 1;
@@ -779,6 +830,17 @@ size_t libh2o_socket_client_send(const struct socket_client_handle_t *clih,
 
     notify_thread_data(conn, buf, len);
     return len;
+}
+
+void libh2o_socket_client_release(const struct socket_client_handle_t *clih)
+{
+    struct notification_conn_t *conn;
+
+    if (clih == NULL) return;
+
+    conn = H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, clih, clih);
+
+    notify_thread_release(conn);
 }
 
 #ifdef LIBH2O_UNIT_TEST
