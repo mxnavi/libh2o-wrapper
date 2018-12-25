@@ -989,6 +989,10 @@ int main(int argc, char **argv)
                  */
                 libh2o_socket_client_send(cli->clih, buf, strlen(buf) + 1);
             }
+            if (0) {
+                usleep(1000000);
+                libh2o_socket_client_release(cli->clih);
+            }
         } else if (state < 0) {
             /**
              * closed by peer
