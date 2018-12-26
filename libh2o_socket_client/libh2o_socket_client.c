@@ -592,10 +592,10 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
 
             h2o_linklist_insert(&c->conns, &msg->link);
 
-            if (c->client_init.conn_timeout > 0) {
+            if (conn->req.conn_timeout > 0) {
                 /* connect timeout */
                 conn->_timeout.cb = conn_timeout_cb;
-                h2o_timer_link(c->loop, c->client_init.conn_timeout,
+                h2o_timer_link(c->loop, conn->req.conn_timeout,
                                &conn->_timeout);
             }
 
