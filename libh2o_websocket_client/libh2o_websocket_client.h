@@ -83,6 +83,15 @@ size_t
 libh2o_websocket_client_send(const struct websocket_client_handle_t *clih,
                              const void *buf, size_t len);
 
+/**
+ * request close a connection
+ * @param clih websocket client handle
+ * @return void
+ * @note should be called after connected
+ */
+void libh2o_websocket_client_release(
+    const struct websocket_client_handle_t *clih);
+
 #ifdef __cplusplus
 }
 #endif

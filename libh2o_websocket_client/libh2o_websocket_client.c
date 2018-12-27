@@ -29,6 +29,7 @@
 
 #define NOTIFICATION_CONN 0
 #define NOTIFICATION_DATA 1
+#define NOTIFICATION_CLOSE 2
 #define NOTIFICATION_QUIT 0xFFFFFFFF
 
 #define DISPOSE_TIMEOUT_MS 1000
@@ -86,7 +87,7 @@ struct notification_conn_t {
     h2o_websocket_client_conn_t *wsconn;
     char *sec_websock_key;
     h2o_linklist_t pending; /* list for pending data sent */
-    h2o_timer_t dispose_timeout;
+    h2o_timer_t _timeout;
 #ifdef ENABLE_DATA_SERIAL
     uint32_t serial_counter;
 #endif
@@ -104,6 +105,11 @@ struct notification_data_t {
 #ifdef ENABLE_DATA_SERIAL
     uint64_t serial;
 #endif
+};
+
+struct notification_close_t {
+    struct notification_cmn_t cmn;
+    struct notification_conn_t *conn;
 };
 
 /****************************************************************************
@@ -203,6 +209,19 @@ static void notify_thread_data(struct notification_conn_t *conn,
     h2o_multithread_send_message(&msg->cmn.c->notifications, &msg->cmn.super);
 }
 
+static void notify_thread_release(struct notification_conn_t *conn)
+{
+    struct notification_close_t *msg = h2o_mem_alloc(sizeof(*msg));
+    memset(msg, 0x00, sizeof(*msg));
+
+    msg->cmn.cmd = NOTIFICATION_CLOSE;
+    msg->cmn.c = conn->cmn.c;
+
+    msg->conn = conn;
+
+    h2o_multithread_send_message(&conn->cmn.c->notifications, &msg->cmn.super);
+}
+
 static void release_notification_data(struct notification_data_t *msg)
 {
 #ifdef ENABLE_DATA_SERIAL
@@ -238,8 +257,8 @@ static void release_notification_conn(struct notification_conn_t *conn)
 #ifdef DEBUG_SERIAL
     LOGV("release serial: %u", conn->clih.serial);
 #endif
-    if (h2o_timer_is_linked(&conn->dispose_timeout)) {
-        h2o_timer_unlink(&conn->dispose_timeout);
+    if (h2o_timer_is_linked(&conn->_timeout)) {
+        h2o_timer_unlink(&conn->_timeout);
     }
     /* unlink from 'conns' */
     if (h2o_linklist_is_linked(&conn->cmn.super.link)) {
@@ -368,6 +387,18 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
             h2o_httpclient_connect(&conn->client, &conn->pool, conn,
                                    &conn->cmn.c->ctx, conn->cmn.c->connpool,
                                    &conn->url_parsed, on_connect);
+        } else if (cmn->cmd == NOTIFICATION_CLOSE) {
+            struct notification_close_t *data =
+                (struct notification_close_t *)cmn;
+            struct notification_conn_t *conn = data->conn;
+            conn->cmn.cmd = NOTIFICATION_CLOSE;
+            if (conn->wsconn == NULL) {
+                LOGW("caller want to close without connection");
+            } else {
+                queue_websocket_close_cb(conn, NULL);
+            }
+            free(msg);
+
         } else if (cmn->cmd == NOTIFICATION_QUIT) {
             foreach_conn(c, queue_websocket_close_cb, NULL);
             c->exit_loop = 1;
@@ -457,8 +488,7 @@ static void dispose_timeout_cb(h2o_timer_t *entry)
 {
     struct notification_conn_t *conn;
 
-    conn = H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, dispose_timeout,
-                                  entry);
+    conn = H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, _timeout, entry);
     release_notification_conn(conn);
 }
 
@@ -468,6 +498,12 @@ static void on_error(struct notification_conn_t *conn, const char *prefix,
     struct libh2o_websocket_client_ctx_t *c;
     ASSERT(err != NULL);
     LOGW("%s:%s", prefix, err);
+
+    /* if connec timeout pending, unlink it first */
+    if (h2o_timer_is_linked(&conn->_timeout)) {
+        h2o_timer_unlink(&conn->_timeout);
+    }
+
     callback_on_closed(conn, err);
     if (conn->wsconn) {
         h2o_websocket_client_close(conn->wsconn);
@@ -475,8 +511,8 @@ static void on_error(struct notification_conn_t *conn, const char *prefix,
     }
 
     c = conn->cmn.c;
-    conn->dispose_timeout.cb = dispose_timeout_cb;
-    h2o_timer_link(c->ctx.loop, DISPOSE_TIMEOUT_MS, &conn->dispose_timeout);
+    conn->_timeout.cb = dispose_timeout_cb;
+    h2o_timer_link(c->ctx.loop, DISPOSE_TIMEOUT_MS, &conn->_timeout);
 }
 
 static void on_ws_message(h2o_websocket_client_conn_t *_conn,
@@ -502,7 +538,7 @@ h2o_httpclient_body_cb on_head(h2o_httpclient_t *client, const char *errstr,
     struct notification_conn_t *conn = client->data;
 
     if (errstr != NULL && errstr != h2o_httpclient_error_is_eos) {
-        on_error(conn, "on_head error", errstr);
+        on_error(conn, "on_head", errstr);
         return NULL;
     }
 
@@ -526,8 +562,11 @@ h2o_httpclient_body_cb on_head(h2o_httpclient_t *client, const char *errstr,
 
     if (0 != h2o_is_websocket_respheader(version, status, conn->sec_websock_key,
                                          headers, num_headers)) {
-        LOGE("No websocket response header");
-        on_error(conn, "on_head error", "No websocket response header");
+        on_error(conn, "on_head", "No websocket response header");
+        return NULL;
+    }
+    if (conn->cmn.cmd == NOTIFICATION_CLOSE) {
+        on_error(conn, "on_head", "User close");
         return NULL;
     }
     conn->wsconn = h2o_upgrade_to_websocket_client(client, conn, version,
@@ -557,10 +596,14 @@ on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *_method,
 
     struct notification_conn_t *conn = client->data;
     if (errstr != NULL) {
-        on_error(conn, "connect error", errstr);
+        on_error(conn, "on_connect", errstr);
         return NULL;
     }
 
+    if (conn->cmn.cmd == NOTIFICATION_CLOSE) {
+        on_error(conn, "on_connect", "User close");
+        return NULL;
+    }
     callback_on_connected(conn);
     conn->fd = open("/dev/urandom", O_RDONLY);
     url_parsed = &conn->url_parsed;
@@ -834,6 +877,18 @@ libh2o_websocket_client_send(const struct websocket_client_handle_t *clih,
 
     notify_thread_data(conn, buf, len);
     return len;
+}
+
+void libh2o_websocket_client_release(
+    const struct websocket_client_handle_t *clih)
+{
+    struct notification_conn_t *conn;
+
+    if (clih == NULL) return;
+
+    conn = H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, clih, clih);
+
+    notify_thread_release(conn);
 }
 
 #ifdef LIBH2O_UNIT_TEST

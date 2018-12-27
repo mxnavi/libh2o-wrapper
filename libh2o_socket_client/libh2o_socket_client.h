@@ -84,7 +84,7 @@ size_t libh2o_socket_client_send(const struct socket_client_handle_t *clih,
  * request close a connection
  * @param clih socket client handle
  * @return void
- * @note Must be called after connected
+ * @note should be called after connected
  */
 void libh2o_socket_client_release(const struct socket_client_handle_t *clih);
 

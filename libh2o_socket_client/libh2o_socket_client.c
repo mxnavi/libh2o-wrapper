@@ -415,7 +415,7 @@ static void on_read(h2o_socket_t *sock, const char *err)
     h2o_buffer_consume(&sock->input, sock->input->size);
 
     if (conn->cmn.cmd == NOTIFICATION_CLOSE) {
-        on_error(conn, "user close", "NO error");
+        on_error(conn, "on_read", "User close");
         return;
     }
 }
@@ -437,7 +437,7 @@ static void on_write(h2o_socket_t *sock, const char *err)
     release_sending(conn);
 
     if (conn->cmn.cmd == NOTIFICATION_CLOSE) {
-        on_error(conn, "user close", "NO error");
+        on_error(conn, "on_write", "User close");
         return;
     }
 
@@ -455,7 +455,7 @@ static void on_handshake_complete(h2o_socket_t *sock, const char *err)
     }
 
     if (conn->cmn.cmd == NOTIFICATION_CLOSE) {
-        on_error(conn, "user close", "NO error");
+        on_error(conn, "on_handshake_complete", "User close");
         return;
     }
 
@@ -480,7 +480,7 @@ static void on_connect(h2o_socket_t *sock, const char *err)
     }
 
     if (conn->cmn.cmd == NOTIFICATION_CLOSE) {
-        on_error(conn, "user close", "NO error");
+        on_error(conn, "on_connect", "User close");
         return;
     }
 
@@ -512,7 +512,7 @@ static void on_getaddr(h2o_hostinfo_getaddr_req_t *getaddr_req, const char *err,
         return;
     }
     if (conn->cmn.cmd == NOTIFICATION_CLOSE) {
-        on_error(conn, "user close", "NO error");
+        on_error(conn, "on_getaddr", "User close");
         return;
     }
 
@@ -618,7 +618,7 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
             if (conn->sock == NULL) {
                 LOGW("caller want to close without connection");
             } else if (!h2o_socket_is_writing(conn->sock)) {
-                on_error(conn, "user close", "NO error");
+                on_error(conn, "on_notification", "User close");
             } else {
             }
             free(msg);
