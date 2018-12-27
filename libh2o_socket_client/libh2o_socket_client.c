@@ -98,6 +98,11 @@ struct notification_data_t {
 #endif
 };
 
+struct notification_close_t {
+    struct notification_cmn_t cmn;
+    struct notification_conn_t *conn;
+};
+
 /****************************************************************************
 *                       Global Variables Section                            *
 *****************************************************************************/
@@ -174,7 +179,7 @@ static void notify_thread_data(struct notification_conn_t *conn,
 
 static void notify_thread_release(struct notification_conn_t *conn)
 {
-    struct notification_data_t *msg = h2o_mem_alloc(sizeof(*msg));
+    struct notification_close_t *msg = h2o_mem_alloc(sizeof(*msg));
     memset(msg, 0x00, sizeof(*msg));
 
     msg->cmn.cmd = NOTIFICATION_CLOSE;
@@ -606,8 +611,8 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
                                  conn);
 
         } else if (cmn->cmd == NOTIFICATION_CLOSE) {
-            struct notification_data_t *data =
-                (struct notification_data_t *)cmn;
+            struct notification_close_t *data =
+                (struct notification_close_t *)cmn;
             struct notification_conn_t *conn = data->conn;
             conn->cmn.cmd = NOTIFICATION_CLOSE;
             if (conn->sock == NULL) {
