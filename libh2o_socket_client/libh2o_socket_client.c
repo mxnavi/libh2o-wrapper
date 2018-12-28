@@ -407,7 +407,7 @@ static void on_read(h2o_socket_t *sock, const char *err)
 
     if (err != NULL) {
         /* read failed */
-        on_error(conn, "read failed", err);
+        on_error(conn, "on_read", err);
         return;
     }
 
@@ -430,7 +430,7 @@ static void on_write(h2o_socket_t *sock, const char *err)
 
     if (err != NULL) {
         /* write failed */
-        on_error(conn, "write failed", err);
+        on_error(conn, "on_write", err);
         return;
     }
 
@@ -450,7 +450,7 @@ static void on_handshake_complete(h2o_socket_t *sock, const char *err)
 
     if (err != NULL) {
         /* TLS handshake failed */
-        on_error(conn, "TLS handshake failure", err);
+        on_error(conn, "on_handshake_complete", err);
         return;
     }
 
@@ -475,7 +475,7 @@ static void on_connect(h2o_socket_t *sock, const char *err)
 
     if (err != NULL) {
         /* connection failed */
-        on_error(conn, "failed to connect to host", err);
+        on_error(conn, "on_connect", err);
         return;
     }
 
@@ -508,7 +508,7 @@ static void on_getaddr(h2o_hostinfo_getaddr_req_t *getaddr_req, const char *err,
 
     if (err != NULL) {
         /* resolve host failed */
-        on_error(conn, "failed to resolve host", err);
+        on_error(conn, "on_getaddr", err);
         return;
     }
     if (conn->cmn.cmd == NOTIFICATION_CLOSE) {
@@ -521,7 +521,7 @@ static void on_getaddr(h2o_hostinfo_getaddr_req_t *getaddr_req, const char *err,
                               on_connect);
     if (sock == NULL) {
         /* create socket failed */
-        on_error(conn, "failed to create socket", strerror(errno));
+        on_error(conn, "on_getaddr", strerror(errno));
         return;
     }
     sock->data = conn;

@@ -32,7 +32,7 @@ extern "C" {
 struct socket_client_req_t {
     const char *host; /* const string pointer from user */
     const char *port; /* const string pointer from user */
-    const char *alias_host; /* used for host validate for tls */
+    const char *alias_host; /* FIXME: used for host validate for tls */
     int conn_timeout;       /* connect timeout in msec */
 };
 
