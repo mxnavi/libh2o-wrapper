@@ -124,8 +124,11 @@ LOCAL_C_INCLUDES:= \
     external/openssl/include \
     external/zlib \
 
-LOCAL_CFLAGS +=-DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
-LOCAL_CFLAGS += -DH2O_USE_EPOLL=1 -DWSLAY_VERSION=\"1.0.1-DEV\" -Wno-error=return-type
+LOCAL_CFLAGS += -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
+LOCAL_CFLAGS += -DH2O_USE_EPOLL=1 -DWSLAY_VERSION=\"1.0.1-DEV\"
+
+# TODO: why need this?
+LOCAL_CFLAGS += -Wno-error=return-type
 
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := h2o-wrapper
