@@ -1,6 +1,19 @@
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
+# boringssl starts from android 6.0, sdk version > 22
+ifeq ($(strip $(PLATFORM_SDK_VERSION)), 19)
+LIBH2O_BORINGSSL := false
+else ifeq ($(strip $(PLATFORM_SDK_VERSION)), 20)
+LIBH2O_BORINGSSL := false
+else ifeq ($(strip $(PLATFORM_SDK_VERSION)), 21)
+LIBH2O_BORINGSSL := false
+else ifeq ($(strip $(PLATFORM_SDK_VERSION)), 22)
+LIBH2O_BORINGSSL := false
+else
+LIBH2O_BORINGSSL := true
+endif
+
 LOCAL_SRC_FILES := \
     h2o/deps/cloexec/cloexec.c \
     h2o/deps/hiredis/async.c \
@@ -121,14 +134,25 @@ LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/h2o/deps/yoml \
     $(LOCAL_PATH)/h2o/deps/libgkc \
     $(LOCAL_PATH)/h2o/deps/golombset \
-    external/openssl/include \
     external/zlib \
+
+ifeq ($(strip $(LIBH2O_BORINGSSL)), true)
+LOCAL_C_INCLUDES += external/boringssl/include
+else
+LOCAL_C_INCLUDES += external/openssl/include
+endif
+
+# ignore warnigs
+LOCAL_CFLAGS := -Wno-error=return-type -Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare
 
 LOCAL_CFLAGS += -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
 LOCAL_CFLAGS += -DH2O_USE_EPOLL=1 -DWSLAY_VERSION=\"1.0.1-DEV\"
 
-# TODO: why need this?
-LOCAL_CFLAGS += -Wno-error=return-type
+# for pipe2
+LOCAL_CFLAGS += -D_GNU_SOURCE
+
+# for wslay
+LOCAL_CFLAGS += -DHAVE_ARPA_INET_H -DHAVE_NETINET_IN_H
 
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := h2o-wrapper
