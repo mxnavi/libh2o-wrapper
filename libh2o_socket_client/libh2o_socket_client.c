@@ -772,6 +772,10 @@ static void *client_loop(void *arg)
 {
     struct libh2o_socket_client_ctx_t *c = arg;
 
+#ifdef H2O_THREAD_LOCAL_UNINITIALIZED
+    h2o_init_thread();
+#endif
+
     init_openssl(c);
 
     while (!c->exit_loop) {

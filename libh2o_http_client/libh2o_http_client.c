@@ -580,6 +580,10 @@ static void *client_loop(void *arg)
 {
     struct libh2o_http_client_ctx_t *c = arg;
 
+#ifdef H2O_THREAD_LOCAL_UNINITIALIZED
+    h2o_init_thread();
+#endif
+
     init_openssl(c);
     init_conn_poll(c);
     h2o_socketpool_set_ssl_ctx(c->sockpool, c->ssl_ctx);

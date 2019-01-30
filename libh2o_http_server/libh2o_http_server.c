@@ -1128,6 +1128,10 @@ static void *server_loop(void *_param)
     LOGV("%s(%d)...", __FUNCTION__, thread_index);
     ASSERT(thread_index >= 0 && thread_index < c->server_init.num_threads);
 
+#ifdef H2O_THREAD_LOCAL_UNINITIALIZED
+    h2o_init_thread();
+#endif
+
     free(_param);
 
     set_current_thread_index(c, thread_index);
