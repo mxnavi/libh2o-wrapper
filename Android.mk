@@ -111,9 +111,7 @@ LOCAL_SRC_FILES += \
     libh2o_socket_client/libh2o_socket_client.c \
     libh2o_http_client/libh2o_http_client.c \
     libh2o_http_server/libh2o_http_server.c \
-
-# waiting upstrem
-#    libh2o_websocket_client/libh2o_websocket_client.c \
+    libh2o_websocket_client/libh2o_websocket_client.c \
 
 
 LOCAL_SRC_FILES += \

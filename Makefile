@@ -114,9 +114,7 @@ LOCAL_SRC_FILES += \
     $(LOCAL_PATH)/libh2o_socket_client/libh2o_socket_client.c \
     $(LOCAL_PATH)/libh2o_http_client/libh2o_http_client.c \
     $(LOCAL_PATH)/libh2o_http_server/libh2o_http_server.c \
-
-# waiting upstrem
-#    $(LOCAL_PATH)/libh2o_websocket_client/libh2o_websocket_client.c \
+    $(LOCAL_PATH)/libh2o_websocket_client/libh2o_websocket_client.c \
 
 
 LOCAL_SRC_FILES += \
