@@ -63,12 +63,14 @@ void libh2o_websocket_client_stop(struct libh2o_websocket_client_ctx_t *c);
  * request a websocket connection to server
  * @param c websocket client context pointer
  * @param req request info
+ * @param user user data ptr, will be stored in client handle
  * @return websocket client connection handle for success or else NULL when
  * error
  */
 const struct websocket_client_handle_t *
 libh2o_websocket_client_req(struct libh2o_websocket_client_ctx_t *c,
-                            const struct websocket_client_req_t *req);
+                            const struct websocket_client_req_t *req,
+                            void *user);
 
 /**
  * queue data to event loop for sending

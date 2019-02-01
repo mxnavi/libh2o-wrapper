@@ -41,6 +41,7 @@ struct socket_client_req_t {
  */
 struct socket_client_handle_t {
     uint32_t serial;
+    void *user;
 };
 
 /**

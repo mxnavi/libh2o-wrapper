@@ -198,7 +198,7 @@ static void free_req(struct http_client_req_t *req)
 
 static struct notification_conn_t *
 notify_thread_connect(struct libh2o_http_client_ctx_t *c,
-                      struct http_client_req_t *req)
+                      struct http_client_req_t *req, void *user)
 {
     struct notification_conn_t *msg = h2o_mem_alloc(sizeof(*msg));
     memset(msg, 0x00, sizeof(*msg));
@@ -209,6 +209,7 @@ notify_thread_connect(struct libh2o_http_client_ctx_t *c,
     dup_req(&msg->req, req);
 
     msg->clih.serial = __sync_fetch_and_add(&c->serial_counter, 1);
+    msg->clih.user = user;
 #ifdef DEBUG_SERIAL
     LOGV("create serial: %u", msg->clih.serial);
 #endif
@@ -690,7 +691,7 @@ void libh2o_http_client_stop(struct libh2o_http_client_ctx_t *c)
 
 const struct http_client_handle_t *
 libh2o_http_client_req(struct libh2o_http_client_ctx_t *c,
-                       struct http_client_req_t *req)
+                       struct http_client_req_t *req, void *user)
 {
     struct notification_conn_t *msg;
 
@@ -698,7 +699,7 @@ libh2o_http_client_req(struct libh2o_http_client_ctx_t *c,
 
     if (req->method == NULL) req->method = "GET";
 
-    msg = notify_thread_connect(c, req);
+    msg = notify_thread_connect(c, req, user);
     return &msg->clih;
 }
 
@@ -768,7 +769,7 @@ int main(int argc, char **argv)
             NULL,
             {0}};
         const struct http_client_handle_t *clih;
-        clih = libh2o_http_client_req(c, &req);
+        clih = libh2o_http_client_req(c, &req, NULL);
         usleep(100000);
     }
     libh2o_http_client_stop(c);

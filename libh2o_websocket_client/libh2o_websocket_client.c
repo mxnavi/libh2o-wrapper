@@ -214,7 +214,7 @@ static void free_req(struct websocket_client_req_t *req)
 
 static struct notification_conn_t *
 notify_thread_connect(struct libh2o_websocket_client_ctx_t *c,
-                      const struct websocket_client_req_t *req)
+                      const struct websocket_client_req_t *req, void *user)
 {
     struct notification_conn_t *msg = h2o_mem_alloc(sizeof(*msg));
     memset(msg, 0x00, sizeof(*msg));
@@ -225,6 +225,7 @@ notify_thread_connect(struct libh2o_websocket_client_ctx_t *c,
     h2o_linklist_init_anchor(&msg->pending);
 
     msg->clih.serial = __sync_fetch_and_add(&c->serial_counter, 1);
+    msg->clih.user = user;
 #ifdef DEBUG_SERIAL
     LOGV("create serial: %u", msg->clih.serial);
 #endif
@@ -901,7 +902,8 @@ void libh2o_websocket_client_stop(struct libh2o_websocket_client_ctx_t *c)
 
 const struct websocket_client_handle_t *
 libh2o_websocket_client_req(struct libh2o_websocket_client_ctx_t *c,
-                            const struct websocket_client_req_t *req)
+                            const struct websocket_client_req_t *req,
+                            void *user)
 {
     struct notification_conn_t *conn;
 
@@ -910,7 +912,7 @@ libh2o_websocket_client_req(struct libh2o_websocket_client_ctx_t *c,
     if (req->opcode != WSLAY_TEXT_FRAME && req->opcode != WSLAY_BINARY_FRAME) {
         return NULL;
     }
-    conn = notify_thread_connect(c, req);
+    conn = notify_thread_connect(c, req, user);
     return &conn->clih;
 }
 
@@ -1064,12 +1066,14 @@ int main(int argc, char **argv)
      */
     struct websocket_client_req_t req = {"http://127.0.0.1:7890/",
                                          WEBSOCKET_FRAME_TYPE_TEXT};
-    clients.clients[0].clih = libh2o_websocket_client_req(clients.c, &req);
+    clients.clients[0].clih =
+        libh2o_websocket_client_req(clients.c, &req, NULL);
 
     int i;
     for (i = 1; i < argc; ++i) {
         req.url = argv[i];
-        clients.clients[i].clih = libh2o_websocket_client_req(clients.c, &req);
+        clients.clients[i].clih =
+            libh2o_websocket_client_req(clients.c, &req, NULL);
     }
 
     h2o_srand();

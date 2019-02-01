@@ -63,11 +63,12 @@ void libh2o_http_client_stop(struct libh2o_http_client_ctx_t *c);
  * queue data to event loop thread for sending
  * @param c http client context pointer
  * @param req  http request
+ * @param user user data ptr, will be stored in client handle
  * @return http client request handle for success or else NULL when error
  */
 const struct http_client_handle_t *
 libh2o_http_client_req(struct libh2o_http_client_ctx_t *c,
-                       struct http_client_req_t *req);
+                       struct http_client_req_t *req, void *user);
 
 #ifdef __cplusplus
 }

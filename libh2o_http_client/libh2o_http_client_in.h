@@ -40,6 +40,7 @@ struct http_client_req_t {
  */
 struct http_client_handle_t {
     uint32_t serial;
+    void *user;
 };
 
 /**

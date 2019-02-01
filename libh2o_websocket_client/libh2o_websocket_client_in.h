@@ -40,6 +40,7 @@ struct websocket_client_req_t {
  */
 struct websocket_client_handle_t {
     uint32_t serial;
+    void *user;
 };
 
 /**
