@@ -26,13 +26,25 @@ extern "C" {
 *                       Macro Definition Section                            *
 *****************************************************************************/
 
+#define HTTP_REQUEST_HEADER_MAX 4
 /****************************************************************************
 *                       Type Definition Section                             *
 *****************************************************************************/
+
+/**
+ * optional http request header
+ */
+struct http_request_header_t {
+    const h2o_token_t *token;
+    h2o_iovec_t value;
+};
+
 struct http_client_req_t {
     char *url;          /* MUST */
     const char *method; /* const string, if NULL, default is 'GET' */
     h2o_iovec_t body;   /* optional request body */
+    struct http_request_header_t
+        header[HTTP_REQUEST_HEADER_MAX]; /* optional request header */
 };
 
 /**

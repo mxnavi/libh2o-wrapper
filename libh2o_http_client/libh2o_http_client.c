@@ -428,6 +428,9 @@ on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *_method,
            h2o_httpclient_properties_t *props, h2o_url_t *origin)
 {
     struct notification_conn_t *conn = client->data;
+    h2o_headers_t headers_vec = (h2o_headers_t){NULL, 0, 0};
+    int i;
+
     if (errstr != NULL) {
         on_error(conn, "connect error", errstr);
         return NULL;
@@ -437,19 +440,21 @@ on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *_method,
 
     *_method = h2o_iovec_init(conn->req.method, strlen(conn->req.method));
     *url = conn->url_parsed;
-    *headers = NULL;
-    *num_headers = 0;
     *body = h2o_iovec_init(NULL, 0);
+
+    for (i = 0; i < HTTP_REQUEST_HEADER_MAX; ++i) {
+        if (conn->req.header[i].token == NULL) break;
+        h2o_add_header(&conn->pool, &headers_vec, conn->req.header[i].token,
+                       NULL, conn->req.header[i].value.base,
+                       conn->req.header[i].value.len);
+    }
 
     if (conn->req.body.len > 0) {
         char *clbuf = h2o_mem_alloc_pool(&conn->pool, char,
                                          sizeof(H2O_UINT32_LONGEST_STR) - 1);
         size_t clbuf_len = sprintf(clbuf, "%d", (int)conn->req.body.len);
-        h2o_headers_t headers_vec = (h2o_headers_t){NULL};
         h2o_add_header(&conn->pool, &headers_vec, H2O_TOKEN_CONTENT_LENGTH,
                        NULL, clbuf, clbuf_len);
-        *headers = headers_vec.entries;
-        *num_headers = 1;
 
         *proceed_req_cb = proceed_request;
 
@@ -462,6 +467,8 @@ on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *_method,
                        &tctx->_timeout);
     }
 
+    *headers = headers_vec.entries;
+    *num_headers = headers_vec.size;
     return on_head;
 }
 
@@ -767,6 +774,7 @@ int main(int argc, char **argv)
             argc > 1 ? argv[1]
                      : "http://192.168.3.26:8008/styleguide/cppguide.html",
             NULL,
+            {0},
             {0}};
         const struct http_client_handle_t *clih;
         clih = libh2o_http_client_req(c, &req, NULL);
