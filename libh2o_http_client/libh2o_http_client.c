@@ -370,8 +370,7 @@ static int on_body(h2o_httpclient_t *client, const char *errstr)
 
     if (errstr == h2o_httpclient_error_is_eos) {
         on_error(conn, "on_body", errstr);
-    }
-    if (rc) {
+    } else if (rc) {
         on_error(conn, "on_body", "callback");
         return -1;
     }
@@ -396,8 +395,7 @@ h2o_httpclient_body_cb on_head(h2o_httpclient_t *client, const char *errstr,
     if (errstr == h2o_httpclient_error_is_eos) {
         on_error(conn, "on_head", "no body");
         return NULL;
-    }
-    if (rc) {
+    } else if (rc) {
         on_error(conn, "on_head", "callback");
         return NULL;
     }
