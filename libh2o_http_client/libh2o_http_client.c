@@ -358,17 +358,22 @@ static void on_error(struct notification_conn_t *conn, const char *prefix,
 
 static int on_body(h2o_httpclient_t *client, const char *errstr)
 {
+    int rc;
     struct notification_conn_t *conn = client->data;
     if (errstr != NULL && errstr != h2o_httpclient_error_is_eos) {
         on_error(conn, "on_body", errstr);
         return -1;
     }
 
-    callback_on_body(conn, (*client->buf)->bytes, (*client->buf)->size);
+    rc = callback_on_body(conn, (*client->buf)->bytes, (*client->buf)->size);
     h2o_buffer_consume(&(*client->buf), (*client->buf)->size);
 
     if (errstr == h2o_httpclient_error_is_eos) {
         on_error(conn, "on_body", errstr);
+    }
+    if (rc) {
+        on_error(conn, "on_body", "callback");
+        return -1;
     }
 
     return 0;
@@ -379,19 +384,23 @@ h2o_httpclient_body_cb on_head(h2o_httpclient_t *client, const char *errstr,
                                h2o_header_t *headers, size_t num_headers,
                                int header_requires_dup)
 {
+    int rc;
     struct notification_conn_t *conn = client->data;
 
     if (errstr != NULL && errstr != h2o_httpclient_error_is_eos) {
-        on_error(conn, "on_head error", errstr);
+        on_error(conn, "on_head", errstr);
         return NULL;
     }
 
-    callback_on_head(conn, version, status, msg, headers, num_headers);
+    rc = callback_on_head(conn, version, status, msg, headers, num_headers);
     if (errstr == h2o_httpclient_error_is_eos) {
-        on_error(conn, "on_head error", "no body");
+        on_error(conn, "on_head", "no body");
         return NULL;
     }
-
+    if (rc) {
+        on_error(conn, "on_head", "callback");
+        return NULL;
+    }
     return on_body;
 }
 
@@ -443,16 +452,21 @@ on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *_method,
            h2o_iovec_t *body, h2o_httpclient_proceed_req_cb *proceed_req_cb,
            h2o_httpclient_properties_t *props, h2o_url_t *origin)
 {
+    int rc;
     struct notification_conn_t *conn = client->data;
     h2o_headers_t headers_vec = (h2o_headers_t){NULL, 0, 0};
     int i;
 
     if (errstr != NULL) {
-        on_error(conn, "connect error", errstr);
+        on_error(conn, "on_connect", errstr);
         return NULL;
     }
 
-    callback_on_connected(conn);
+    rc = callback_on_connected(conn);
+    if (rc) {
+        on_error(conn, "on_connect", "callback");
+        return NULL;
+    }
 
     *_method = h2o_iovec_init(conn->req.method, strlen(conn->req.method));
     *url = conn->url_parsed;
