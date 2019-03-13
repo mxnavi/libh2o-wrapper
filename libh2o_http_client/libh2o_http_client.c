@@ -178,6 +178,7 @@ static void notify_thread_quit(struct libh2o_http_client_ctx_t *c)
 static void dup_req(struct http_client_req_t *dst,
                     const struct http_client_req_t *src)
 {
+    int i;
     dst->url = strdup(src->url);
     dst->method = src->method; /* const string */
     if (src->body.base != NULL && src->body.len > 0) {
@@ -185,14 +186,27 @@ static void dup_req(struct http_client_req_t *dst,
         dst->body.base = h2o_mem_alloc(dst->body.len);
         memcpy(dst->body.base, src->body.base, dst->body.len);
     }
+
+    memset(dst->header, 0x00, sizeof(dst->header));
+    for (i = 0; i < HTTP_REQUEST_HEADER_MAX; ++i) {
+        if (src->header[i].token == NULL) break;
+        dst->header[i].token = src->header[i].token;
+        dst->header[i].value = h2o_strdup(NULL, src->header[i].value.base,
+                                          src->header[i].value.len);
+    }
 }
 
 static void free_req(struct http_client_req_t *req)
 {
+    int i;
     ASSERT(req->url);
     free(req->url);
     if (req->body.base) {
         free(req->body.base);
+    }
+    for (i = 0; i < HTTP_REQUEST_HEADER_MAX; ++i) {
+        if (req->header[i].token == NULL) break;
+        if (req->header[i].value.base) free(req->header[i].value.base);
     }
 }
 
