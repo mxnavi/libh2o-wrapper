@@ -187,7 +187,6 @@ static void dup_req(struct http_client_req_t *dst,
         memcpy(dst->body.base, src->body.base, dst->body.len);
     }
 
-    memset(dst->header, 0x00, sizeof(dst->header));
     for (i = 0; i < HTTP_REQUEST_HEADER_MAX; ++i) {
         if (src->header[i].token == NULL) break;
         dst->header[i].token = src->header[i].token;
