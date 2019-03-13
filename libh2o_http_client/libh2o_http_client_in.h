@@ -60,13 +60,13 @@ struct http_client_handle_t {
  *
  * @param param parameter from user
  */
-typedef void (*http_client_on_connected)(
+typedef int (*http_client_on_connected)(
     void * /* param */, const struct http_client_handle_t * /* clih */);
-typedef void (*http_client_on_head)(
+typedef int (*http_client_on_head)(
     void * /* param */, int version, int status, h2o_iovec_t msg,
     h2o_header_t *headers, size_t num_headers,
     const struct http_client_handle_t * /* clih */);
-typedef void (*http_client_on_body)(
+typedef int (*http_client_on_body)(
     void * /* param */, void * /* buf */, size_t /* len */,
     const struct http_client_handle_t * /* clih */);
 typedef void (*http_client_on_finish)(

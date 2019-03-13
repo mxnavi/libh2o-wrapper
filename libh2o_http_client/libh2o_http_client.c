@@ -279,38 +279,41 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
     }
 }
 
-static void callback_on_connected(struct notification_conn_t *conn)
+static int callback_on_connected(struct notification_conn_t *conn)
 {
     struct libh2o_http_client_ctx_t *c = conn->cmn.c;
     struct http_client_init_t *p = &c->client_init;
 
     if (p->cb.on_connected) {
-        p->cb.on_connected(p->cb.param, &conn->clih);
+        return p->cb.on_connected(p->cb.param, &conn->clih);
     }
+    return 0;
 }
 
-static void callback_on_head(struct notification_conn_t *conn, int version,
-                             int status, h2o_iovec_t msg, h2o_header_t *headers,
-                             size_t num_headers)
+static int callback_on_head(struct notification_conn_t *conn, int version,
+                            int status, h2o_iovec_t msg, h2o_header_t *headers,
+                            size_t num_headers)
 {
     struct libh2o_http_client_ctx_t *c = conn->cmn.c;
     struct http_client_init_t *p = &c->client_init;
 
     if (p->cb.on_head) {
-        p->cb.on_head(p->cb.param, version, status, msg, headers, num_headers,
-                      &conn->clih);
+        return p->cb.on_head(p->cb.param, version, status, msg, headers,
+                             num_headers, &conn->clih);
     }
+    return 0;
 }
 
-static void callback_on_body(struct notification_conn_t *conn, void *buf,
-                             size_t len)
+static int callback_on_body(struct notification_conn_t *conn, void *buf,
+                            size_t len)
 {
     struct libh2o_http_client_ctx_t *c = conn->cmn.c;
     struct http_client_init_t *p = &c->client_init;
 
     if (p->cb.on_body) {
-        p->cb.on_body(p->cb.param, buf, len, &conn->clih);
+        return p->cb.on_body(p->cb.param, buf, len, &conn->clih);
     }
+    return 0;
 }
 
 static void callback_on_on_finish(struct notification_conn_t *conn,
@@ -724,16 +727,17 @@ libh2o_http_client_req(struct libh2o_http_client_ctx_t *c,
 }
 
 #ifdef LIBH2O_UNIT_TEST
-static void cb_http_client_on_connected(void *param,
-                                        const struct http_client_handle_t *clih)
+static int cb_http_client_on_connected(void *param,
+                                       const struct http_client_handle_t *clih)
 {
     // LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
+    return 0;
 }
 
-static void cb_http_client_on_head(void *param, int version, int status,
-                                   h2o_iovec_t msg, h2o_header_t *headers,
-                                   size_t num_headers,
-                                   const struct http_client_handle_t *clih)
+static int cb_http_client_on_head(void *param, int version, int status,
+                                  h2o_iovec_t msg, h2o_header_t *headers,
+                                  size_t num_headers,
+                                  const struct http_client_handle_t *clih)
 {
 #if 0
     size_t i;
@@ -754,13 +758,15 @@ static void cb_http_client_on_head(void *param, int version, int status,
         printf("%.*s: %.*s\n", (int)headers[i].name->len, name, (int)headers[i].value.len, headers[i].value.base);
     printf("\n");
 #endif
+    return 0;
 }
 
-static void cb_http_client_on_body(void *param, void *buf, size_t len,
-                                   const struct http_client_handle_t *clih)
+static int cb_http_client_on_body(void *param, void *buf, size_t len,
+                                  const struct http_client_handle_t *clih)
 {
     // LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
     // fwrite(buf, 1, len, stdout);
+    return 0;
 }
 
 static void cb_http_client_on_finish(void *param, const char *err,
