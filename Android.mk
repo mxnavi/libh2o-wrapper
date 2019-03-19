@@ -1,5 +1,4 @@
 LOCAL_PATH := $(call my-dir)
-include $(CLEAR_VARS)
 
 # boringssl starts from android 6.0, sdk version > 22
 ifeq ($(strip $(PLATFORM_SDK_VERSION)), 19)
@@ -14,7 +13,7 @@ else
 LIBH2O_BORINGSSL := true
 endif
 
-LOCAL_SRC_FILES := \
+H2O_SRC_FILES := \
     h2o/deps/cloexec/cloexec.c \
     h2o/deps/hiredis/async.c \
     h2o/deps/hiredis/hiredis.c \
@@ -107,19 +106,27 @@ LOCAL_SRC_FILES := \
     h2o/lib/http2/stream.c \
     h2o/lib/http2/http2_debug_state.c \
 
-LOCAL_SRC_FILES += \
-    libh2o_socket_client/libh2o_socket_client.c \
-    libh2o_http_client/libh2o_http_client.c \
-    libh2o_http_server/libh2o_http_server.c \
-    libh2o_websocket_client/libh2o_websocket_client.c \
-
-
-LOCAL_SRC_FILES += \
+WSLAY_SRC_FILES := \
     wslay/lib/wslay_event.c \
     wslay/lib/wslay_frame.c \
     wslay/lib/wslay_net.c \
     wslay/lib/wslay_queue.c \
     wslay/lib/wslay_stack.c \
+
+
+
+###########################################
+# libh2o-wrapper static library
+###########################################
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := \
+    libh2o_socket_client/libh2o_socket_client.c \
+    libh2o_http_client/libh2o_http_client.c \
+    libh2o_http_server/libh2o_http_server.c \
+    libh2o_websocket_client/libh2o_websocket_client.c \
+    $(H2O_SRC_FILES) \
+    $(WSLAY_SRC_FILES) \
 
 LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/wslay/lib/includes \
@@ -161,3 +168,163 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := h2o-wrapper
 
 include $(BUILD_STATIC_LIBRARY)
+
+
+
+###########################################
+# socket test executable
+###########################################
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := \
+    libh2o_socket_client/libh2o_socket_client.c \
+    $(H2O_SRC_FILES) \
+
+LOCAL_C_INCLUDES:= \
+    $(LOCAL_PATH)/wslay/lib/includes \
+    $(LOCAL_PATH)/h2o/include \
+    $(LOCAL_PATH)/h2o/deps/klib \
+    $(LOCAL_PATH)/h2o/deps/picohttpparser \
+    $(LOCAL_PATH)/h2o/deps/libyrmcds \
+    $(LOCAL_PATH)/h2o/deps/cloexec \
+    $(LOCAL_PATH)/h2o/deps/hiredis \
+    $(LOCAL_PATH)/h2o/deps/yoml \
+    $(LOCAL_PATH)/h2o/deps/libgkc \
+    $(LOCAL_PATH)/h2o/deps/golombset \
+    external/zlib \
+
+ifeq ($(strip $(LIBH2O_BORINGSSL)), true)
+LOCAL_C_INCLUDES += external/boringssl/include
+else
+LOCAL_C_INCLUDES += external/openssl/include
+endif
+
+# ignore warnigs
+LOCAL_CFLAGS := -Wno-error=return-type -Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare
+
+LOCAL_CFLAGS += -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
+LOCAL_CFLAGS += -DH2O_USE_EPOLL=1 -DWSLAY_VERSION=\"1.0.1-DEV\"
+
+# for pipe2
+LOCAL_CFLAGS += -D_GNU_SOURCE
+
+# for wslay
+LOCAL_CFLAGS += -DHAVE_ARPA_INET_H -DHAVE_NETINET_IN_H
+
+
+ifeq ($(strip $(PLATFORM_SDK_VERSION)), 22)
+LOCAL_CFLAGS += -DH2O_THREAD_LOCAL_UNINITIALIZED
+endif
+
+LOCAL_CFLAGS += -DLIBH2O_UNIT_TEST
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := libh2o_socket_client
+
+include $(BUILD_EXECUTABLE)
+
+
+
+###########################################
+# http client test executable
+###########################################
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := \
+    libh2o_http_client/libh2o_http_client.c \
+    $(H2O_SRC_FILES) \
+
+LOCAL_C_INCLUDES:= \
+    $(LOCAL_PATH)/wslay/lib/includes \
+    $(LOCAL_PATH)/h2o/include \
+    $(LOCAL_PATH)/h2o/deps/klib \
+    $(LOCAL_PATH)/h2o/deps/picohttpparser \
+    $(LOCAL_PATH)/h2o/deps/libyrmcds \
+    $(LOCAL_PATH)/h2o/deps/cloexec \
+    $(LOCAL_PATH)/h2o/deps/hiredis \
+    $(LOCAL_PATH)/h2o/deps/yoml \
+    $(LOCAL_PATH)/h2o/deps/libgkc \
+    $(LOCAL_PATH)/h2o/deps/golombset \
+    external/zlib \
+
+ifeq ($(strip $(LIBH2O_BORINGSSL)), true)
+LOCAL_C_INCLUDES += external/boringssl/include
+else
+LOCAL_C_INCLUDES += external/openssl/include
+endif
+
+# ignore warnigs
+LOCAL_CFLAGS := -Wno-error=return-type -Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare
+
+LOCAL_CFLAGS += -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
+LOCAL_CFLAGS += -DH2O_USE_EPOLL=1 -DWSLAY_VERSION=\"1.0.1-DEV\"
+
+# for pipe2
+LOCAL_CFLAGS += -D_GNU_SOURCE
+
+# for wslay
+LOCAL_CFLAGS += -DHAVE_ARPA_INET_H -DHAVE_NETINET_IN_H
+
+
+ifeq ($(strip $(PLATFORM_SDK_VERSION)), 22)
+LOCAL_CFLAGS += -DH2O_THREAD_LOCAL_UNINITIALIZED
+endif
+
+LOCAL_CFLAGS += -DLIBH2O_UNIT_TEST
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := libh2o_http_client
+
+include $(BUILD_EXECUTABLE)
+
+
+
+###########################################
+# websocket client test executable
+###########################################
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := \
+    libh2o_websocket_client/libh2o_websocket_client.c \
+    $(H2O_SRC_FILES) \
+    $(WSLAY_SRC_FILES) \
+
+LOCAL_C_INCLUDES:= \
+    $(LOCAL_PATH)/wslay/lib/includes \
+    $(LOCAL_PATH)/h2o/include \
+    $(LOCAL_PATH)/h2o/deps/klib \
+    $(LOCAL_PATH)/h2o/deps/picohttpparser \
+    $(LOCAL_PATH)/h2o/deps/libyrmcds \
+    $(LOCAL_PATH)/h2o/deps/cloexec \
+    $(LOCAL_PATH)/h2o/deps/hiredis \
+    $(LOCAL_PATH)/h2o/deps/yoml \
+    $(LOCAL_PATH)/h2o/deps/libgkc \
+    $(LOCAL_PATH)/h2o/deps/golombset \
+    external/zlib \
+
+ifeq ($(strip $(LIBH2O_BORINGSSL)), true)
+LOCAL_C_INCLUDES += external/boringssl/include
+else
+LOCAL_C_INCLUDES += external/openssl/include
+endif
+
+# ignore warnigs
+LOCAL_CFLAGS := -Wno-error=return-type -Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare
+
+LOCAL_CFLAGS += -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
+LOCAL_CFLAGS += -DH2O_USE_EPOLL=1 -DWSLAY_VERSION=\"1.0.1-DEV\"
+
+# for pipe2
+LOCAL_CFLAGS += -D_GNU_SOURCE
+
+# for wslay
+LOCAL_CFLAGS += -DHAVE_ARPA_INET_H -DHAVE_NETINET_IN_H
+
+
+ifeq ($(strip $(PLATFORM_SDK_VERSION)), 22)
+LOCAL_CFLAGS += -DH2O_THREAD_LOCAL_UNINITIALIZED
+endif
+
+LOCAL_CFLAGS += -DLIBH2O_UNIT_TEST
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := libh2o_websocket_client
+
+include $(BUILD_EXECUTABLE)
