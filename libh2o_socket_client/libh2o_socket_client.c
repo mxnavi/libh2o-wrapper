@@ -97,6 +97,7 @@
  */
 struct libh2o_socket_client_ctx_t {
     pthread_t tid;
+    h2o_sem_t sem;
     h2o_loop_t *loop;
     h2o_multithread_queue_t *queue;
     h2o_multithread_receiver_t notifications;
@@ -777,6 +778,13 @@ static void *client_loop(void *arg)
     h2o_init_thread();
 #endif
 
+    c->queue = h2o_multithread_create_queue(c->loop);
+    h2o_multithread_register_receiver(c->queue, &c->getaddr_receiver,
+                                      h2o_hostinfo_getaddr_receiver);
+    h2o_multithread_register_receiver(c->queue, &c->notifications,
+                                      on_notification);
+    h2o_sem_post(&c->sem);
+
     init_openssl(c);
 
     while (!c->exit_loop) {
@@ -790,6 +798,10 @@ static void *client_loop(void *arg)
     ASSERT(h2o_linklist_is_empty(&c->conns));
     release_conns(c, "event loop quiting");
     release_openssl(c);
+
+    h2o_multithread_unregister_receiver(c->queue, &c->getaddr_receiver);
+    h2o_multithread_unregister_receiver(c->queue, &c->notifications);
+    h2o_multithread_destroy_queue(c->queue);
 
     /**
      * this will clean thread local data used by pool
@@ -833,14 +845,11 @@ libh2o_socket_client_start(const struct socket_client_init_t *client_init)
         c->loop = h2o_evloop_create();
         h2o_linklist_init_anchor(&c->conns);
 
-        c->queue = h2o_multithread_create_queue(c->loop);
-        h2o_multithread_register_receiver(c->queue, &c->getaddr_receiver,
-                                          h2o_hostinfo_getaddr_receiver);
-        h2o_multithread_register_receiver(c->queue, &c->notifications,
-                                          on_notification);
         memcpy(&c->client_init, client_init, sizeof(*client_init));
 
+        h2o_sem_init(&c->sem, 0);
         h2o_multithread_create_thread(&c->tid, NULL, client_loop, (void *)c);
+        h2o_sem_wait(&c->sem);
     }
 
     return c;
@@ -852,14 +861,10 @@ void libh2o_socket_client_stop(struct libh2o_socket_client_ctx_t *c)
 
     notify_thread_quit(c);
     pthread_join(c->tid, NULL);
-    if (c->queue) {
-        h2o_multithread_unregister_receiver(c->queue, &c->getaddr_receiver);
-        h2o_multithread_unregister_receiver(c->queue, &c->notifications);
-        h2o_multithread_destroy_queue(c->queue);
-    }
     if (c->loop != NULL) {
         h2o_evloop_destroy(c->loop);
     }
+    h2o_sem_destroy(&c->sem);
     free(c);
 }
 
