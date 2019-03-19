@@ -97,6 +97,8 @@ H2O_SRC_FILES := \
     h2o/lib/handler/configurator/headers_util.c \
     h2o/lib/http1.c \
     h2o/lib/tunnel.c \
+    h2o/lib/websocket.c \
+    h2o/lib/websocketclient.c \
     h2o/lib/http2/cache_digests.c \
     h2o/lib/http2/casper.c \
     h2o/lib/http2/connection.c \
@@ -217,8 +219,10 @@ LOCAL_CFLAGS += -DH2O_THREAD_LOCAL_UNINITIALIZED
 endif
 
 LOCAL_CFLAGS += -DLIBH2O_UNIT_TEST
+LOCAL_SHARED_LIBRARIES += liblog libcutils libssl libcrypto \
+
 LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE := libh2o_socket_client
+LOCAL_MODULE := libh2o_socket_client_test
 
 include $(BUILD_EXECUTABLE)
 
@@ -270,8 +274,11 @@ LOCAL_CFLAGS += -DH2O_THREAD_LOCAL_UNINITIALIZED
 endif
 
 LOCAL_CFLAGS += -DLIBH2O_UNIT_TEST
+
+LOCAL_SHARED_LIBRARIES += liblog libcutils libssl libcrypto \
+
 LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE := libh2o_http_client
+LOCAL_MODULE := libh2o_http_client_test
 
 include $(BUILD_EXECUTABLE)
 
@@ -324,7 +331,10 @@ LOCAL_CFLAGS += -DH2O_THREAD_LOCAL_UNINITIALIZED
 endif
 
 LOCAL_CFLAGS += -DLIBH2O_UNIT_TEST
+
+LOCAL_SHARED_LIBRARIES += liblog libcutils libssl libcrypto \
+
 LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE := libh2o_websocket_client
+LOCAL_MODULE := libh2o_websocket_client_test
 
 include $(BUILD_EXECUTABLE)

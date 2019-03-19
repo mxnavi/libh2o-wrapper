@@ -1041,7 +1041,7 @@ int main(int argc, char **argv)
 
         state = __sync_fetch_and_or(&cli->state, 0);
         if (state > SOCKET_CLIENT_STATE_CONNECTED && cli->clih) {
-            for (int i = 0; i < 10; ++i) {
+            for (i = 0; i < 10; ++i) {
                 const char *p = "hello server\n";
                 const char *buf = strdup(p);
                 /**

@@ -101,6 +101,8 @@ LOCAL_SRC_FILES := \
     $(LOCAL_PATH)/h2o/lib/handler/configurator/headers_util.c \
     $(LOCAL_PATH)/h2o/lib/http1.c \
     $(LOCAL_PATH)/h2o/lib/tunnel.c \
+    $(LOCAL_PATH)/h2o/lib/websocket.c \
+    $(LOCAL_PATH)/h2o/lib/websocketclient.c \
     $(LOCAL_PATH)/h2o/lib/http2/cache_digests.c \
     $(LOCAL_PATH)/h2o/lib/http2/casper.c \
     $(LOCAL_PATH)/h2o/lib/http2/connection.c \
