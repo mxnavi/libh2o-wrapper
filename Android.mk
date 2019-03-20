@@ -15,6 +15,20 @@ endif
 
 H2O_SRC_FILES := \
     h2o/deps/cloexec/cloexec.c \
+    h2o/deps/hiredis/async.c \
+    h2o/deps/hiredis/hiredis.c \
+    h2o/deps/hiredis/net.c \
+    h2o/deps/hiredis/read.c \
+    h2o/deps/hiredis/sds.c \
+    h2o/deps/libgkc/gkc.c \
+    h2o/deps/libyrmcds/close.c \
+    h2o/deps/libyrmcds/connect.c \
+    h2o/deps/libyrmcds/recv.c \
+    h2o/deps/libyrmcds/send.c \
+    h2o/deps/libyrmcds/send_text.c \
+    h2o/deps/libyrmcds/socket.c \
+    h2o/deps/libyrmcds/strerror.c \
+    h2o/deps/libyrmcds/text_mode.c \
     h2o/deps/picohttpparser/picohttpparser.c \
     h2o/lib/common/cache.c \
     h2o/lib/common/file.c \
@@ -94,21 +108,6 @@ H2O_SRC_FILES := \
     h2o/lib/http2/stream.c \
     h2o/lib/http2/http2_debug_state.c \
     libh2o_log.c \
-
-    #h2o/deps/hiredis/async.c \
-    h2o/deps/hiredis/hiredis.c \
-    h2o/deps/hiredis/net.c \
-    h2o/deps/hiredis/read.c \
-    h2o/deps/hiredis/sds.c \
-    h2o/deps/libgkc/gkc.c \
-    h2o/deps/libyrmcds/close.c \
-    h2o/deps/libyrmcds/connect.c \
-    h2o/deps/libyrmcds/recv.c \
-    h2o/deps/libyrmcds/send.c \
-    h2o/deps/libyrmcds/send_text.c \
-    h2o/deps/libyrmcds/socket.c \
-    h2o/deps/libyrmcds/strerror.c \
-    h2o/deps/libyrmcds/text_mode.c \
 
 WSLAY_SRC_FILES := \
     wslay/lib/wslay_event.c \
