@@ -572,6 +572,8 @@ static void *client_loop(void *arg)
     h2o_init_thread();
 #endif
 
+    c->ctx.loop = h2o_evloop_create();
+
     c->queue = h2o_multithread_create_queue(c->ctx.loop);
     h2o_multithread_register_receiver(c->queue, &c->getaddr_receiver,
                                       h2o_hostinfo_getaddr_receiver);
@@ -600,6 +602,8 @@ static void *client_loop(void *arg)
     h2o_multithread_unregister_receiver(c->queue, &c->getaddr_receiver);
     h2o_multithread_unregister_receiver(c->queue, &c->notifications);
     h2o_multithread_destroy_queue(c->queue);
+
+    h2o_evloop_destroy(c->ctx.loop);
     /**
      * this will clean thread local data used by pool
      */
@@ -639,7 +643,6 @@ libh2o_http_client_start(const struct http_client_init_t *client_init)
     c = h2o_mem_alloc(sizeof(*c));
     if (c) {
         memset(c, 0x00, sizeof(*c));
-        c->ctx.loop = h2o_evloop_create();
         h2o_linklist_init_anchor(&c->conns);
         c->chunk_size = 1024;
         c->websocket_timeout = client_init->io_timeout;
@@ -672,9 +675,6 @@ void libh2o_http_client_stop(struct libh2o_http_client_ctx_t *c)
 
     notify_thread_quit(c);
     pthread_join(c->tid, NULL);
-    if (c->ctx.loop != NULL) {
-        h2o_evloop_destroy(c->ctx.loop);
-    }
     h2o_sem_destroy(&c->sem);
     free(c);
 }
