@@ -38,24 +38,8 @@
 #include "h2o/memcached.h"
 #include "h2o/websocket.h"
 
+#include "libh2o_log.h"
 #include "libh2o_http_server.h"
-
-#ifdef PLATFORM_SDK_VERSION
-#include <cutils/log.h>
-#elif defined(__ANDROID__)
-#include <android/log.h>
-#define ALOGV(fmt, args...)                                                    \
-    __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, fmt, ##args)
-#define ALOGD(fmt, args...)                                                    \
-    __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, fmt, ##args)
-#define ALOGI(fmt, args...)                                                    \
-    __android_log_print(ANDROID_LOG_INFO, LOG_TAG, fmt, ##args)
-#define ALOGW(fmt, args...)                                                    \
-    __android_log_print(ANDROID_LOG_WARN, LOG_TAG, fmt, ##args)
-#define ALOGE(fmt, args...)                                                    \
-    __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, fmt, ##args)
-#else
-#endif
 
 /****************************************************************************
 *                       Macro Definition Section                            *
@@ -74,41 +58,6 @@
  * timeout for websocket connection released after disconnected
  */
 #define DISPOSE_TIMEOUT_MS 1000
-
-#ifdef ALOGV
-#define LOGV ALOGV
-#else
-#define LOGV(fmt, args...) ((void)fprintf(stderr, fmt "\n", ##args))
-#endif
-
-#ifdef ALOGD
-#define LOGD ALOGD
-#else
-#define LOGD(fmt, args...) ((void)fprintf(stderr, fmt "\n", ##args))
-#endif
-
-#ifdef ALOGI
-#define LOGI ALOGI
-#else
-#define LOGI(fmt, args...) ((void)fprintf(stderr, fmt "\n", ##args))
-#endif
-
-#ifdef ALOGW
-#define LOGW ALOGW
-#else
-#define LOGW(fmt, args...) ((void)fprintf(stderr, fmt "\n", ##args))
-#endif
-
-#ifdef ALOGE
-#define LOGE ALOGE
-#else
-#define LOGE(fmt, args...) ((void)fprintf(stderr, fmt "\n", ##args))
-#endif
-
-
-#ifndef ASSERT
-#define ASSERT assert
-#endif
 
 /**
  * for security reason, disable it for now

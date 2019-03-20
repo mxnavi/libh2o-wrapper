@@ -107,6 +107,7 @@ H2O_SRC_FILES := \
     h2o/lib/http2/scheduler.c \
     h2o/lib/http2/stream.c \
     h2o/lib/http2/http2_debug_state.c \
+    libh2o_log.c \
 
 WSLAY_SRC_FILES := \
     wslay/lib/wslay_event.c \
@@ -295,6 +296,7 @@ LOCAL_SRC_FILES := \
     $(WSLAY_SRC_FILES) \
 
 LOCAL_C_INCLUDES:= \
+    $(LOCAL_PATH) \
     $(LOCAL_PATH)/wslay/lib/includes \
     $(LOCAL_PATH)/h2o/include \
     $(LOCAL_PATH)/h2o/deps/klib \

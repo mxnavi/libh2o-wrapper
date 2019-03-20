@@ -113,6 +113,7 @@ LOCAL_SRC_FILES := \
     $(LOCAL_PATH)/h2o/lib/http2/http2_debug_state.c \
 
 LOCAL_SRC_FILES += \
+    $(LOCAL_PATH)/libh2o_log.c \
     $(LOCAL_PATH)/libh2o_socket_client/libh2o_socket_client.c \
     $(LOCAL_PATH)/libh2o_http_client/libh2o_http_client.c \
     $(LOCAL_PATH)/libh2o_http_server/libh2o_http_server.c \
@@ -127,6 +128,7 @@ LOCAL_SRC_FILES += \
     $(LOCAL_PATH)/wslay/lib/wslay_stack.c \
 
 LOCAL_C_INCLUDES:= \
+    $(LOCAL_PATH) \
     $(LOCAL_PATH)/wslay/lib/includes \
     $(LOCAL_PATH)/h2o/include \
     $(LOCAL_PATH)/h2o/deps/klib \
