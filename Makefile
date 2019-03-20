@@ -19,20 +19,6 @@ LOCAL_PATH:= $(shell pwd)
 ####################################################
 LOCAL_SRC_FILES := \
     $(LOCAL_PATH)/h2o/deps/cloexec/cloexec.c \
-    $(LOCAL_PATH)/h2o/deps/hiredis/async.c \
-    $(LOCAL_PATH)/h2o/deps/hiredis/hiredis.c \
-    $(LOCAL_PATH)/h2o/deps/hiredis/net.c \
-    $(LOCAL_PATH)/h2o/deps/hiredis/read.c \
-    $(LOCAL_PATH)/h2o/deps/hiredis/sds.c \
-    $(LOCAL_PATH)/h2o/deps/libgkc/gkc.c \
-    $(LOCAL_PATH)/h2o/deps/libyrmcds/close.c \
-    $(LOCAL_PATH)/h2o/deps/libyrmcds/connect.c \
-    $(LOCAL_PATH)/h2o/deps/libyrmcds/recv.c \
-    $(LOCAL_PATH)/h2o/deps/libyrmcds/send.c \
-    $(LOCAL_PATH)/h2o/deps/libyrmcds/send_text.c \
-    $(LOCAL_PATH)/h2o/deps/libyrmcds/socket.c \
-    $(LOCAL_PATH)/h2o/deps/libyrmcds/strerror.c \
-    $(LOCAL_PATH)/h2o/deps/libyrmcds/text_mode.c \
     $(LOCAL_PATH)/h2o/deps/picohttpparser/picohttpparser.c \
     $(LOCAL_PATH)/h2o/lib/common/cache.c \
     $(LOCAL_PATH)/h2o/lib/common/file.c \
@@ -111,6 +97,21 @@ LOCAL_SRC_FILES := \
     $(LOCAL_PATH)/h2o/lib/http2/scheduler.c \
     $(LOCAL_PATH)/h2o/lib/http2/stream.c \
     $(LOCAL_PATH)/h2o/lib/http2/http2_debug_state.c \
+
+    #$(LOCAL_PATH)/h2o/deps/hiredis/async.c \
+    $(LOCAL_PATH)/h2o/deps/hiredis/hiredis.c \
+    $(LOCAL_PATH)/h2o/deps/hiredis/net.c \
+    $(LOCAL_PATH)/h2o/deps/hiredis/read.c \
+    $(LOCAL_PATH)/h2o/deps/hiredis/sds.c \
+    $(LOCAL_PATH)/h2o/deps/libgkc/gkc.c \
+    $(LOCAL_PATH)/h2o/deps/libyrmcds/close.c \
+    $(LOCAL_PATH)/h2o/deps/libyrmcds/connect.c \
+    $(LOCAL_PATH)/h2o/deps/libyrmcds/recv.c \
+    $(LOCAL_PATH)/h2o/deps/libyrmcds/send.c \
+    $(LOCAL_PATH)/h2o/deps/libyrmcds/send_text.c \
+    $(LOCAL_PATH)/h2o/deps/libyrmcds/socket.c \
+    $(LOCAL_PATH)/h2o/deps/libyrmcds/strerror.c \
+    $(LOCAL_PATH)/h2o/deps/libyrmcds/text_mode.c \
 
 LOCAL_SRC_FILES += \
     $(LOCAL_PATH)/libh2o_log.c \
