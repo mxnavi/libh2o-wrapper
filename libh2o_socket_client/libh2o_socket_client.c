@@ -482,7 +482,7 @@ static void on_connect(h2o_socket_t *sock, const char *err)
         return;
     }
 
-    if (c->ssl_ctx != NULL) {
+    if (c->ssl_ctx != NULL && strncmp(conn->req.host, "unix:", 5) != 0) {
         const char *host = conn->req.host;
         if (conn->req.alias_host) {
             host = conn->req.alias_host;
