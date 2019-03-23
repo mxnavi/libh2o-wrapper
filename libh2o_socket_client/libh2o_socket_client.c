@@ -590,8 +590,9 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
                 (struct notification_conn_t *)cmn;
             h2o_iovec_t iov_name =
                 h2o_iovec_init(conn->req.host, strlen(conn->req.host));
-            h2o_iovec_t iov_serv =
-                h2o_iovec_init(conn->req.port, strlen(conn->req.port));
+
+            const char *to_sun_err;
+            struct sockaddr_un sa;
 
             h2o_linklist_insert(&c->conns, &msg->link);
 
@@ -602,11 +603,27 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
                                &conn->_timeout);
             }
 
-            /* resolve host name */
-            h2o_hostinfo_getaddr(&c->getaddr_receiver, iov_name, iov_serv,
-                                 AF_UNSPEC, SOCK_STREAM, IPPROTO_TCP,
-                                 AI_ADDRCONFIG | AI_NUMERICSERV, on_getaddr,
-                                 conn);
+            to_sun_err = h2o_url_host_to_sun(iov_name, &sa);
+            if (to_sun_err == NULL) {
+                h2o_socket_t *sock;
+                sock = h2o_socket_connect(c->loop, &sa, sizeof(sa), on_connect);
+                if (sock == NULL) {
+                    /* create socket failed */
+                    on_error(conn, "on_notification", strerror(errno));
+                } else {
+                    sock->data = conn;
+                    conn->sock = sock;
+                }
+            } else {
+                h2o_iovec_t iov_serv =
+                    h2o_iovec_init(conn->req.port, strlen(conn->req.port));
+
+                /* resolve host name */
+                h2o_hostinfo_getaddr(&c->getaddr_receiver, iov_name, iov_serv,
+                                     AF_UNSPEC, SOCK_STREAM, IPPROTO_TCP,
+                                     AI_ADDRCONFIG | AI_NUMERICSERV, on_getaddr,
+                                     conn);
+            }
 
         } else if (cmn->cmd == NOTIFICATION_CLOSE) {
             struct notification_close_t *data =
@@ -826,7 +843,14 @@ libh2o_socket_client_req(struct libh2o_socket_client_ctx_t *c,
 
     if (c == NULL || req == NULL) return NULL;
 
-    if (req->host == NULL || req->port == NULL) {
+    if (req->host == NULL) {
+        return NULL;
+    }
+
+    if (strncmp(req->host, "unix:", 5) == 0) {
+        struct sockaddr_un sa;
+        if (strlen(req->host) - 6 > sizeof(sa.sun_path)) return NULL;
+    } else if (req->port == NULL) {
         return NULL;
     }
     conn = notify_thread_connect(c, req, user);
