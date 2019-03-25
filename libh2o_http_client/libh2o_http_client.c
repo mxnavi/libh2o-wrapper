@@ -719,10 +719,11 @@ static int cb_http_client_on_head(void *param, int version, int status,
     } else {
         printf("\n");
     }
-    for (i = 0; i != num_headers; ++i)
+    for (i = 0; i != num_headers; ++i) {
         const char *name = headers[i].orig_name;
         if (name == NULL) name = headers[i].name->base;
         printf("%.*s: %.*s\n", (int)headers[i].name->len, name, (int)headers[i].value.len, headers[i].value.base);
+    }
     printf("\n");
 #endif
     return 0;
