@@ -463,7 +463,7 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
 
         h2o_linklist_init_anchor(&conn->pending);
 
-        conn->clih.serial = __sync_fetch_and_add(&c->ws_serial_counter, 1);
+        conn->clih.serial = __sync_add_and_fetch(&c->ws_serial_counter, 1);
 #ifdef DEBUG_SERIAL
         LOGV("%s() serial: %u websocket conn: %p wsconn: %p open", __FUNCTION__,
              conn->clih.serial, conn, wsconn);
@@ -481,7 +481,7 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
         conn->thread_index = thread_index;
         conn->req.req = req;
 
-        conn->req.serial = __sync_fetch_and_add(&c->serial_counter, 1);
+        conn->req.serial = __sync_add_and_fetch(&c->serial_counter, 1);
 #ifdef DEBUG_SERIAL
         LOGV("%s() serial: %u http req: %p conn: %p open", __FUNCTION__,
              conn->req.serial, req, conn);
@@ -1372,7 +1372,7 @@ static void notify_thread_data(struct notification_ws_conn_t *conn,
     msg->data = h2o_iovec_init(buf, len);
 #ifdef ENABLE_DATA_SERIAL
     msg->serial = (uint64_t)conn->clih.serial << 32 |
-                  __sync_fetch_and_add(&conn->serial_counter, 1);
+                  __sync_add_and_fetch(&conn->serial_counter, 1);
 #endif
     thread_index = conn->thread_index;
     ASSERT(thread_index >= 0 && thread_index < c->server_init.num_threads);
@@ -1417,7 +1417,7 @@ static void notify_thread_broadcast(struct server_context_t *c, const void *buf,
         msg->data = h2o_iovec_init(ptr, len);
 #ifdef ENABLE_DATA_SERIAL
         msg->serial = ((uint64_t)0xFFFFFFFF) << 32 |
-                      __sync_fetch_and_add(&c->broadcast_serial_counter, 1);
+                      __sync_add_and_fetch(&c->broadcast_serial_counter, 1);
 #endif
         h2o_multithread_send_message(&c->threads[i].server_notifications,
                                      &msg->cmn.super);
