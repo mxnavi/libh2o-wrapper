@@ -176,7 +176,7 @@ notify_thread_connect(struct libh2o_websocket_client_ctx_t *c,
 
     h2o_linklist_init_anchor(&msg->pending);
 
-    msg->clih.serial = __sync_fetch_and_add(&c->serial_counter, 1);
+    msg->clih.serial = __sync_add_and_fetch(&c->serial_counter, 1);
     msg->clih.user = user;
 #ifdef DEBUG_SERIAL
     LOGV("create serial: %u", msg->clih.serial);
@@ -201,7 +201,7 @@ static void notify_thread_data(struct notification_conn_t *conn,
     msg->data = h2o_iovec_init(buf, len);
 #ifdef ENABLE_DATA_SERIAL
     msg->serial = (uint64_t)conn->clih.serial << 32 |
-                  __sync_fetch_and_add(&conn->serial_counter, 1);
+                  __sync_add_and_fetch(&conn->serial_counter, 1);
 // LOGV("create data serial: %lld", (long long)msg->serial);
 #endif
 

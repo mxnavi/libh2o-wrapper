@@ -173,7 +173,7 @@ notify_thread_connect(struct libh2o_http_client_ctx_t *c,
 
     dup_req(&msg->req, req);
 
-    msg->clih.serial = __sync_fetch_and_add(&c->serial_counter, 1);
+    msg->clih.serial = __sync_add_and_fetch(&c->serial_counter, 1);
     msg->clih.user = user;
 #ifdef DEBUG_SERIAL
     LOGV("create serial: %u", msg->clih.serial);
