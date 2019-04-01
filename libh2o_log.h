@@ -74,7 +74,8 @@ extern "C" {
 /****************************************************************************
  *                       Type Definition Section                             *
  *****************************************************************************/
-void libh2o_error_printf(const char *format, ...);
+void libh2o_error_printf(const char *format, ...)
+    __attribute__((format(printf, 1, 2)));
 
 /****************************************************************************
  *                       Global Variables Section                            *
