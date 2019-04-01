@@ -766,7 +766,7 @@ int main(int argc, char **argv)
                      : "http://192.168.3.26:8008/styleguide/cppguide.html",
             NULL,
             {0},
-            {0}};
+            {{0}}};
         const struct http_client_handle_t *clih;
         clih = libh2o_http_client_req(c, &req, NULL);
         usleep(100000);
