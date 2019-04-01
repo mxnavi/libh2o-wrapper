@@ -117,6 +117,13 @@ WSLAY_SRC_FILES := \
     wslay/lib/wslay_stack.c \
 
 
+h2o_cmn_clfags := -Wno-error=return-type -Wno-error=implicit-function-declaration -Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare \
+    -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION) \
+    -DH2O_USE_EPOLL=1 \
+    -DWSLAY_VERSION=\"1.0.1-DEV\" \
+    -DHAVE_ARPA_INET_H -DHAVE_NETINET_IN_H \
+    -Dh2o_error_printf=libh2o_error_printf \
+
 
 ###########################################
 # libh2o-wrapper static library
@@ -150,21 +157,10 @@ else
 LOCAL_C_INCLUDES += external/openssl/include
 endif
 
-# ignore warnigs
-LOCAL_CFLAGS := -Wno-error=return-type -Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare
-
-LOCAL_CFLAGS += -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
-LOCAL_CFLAGS += -DH2O_USE_EPOLL=1 -DWSLAY_VERSION=\"1.0.1-DEV\"
+LOCAL_CFLAGS := $(h2o_cmn_clfags)
 
 # for pipe2
-LOCAL_CFLAGS += -D_GNU_SOURCE
-
-# use our log function
-LOCAL_CFLAGS += -Dh2o_error_printf=libh2o_error_printf
-
-# for wslay
-LOCAL_CFLAGS += -DHAVE_ARPA_INET_H -DHAVE_NETINET_IN_H
-
+# LOCAL_CFLAGS += -D_GNU_SOURCE
 
 ifeq ($(strip $(PLATFORM_SDK_VERSION)), 22)
 LOCAL_CFLAGS += -DH2O_THREAD_LOCAL_UNINITIALIZED
@@ -205,21 +201,10 @@ else
 LOCAL_C_INCLUDES += external/openssl/include
 endif
 
-# ignore warnigs
-LOCAL_CFLAGS := -Wno-error=return-type -Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare
-
-LOCAL_CFLAGS += -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
-LOCAL_CFLAGS += -DH2O_USE_EPOLL=1 -DWSLAY_VERSION=\"1.0.1-DEV\"
+LOCAL_CFLAGS := $(h2o_cmn_clfags)
 
 # for pipe2
-LOCAL_CFLAGS += -D_GNU_SOURCE
-
-# use our log function
-LOCAL_CFLAGS += -Dh2o_error_printf=libh2o_error_printf
-
-# for wslay
-LOCAL_CFLAGS += -DHAVE_ARPA_INET_H -DHAVE_NETINET_IN_H
-
+# LOCAL_CFLAGS += -D_GNU_SOURCE
 
 ifeq ($(strip $(PLATFORM_SDK_VERSION)), 22)
 LOCAL_CFLAGS += -DH2O_THREAD_LOCAL_UNINITIALIZED
@@ -263,21 +248,9 @@ else
 LOCAL_C_INCLUDES += external/openssl/include
 endif
 
-# ignore warnigs
-LOCAL_CFLAGS := -Wno-error=return-type -Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare
-
-LOCAL_CFLAGS += -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
-LOCAL_CFLAGS += -DH2O_USE_EPOLL=1 -DWSLAY_VERSION=\"1.0.1-DEV\"
-
+LOCAL_CFLAGS := $(h2o_cmn_clfags)
 # for pipe2
-LOCAL_CFLAGS += -D_GNU_SOURCE
-
-# use our log function
-LOCAL_CFLAGS += -Dh2o_error_printf=libh2o_error_printf
-
-# for wslay
-LOCAL_CFLAGS += -DHAVE_ARPA_INET_H -DHAVE_NETINET_IN_H
-
+# LOCAL_CFLAGS += -D_GNU_SOURCE
 
 ifeq ($(strip $(PLATFORM_SDK_VERSION)), 22)
 LOCAL_CFLAGS += -DH2O_THREAD_LOCAL_UNINITIALIZED
@@ -324,21 +297,9 @@ else
 LOCAL_C_INCLUDES += external/openssl/include
 endif
 
-# ignore warnigs
-LOCAL_CFLAGS := -Wno-error=return-type -Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare
-
-LOCAL_CFLAGS += -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
-LOCAL_CFLAGS += -DH2O_USE_EPOLL=1 -DWSLAY_VERSION=\"1.0.1-DEV\"
-
+LOCAL_CFLAGS := $(h2o_cmn_clfags)
 # for pipe2
-LOCAL_CFLAGS += -D_GNU_SOURCE
-
-# use our log function
-LOCAL_CFLAGS += -Dh2o_error_printf=libh2o_error_printf
-
-# for wslay
-LOCAL_CFLAGS += -DHAVE_ARPA_INET_H -DHAVE_NETINET_IN_H
-
+# LOCAL_CFLAGS += -D_GNU_SOURCE
 
 ifeq ($(strip $(PLATFORM_SDK_VERSION)), 22)
 LOCAL_CFLAGS += -DH2O_THREAD_LOCAL_UNINITIALIZED
