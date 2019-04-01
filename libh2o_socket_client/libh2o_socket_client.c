@@ -606,7 +606,8 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
             to_sun_err = h2o_url_host_to_sun(iov_name, &sa);
             if (to_sun_err == NULL) {
                 h2o_socket_t *sock;
-                sock = h2o_socket_connect(c->loop, &sa, sizeof(sa), on_connect);
+                sock = h2o_socket_connect(c->loop, (struct sockaddr *)&sa,
+                                          sizeof(sa), on_connect);
                 if (sock == NULL) {
                     /* create socket failed */
                     on_error(conn, "on_notification", strerror(errno));
