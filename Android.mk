@@ -214,6 +214,9 @@ LOCAL_CFLAGS += -DH2O_USE_EPOLL=1 -DWSLAY_VERSION=\"1.0.1-DEV\"
 # for pipe2
 LOCAL_CFLAGS += -D_GNU_SOURCE
 
+# use our log function
+LOCAL_CFLAGS += -Dh2o_error_printf=libh2o_error_printf
+
 # for wslay
 LOCAL_CFLAGS += -DHAVE_ARPA_INET_H -DHAVE_NETINET_IN_H
 
@@ -268,6 +271,9 @@ LOCAL_CFLAGS += -DH2O_USE_EPOLL=1 -DWSLAY_VERSION=\"1.0.1-DEV\"
 
 # for pipe2
 LOCAL_CFLAGS += -D_GNU_SOURCE
+
+# use our log function
+LOCAL_CFLAGS += -Dh2o_error_printf=libh2o_error_printf
 
 # for wslay
 LOCAL_CFLAGS += -DHAVE_ARPA_INET_H -DHAVE_NETINET_IN_H
@@ -326,6 +332,9 @@ LOCAL_CFLAGS += -DH2O_USE_EPOLL=1 -DWSLAY_VERSION=\"1.0.1-DEV\"
 
 # for pipe2
 LOCAL_CFLAGS += -D_GNU_SOURCE
+
+# use our log function
+LOCAL_CFLAGS += -Dh2o_error_printf=libh2o_error_printf
 
 # for wslay
 LOCAL_CFLAGS += -DHAVE_ARPA_INET_H -DHAVE_NETINET_IN_H
