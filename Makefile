@@ -141,7 +141,6 @@ LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/h2o/deps/golombset \
 
 h2o_cmn_clfags :=  -Wno-error=return-type -Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare \
-    -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION) \
     -DH2O_USE_EPOLL=1 \
     -DWSLAY_VERSION=\"1.0.1-DEV\" \
     -DHAVE_ARPA_INET_H -DHAVE_NETINET_IN_H \
