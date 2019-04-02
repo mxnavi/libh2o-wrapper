@@ -73,6 +73,7 @@ struct notification_conn_t {
     struct notification_cmn_t cmn;
     h2o_linklist_t pending; /* list for pending data waiting for sending */
     h2o_linklist_t sending; /* list for current sentding data */
+    h2o_hostinfo_getaddr_req_t *hostinfo_req;
     h2o_socket_t *sock;
     h2o_timer_t _timeout;
 #ifdef ENABLE_DATA_SERIAL
@@ -365,6 +366,11 @@ static void on_error(struct notification_conn_t *conn, const char *prefix,
 
     LOGW("%s:%s", prefix, err);
 
+    if (conn->hostinfo_req) {
+        h2o_hostinfo_getaddr_cancel(conn->hostinfo_req);
+        conn->hostinfo_req = NULL;
+    }
+
     /* if connec timeout pending, unlink it first */
     if (h2o_timer_is_linked(&conn->_timeout)) {
         h2o_timer_unlink(&conn->_timeout);
@@ -504,6 +510,7 @@ static void on_getaddr(h2o_hostinfo_getaddr_req_t *getaddr_req, const char *err,
     h2o_socket_t *sock;
     struct addrinfo *selected;
 
+    conn->hostinfo_req = NULL;
     if (err != NULL) {
         /* resolve host failed */
         on_error(conn, "on_getaddr", err);
@@ -620,10 +627,10 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
                     h2o_iovec_init(conn->req.port, strlen(conn->req.port));
 
                 /* resolve host name */
-                h2o_hostinfo_getaddr(&c->getaddr_receiver, iov_name, iov_serv,
-                                     AF_UNSPEC, SOCK_STREAM, IPPROTO_TCP,
-                                     AI_ADDRCONFIG | AI_NUMERICSERV, on_getaddr,
-                                     conn);
+                conn->hostinfo_req = h2o_hostinfo_getaddr(
+                    &c->getaddr_receiver, iov_name, iov_serv, AF_UNSPEC,
+                    SOCK_STREAM, IPPROTO_TCP, AI_ADDRCONFIG | AI_NUMERICSERV,
+                    on_getaddr, conn);
             }
 
         } else if (cmn->cmd == NOTIFICATION_CLOSE) {
