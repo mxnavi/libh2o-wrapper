@@ -25,6 +25,7 @@
 #include "h2o.h"
 
 #include "libh2o_log.h"
+#include "libh2o_cmn.h"
 #include "libh2o_socket_client.h"
 
 /****************************************************************************
@@ -671,14 +672,9 @@ static int cli_key_file_passwd_cb(char *buf, int size, int rwflag, void *u)
 static void init_openssl(struct libh2o_socket_client_ctx_t *c)
 {
     if (c->client_init.ssl_init.cert_file) {
-        static int openssl_inited = 0;
         int rc;
 
-        if (openssl_inited++ == 0) {
-            SSL_load_error_strings();
-            SSL_library_init();
-            OpenSSL_add_all_algorithms();
-        }
+        libh2o_ssl_init();
 
         c->ssl_ctx = SSL_CTX_new(TLSv1_2_client_method());
         SSL_CTX_load_verify_locations(c->ssl_ctx,

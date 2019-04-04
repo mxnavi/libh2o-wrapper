@@ -108,6 +108,7 @@ H2O_SRC_FILES := \
     h2o/lib/http2/stream.c \
     h2o/lib/http2/http2_debug_state.c \
     libh2o_log.c \
+    libh2o_cmn.c \
 
 WSLAY_SRC_FILES := \
     wslay/lib/wslay_event.c \

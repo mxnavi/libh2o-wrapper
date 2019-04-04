@@ -114,6 +114,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_SRC_FILES += \
     $(LOCAL_PATH)/libh2o_log.c \
+    $(LOCAL_PATH)/libh2o_cmn.c \
     $(LOCAL_PATH)/libh2o_socket_client/libh2o_socket_client.c \
     $(LOCAL_PATH)/libh2o_http_client/libh2o_http_client.c \
     $(LOCAL_PATH)/libh2o_http_server/libh2o_http_server.c \
