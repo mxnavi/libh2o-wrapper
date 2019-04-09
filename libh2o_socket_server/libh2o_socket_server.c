@@ -184,6 +184,17 @@ static void notify_thread_release(struct notification_conn_t *conn)
     h2o_multithread_send_message(&conn->cmn.c->notifications, &msg->cmn.super);
 }
 
+static void callback_on_listen_error(struct notification_listen_t *conn,
+                                     const char *err)
+{
+    struct libh2o_socket_server_ctx_t *c = conn->cmn.c;
+    struct socket_server_init_t *p = &c->server_init;
+
+    if (p->cb.on_listen_err) {
+        p->cb.on_listen_err(p->cb.param, err, &conn->req);
+    }
+}
+
 static void callback_on_connected(struct notification_conn_t *conn)
 {
     struct libh2o_socket_server_ctx_t *c = conn->cmn.c;
@@ -358,7 +369,7 @@ static void on_listener_error(struct notification_listen_t *conn,
     ASSERT(err != NULL);
 
     LOGW("%s:%s", prefix, err);
-
+    callback_on_listen_error(conn, err);
     h2o_linklist_unlink(&conn->cmn.super.link);
     release_notification_listen(conn);
 }
@@ -833,26 +844,25 @@ void libh2o_socket_server_stop(struct libh2o_socket_server_ctx_t *c)
     free(c);
 }
 
-const struct socket_server_handle_t *
-libh2o_socket_server_req(struct libh2o_socket_server_ctx_t *c,
-                         const struct socket_server_req_t *req, void *user)
+int libh2o_socket_server_req(struct libh2o_socket_server_ctx_t *c,
+                             const struct socket_server_req_t *req, void *user)
 {
     struct notification_listen_t *conn;
 
-    if (c == NULL || req == NULL) return NULL;
+    if (c == NULL || req == NULL) return -1;
 
     if (req->host == NULL) {
-        return NULL;
+        return -1;
     }
 
     if (strncmp(req->host, "unix:", 5) == 0) {
         struct sockaddr_un sa;
-        if (strlen(req->host) - 6 > sizeof(sa.sun_path)) return NULL;
+        if (strlen(req->host) - 6 > sizeof(sa.sun_path)) return -1;
     } else if (req->port == NULL) {
-        return NULL;
+        return -1;
     }
     conn = notify_thread_listen(c, req, user);
-    return &conn->clih;
+    return conn != NULL ? 0 : 1;
 }
 
 size_t libh2o_socket_server_send(const struct socket_server_handle_t *clih,
@@ -883,17 +893,17 @@ void libh2o_socket_server_release(const struct socket_server_handle_t *clih)
 #ifdef LIBH2O_UNIT_TEST
 #include <signal.h>
 
-struct socket_server_state_t {
-    const struct socket_server_handle_t *clih;
-};
 
 struct sock_servers_t {
     struct libh2o_socket_server_ctx_t *c;
-    int nservers;
-    struct socket_server_state_t *servers;
 };
 
-struct sock_servers_t sock_clients;
+static void
+cb_socket_server_on_listen_error(void * /* param */, const char * /* err */,
+                                 const struct socket_server_req_t * /* req */)
+{
+    LOGW("%s() @line: %d clih: %p", __FUNCTION__, __LINE__);
+}
 
 static void
 cb_socket_server_on_connected(void *param,
@@ -944,6 +954,7 @@ int main(int argc, char **argv)
     struct socket_server_init_t server_init;
     memset(&server_init, 0x00, sizeof(server_init));
 
+    server_init.on_listener_error = cb_socket_server_on_listen_error;
     server_init.cb.on_connected = cb_socket_server_on_connected;
     server_init.cb.on_data = cb_socket_server_on_data;
     server_init.cb.on_sent = cb_socket_server_on_sent;
@@ -956,22 +967,18 @@ int main(int argc, char **argv)
      */
     servers.c = libh2o_socket_server_start(&server_init);
 
-    servers.nservers = argc;
-    servers.servers = malloc(sizeof(struct socket_server_state_t) * argc);
-    memset(servers.servers, 0x00, sizeof(struct socket_server_state_t) * argc);
-
     /**
      * 2: create socket server request
-     * on connected will be called back
+     * on_listen_err will be called back if listen socket error
+     * on connected will be called back when client connected
      */
     struct socket_server_req_t req = {"127.0.0.1", "1234"};
-    servers.servers[0].clih = libh2o_socket_server_req(servers.c, &req, NULL);
+    libh2o_socket_server_req(servers.c, &req, NULL);
 
     int i;
     for (i = 1; i < argc; ++i) {
         req.host = argv[i];
-        servers.servers[i].clih =
-            libh2o_socket_server_req(servers.c, &req, NULL);
+        libh2o_socket_server_req(servers.c, &req, NULL);
     }
 
     while (running) {
@@ -979,7 +986,6 @@ int main(int argc, char **argv)
     }
     libh2o_socket_server_stop(servers.c);
 
-    free(servers.servers);
     return 0;
 }
 #endif

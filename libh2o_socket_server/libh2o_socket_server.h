@@ -63,11 +63,10 @@ void libh2o_socket_server_stop(struct libh2o_socket_server_ctx_t *c);
  * @param c socket server context pointer
  * @param req request info
  * @param user user data ptr, will be stored in server handle
- * @return socket server connection handle for success or else NULL when error
+ * @return int 0 when success or lese error
  */
-const struct socket_server_handle_t *
-libh2o_socket_server_req(struct libh2o_socket_server_ctx_t *c,
-                         const struct socket_server_req_t *req, void *user);
+int libh2o_socket_server_req(struct libh2o_socket_server_ctx_t *c,
+                             const struct socket_server_req_t *req, void *user);
 
 /**
  * queue data to event loop for sending
