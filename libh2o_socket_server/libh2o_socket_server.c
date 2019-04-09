@@ -883,17 +883,14 @@ void libh2o_socket_server_release(const struct socket_server_handle_t *clih)
 #ifdef LIBH2O_UNIT_TEST
 #include <signal.h>
 
-#define SOCKET_server_STATE_CONNECTED 0x00
-#define SOCKET_server_STATE_CLOSED 0xFFFFFFFF
 struct socket_server_state_t {
     const struct socket_server_handle_t *clih;
-    int32_t state;
 };
 
 struct sock_servers_t {
     struct libh2o_socket_server_ctx_t *c;
     int nservers;
-    struct socket_server_state_t *clients;
+    struct socket_server_state_t *servers;
 };
 
 struct sock_servers_t sock_clients;
@@ -903,14 +900,14 @@ cb_socket_server_on_connected(void *param,
                               const struct socket_server_handle_t *clih)
 {
     LOGV("%s() @line: %d clih: %p", __FUNCTION__, __LINE__, clih);
-    struct sock_servers_t *clients = param;
+    struct sock_servers_t *ss = param;
 }
 
 static void cb_socket_server_on_data(void *param, void *buf, size_t len,
                                      const struct socket_server_handle_t *clih)
 {
-    struct sock_servers_t *clients = param;
-    (void)servers;
+    struct sock_servers_t *ss = param;
+    (void)ss;
     fwrite(buf, 1, len, stdout);
 }
 
@@ -918,8 +915,8 @@ static void cb_socket_server_on_sent(void *param, void *buf, size_t len,
                                      int sent,
                                      const struct socket_server_handle_t *clih)
 {
-    struct sock_servers_t *clients = param;
-    (void)servers;
+    struct sock_servers_t *ss = param;
+    (void)ss;
     free(buf);
 }
 
@@ -928,7 +925,7 @@ cb_socket_server_on_closed(void *param, const char *err,
                            const struct socket_server_handle_t *clih)
 {
     LOGV("%s() @line: %d clih: %p", __FUNCTION__, __LINE__, clih);
-    struct sock_servers_t *clients = param;
+    struct sock_servers_t *ss = param;
 }
 
 int main(int argc, char **argv)
@@ -947,10 +944,10 @@ int main(int argc, char **argv)
     struct socket_server_init_t server_init;
     memset(&server_init, 0x00, sizeof(server_init));
 
-    server_init.cb.on_connected = cb_socket_client_on_connected;
-    server_init.cb.on_data = cb_socket_client_on_data;
-    server_init.cb.on_sent = cb_socket_client_on_sent;
-    server_init.cb.on_closed = cb_socket_client_on_closed;
+    server_init.cb.on_connected = cb_socket_server_on_connected;
+    server_init.cb.on_data = cb_socket_server_on_data;
+    server_init.cb.on_sent = cb_socket_server_on_sent;
+    server_init.cb.on_closed = cb_socket_server_on_closed;
     server_init.cb.param = &servers;
 
     /**
@@ -959,31 +956,30 @@ int main(int argc, char **argv)
      */
     servers.c = libh2o_socket_server_start(&server_init);
 
-    servers.nclients = argc;
-    servers.clients = malloc(sizeof(struct socket_server_state_t) * argc);
-    memset(servers.clients, 0x00, sizeof(struct socket_server_state_t) * argc);
+    servers.nservers = argc;
+    servers.servers = malloc(sizeof(struct socket_server_state_t) * argc);
+    memset(servers.servers, 0x00, sizeof(struct socket_server_state_t) * argc);
 
     /**
      * 2: create socket server request
      * on connected will be called back
      */
     struct socket_server_req_t req = {"127.0.0.1", "1234"};
-    servers.clients[0].clih = libh2o_socket_server_req(clients.c, &req, NULL);
+    servers.servers[0].clih = libh2o_socket_server_req(servers.c, &req, NULL);
 
     int i;
     for (i = 1; i < argc; ++i) {
         req.host = argv[i];
-        servers.clients[i].clih =
-            libh2o_socket_server_req(clients.c, &req, NULL);
+        servers.servers[i].clih =
+            libh2o_socket_server_req(servers.c, &req, NULL);
     }
 
     while (running) {
-
         if (usleep(1000000) < 0) break;
     }
-    libh2o_socket_server_stop(clients.c);
+    libh2o_socket_server_stop(servers.c);
 
-    free(servers.clients);
+    free(servers.servers);
     return 0;
 }
 #endif
