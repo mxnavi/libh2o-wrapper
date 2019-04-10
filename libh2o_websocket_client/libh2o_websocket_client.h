@@ -94,6 +94,10 @@ libh2o_websocket_client_send(const struct websocket_client_handle_t *clih,
 void libh2o_websocket_client_release(
     const struct websocket_client_handle_t *clih);
 
+#ifdef LIBH2O_UNIT_TEST
+int libh2o_websocket_client_test(int argc, char **argv);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

@@ -977,7 +977,7 @@ cb_websocket_client_on_closed(void *param, const char *err,
     }
 }
 
-int main(int argc, char **argv)
+int libh2o_websocket_client_test(int argc, char **argv)
 {
     /**
      * tested with 'examples-websocket-evloop'

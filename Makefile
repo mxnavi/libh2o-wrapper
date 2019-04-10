@@ -150,8 +150,9 @@ h2o_cmn_clfags :=  -Wno-error=return-type -Wno-unused-parameter -Wno-missing-fie
 
 LOCAL_CFLAGS := $(h2o_cmn_clfags)
 
-# for pipe2
-# LOCAL_CFLAGS += -D_GNU_SOURCE
+
+# for unit test
+LOCAL_CFLAGS += -DLIBH2O_UNIT_TEST
 
 
 LOCAL_LIBNAMES += 

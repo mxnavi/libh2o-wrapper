@@ -46,7 +46,7 @@ struct socket_server_handle_t {
  *
  * @param param parameter from user
  */
-typedef void (*socket_server_on_listen_error)(
+typedef void (*socket_server_on_listen)(
     void * /* param */, const char * /* err */,
     const struct socket_server_req_t * /* req */);
 typedef void (*socket_server_on_connected)(
@@ -70,7 +70,7 @@ struct socket_server_callback_t {
      */
     void *param;
 
-    socket_server_on_listen_error on_listen_err;
+    socket_server_on_listen on_listen;
 
     /**
      * called in evloop thread when connected

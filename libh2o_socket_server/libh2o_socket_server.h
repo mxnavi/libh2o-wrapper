@@ -88,6 +88,10 @@ size_t libh2o_socket_server_send(const struct socket_server_handle_t *clih,
  */
 void libh2o_socket_server_release(const struct socket_server_handle_t *clih);
 
+#ifdef LIBH2O_UNIT_TEST
+int libh2o_socket_server_test(int argc, char **argv);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

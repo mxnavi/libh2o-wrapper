@@ -1517,7 +1517,7 @@ http_server_on_ws_connection_closed_cb(void *param,
     LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
 }
 
-int main(int argc, char *argv[])
+int libh2o_http_server_test(int argc, char **argv)
 {
     struct server_context_t *c;
 

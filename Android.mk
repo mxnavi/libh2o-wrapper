@@ -160,8 +160,6 @@ endif
 
 LOCAL_CFLAGS := $(h2o_cmn_clfags)
 
-# for pipe2
-# LOCAL_CFLAGS += -D_GNU_SOURCE
 
 ifeq ($(strip $(PLATFORM_SDK_VERSION)), 22)
 LOCAL_CFLAGS += -DH2O_THREAD_LOCAL_UNINITIALIZED
@@ -204,8 +202,6 @@ endif
 
 LOCAL_CFLAGS := $(h2o_cmn_clfags)
 
-# for pipe2
-# LOCAL_CFLAGS += -D_GNU_SOURCE
 
 ifeq ($(strip $(PLATFORM_SDK_VERSION)), 22)
 LOCAL_CFLAGS += -DH2O_THREAD_LOCAL_UNINITIALIZED
@@ -250,8 +246,6 @@ LOCAL_C_INCLUDES += external/openssl/include
 endif
 
 LOCAL_CFLAGS := $(h2o_cmn_clfags)
-# for pipe2
-# LOCAL_CFLAGS += -D_GNU_SOURCE
 
 ifeq ($(strip $(PLATFORM_SDK_VERSION)), 22)
 LOCAL_CFLAGS += -DH2O_THREAD_LOCAL_UNINITIALIZED
@@ -299,8 +293,6 @@ LOCAL_C_INCLUDES += external/openssl/include
 endif
 
 LOCAL_CFLAGS := $(h2o_cmn_clfags)
-# for pipe2
-# LOCAL_CFLAGS += -D_GNU_SOURCE
 
 ifeq ($(strip $(PLATFORM_SDK_VERSION)), 22)
 LOCAL_CFLAGS += -DH2O_THREAD_LOCAL_UNINITIALIZED

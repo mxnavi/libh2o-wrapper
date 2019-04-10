@@ -690,6 +690,8 @@ libh2o_http_client_req(struct libh2o_http_client_ctx_t *c,
 }
 
 #ifdef LIBH2O_UNIT_TEST
+#include <signal.h>
+
 static int cb_http_client_on_connected(void *param,
                                        const struct http_client_handle_t *clih)
 {
@@ -739,7 +741,7 @@ static void cb_http_client_on_finish(void *param, const char *err,
     LOGV("%s() @line: %d err: %s", __FUNCTION__, __LINE__, err);
 }
 
-int main(int argc, char **argv)
+int libh2o_http_client_test(int argc, char **argv)
 {
     struct http_client_init_t client_init;
     memset(&client_init, 0x00, sizeof(client_init));

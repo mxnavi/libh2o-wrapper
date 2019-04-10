@@ -966,7 +966,7 @@ cb_socket_client_on_closed(void *param, const char *err,
     }
 }
 
-int main(int argc, char **argv)
+int libh2o_socket_client_test(int argc, char **argv)
 {
     /**
      * test with 'nc -l 1234'

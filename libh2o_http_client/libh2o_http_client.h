@@ -70,6 +70,10 @@ const struct http_client_handle_t *
 libh2o_http_client_req(struct libh2o_http_client_ctx_t *c,
                        struct http_client_req_t *req, void *user);
 
+#ifdef LIBH2O_UNIT_TEST
+int libh2o_http_client_test(int argc, char **argv);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
