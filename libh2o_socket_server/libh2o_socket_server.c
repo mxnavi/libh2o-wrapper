@@ -947,6 +947,14 @@ static void cb_socket_server_on_data(void *param, void *buf, size_t len,
     struct sock_servers_t *ss = param;
     (void)ss;
     fwrite(buf, 1, len, stdout);
+
+    {
+        void *tmp = malloc(len);
+        if (tmp) {
+            memcpy(tmp, buf, len);
+            libh2o_socket_server_send(clih, tmp, len);
+        }
+    }
 }
 
 static void cb_socket_server_on_sent(void *param, void *buf, size_t len,
