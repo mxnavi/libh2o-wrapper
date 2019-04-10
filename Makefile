@@ -152,7 +152,9 @@ LOCAL_CFLAGS := $(h2o_cmn_clfags)
 
 
 # for unit test
+ifeq ($(SELF_TEST), true)
 LOCAL_CFLAGS += -DLIBH2O_UNIT_TEST
+endif
 
 
 LOCAL_LIBNAMES += 
