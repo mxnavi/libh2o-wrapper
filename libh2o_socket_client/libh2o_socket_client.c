@@ -31,7 +31,7 @@
 /****************************************************************************
 *                       Macro Definition Section                            *
 *****************************************************************************/
-#define DEBUG_SERIAL 1
+// #define DEBUG_SERIAL 1
 
 #define NOTIFICATION_CONN 0
 #define NOTIFICATION_DATA 1

@@ -31,7 +31,7 @@
 /****************************************************************************
  *                       Macro Definition Section                            *
  *****************************************************************************/
-#define DEBUG_SERIAL 1
+// #define DEBUG_SERIAL 1
 
 #define NOTIFICATION_LISTEN 0
 #define NOTIFICATION_CONN 1
@@ -873,7 +873,7 @@ int libh2o_socket_server_req(struct libh2o_socket_server_ctx_t *c,
         return -1;
     }
     conn = notify_thread_listen(c, req, user);
-    return conn != NULL ? 0 : 1;
+    return conn != NULL ? 0 : -1;
 }
 
 size_t libh2o_socket_server_send(const struct socket_server_handle_t *clih,
