@@ -954,12 +954,22 @@ cb_socket_server_on_closed(void *param, const char *err,
 int libh2o_socket_server_test(int argc, char **argv)
 {
     /**
-     * test with 'nc -l 1234'
+     * test with 'openssl s_client -host 127.0.0.1 -port 1234'
      */
     struct sock_servers_t servers;
+    char cwd[256], *p;
+    char buf[2][256];
 
     signal(SIGPIPE, SIG_IGN);
     registerSigHandler();
+
+    p = getcwd(cwd, sizeof(cwd));
+    if (p) {
+        strncpy(buf[0], p, 256);
+        strncpy(buf[1], p, 256);
+    } else {
+        buf[0][0] = buf[1][0] = '\0';
+    }
 
     /**
      * server init param
@@ -972,6 +982,11 @@ int libh2o_socket_server_test(int argc, char **argv)
     server_init.cb.on_data = cb_socket_server_on_data;
     server_init.cb.on_sent = cb_socket_server_on_sent;
     server_init.cb.on_closed = cb_socket_server_on_closed;
+
+    strcat(buf[0], "/libh2o-wrapper/h2o/examples/h2o/server.crt");
+    server_init.ssl_init.cert_file = buf[0];
+    strcat(buf[1], "/libh2o-wrapper/h2o/examples/h2o/server.key");
+    server_init.ssl_init.key_file = buf[1];
     server_init.cb.param = &servers;
 
     /**
