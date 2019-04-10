@@ -146,7 +146,7 @@ notify_thread_listen(struct libh2o_socket_server_ctx_t *c,
     msg->clih.serial = __sync_add_and_fetch(&c->serial_counter, 1);
     msg->clih.user = user;
 #ifdef DEBUG_SERIAL
-    LOGV("create serial: %u", (uint32_t)msg->clih.serial);
+    LOGV("create listener: %u", (uint32_t)msg->clih.serial);
 #endif
 
     /* request */
@@ -780,12 +780,8 @@ static void *server_loop(void *arg)
     release_listeners(c, "event loop quiting");
     ASSERT(h2o_linklist_is_empty(&c->listeners));
 
-    while (!h2o_linklist_is_empty(&c->conns)) {
-        h2o_evloop_run(c->loop, DISPOSE_TIMEOUT_MS);
-    }
-
-    ASSERT(h2o_linklist_is_empty(&c->conns));
     release_conns(c, "event loop quiting");
+    ASSERT(h2o_linklist_is_empty(&c->conns));
     release_openssl(c);
 
     h2o_multithread_unregister_receiver(c->queue, &c->getaddr_receiver);
@@ -916,14 +912,16 @@ struct sock_servers_t {
 static void cb_socket_server_on_listen(void *param, const char *err,
                                        const struct socket_server_req_t *req)
 {
-    LOGW("%s() @line: %d", __FUNCTION__, __LINE__);
+    LOGW("%s() @line: %d %s:%s", __FUNCTION__, __LINE__, req->host,
+         req->port ? req->port : "");
 }
 
 static void
 cb_socket_server_on_connected(void *param,
                               const struct socket_server_handle_t *clih)
 {
-    LOGV("%s() @line: %d clih: %p", __FUNCTION__, __LINE__, clih);
+    LOGV("%s() @line: %d serial: %lld", __FUNCTION__, __LINE__,
+         (long long)clih->serial);
     struct sock_servers_t *ss = param;
 }
 
@@ -948,7 +946,8 @@ static void
 cb_socket_server_on_closed(void *param, const char *err,
                            const struct socket_server_handle_t *clih)
 {
-    LOGV("%s() @line: %d clih: %p", __FUNCTION__, __LINE__, clih);
+    LOGV("%s() @line: %d serial: %lld", __FUNCTION__, __LINE__,
+         (long long)clih->serial);
     struct sock_servers_t *ss = param;
 }
 
