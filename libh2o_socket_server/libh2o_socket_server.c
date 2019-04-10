@@ -525,6 +525,7 @@ static void on_getaddr(h2o_hostinfo_getaddr_req_t *getaddr_req, const char *err,
     struct libh2o_socket_server_ctx_t *c = conn->cmn.c;
     h2o_socket_t *sock;
     struct addrinfo *selected;
+    int fd, reuseaddr_flag = 1;
 
     conn->hostinfo_req = NULL;
     if (err != NULL) {
@@ -535,19 +536,27 @@ static void on_getaddr(h2o_hostinfo_getaddr_req_t *getaddr_req, const char *err,
 
     selected = h2o_hostinfo_select_one(res);
 
-    int fd, reuseaddr_flag = 1;
     fd = socket(selected->ai_family,
                 selected->ai_socktype | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    if (fd == -1) {
+        on_listener_error(conn, "on_getaddr", strerror(errno));
+        return;
+    }
 
     setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr_flag,
                sizeof(reuseaddr_flag));
 
-    bind(fd, res->ai_addr, res->ai_addrlen);
-    listen(fd, 64);
+    if ((bind(fd, res->ai_addr, res->ai_addrlen) == -1) ||
+        (listen(fd, 64) == -1)) {
+        close(fd);
+        on_listener_error(conn, "on_getaddr", strerror(errno));
+        return;
+    }
 
     sock = h2o_evloop_socket_create(c->loop, fd, H2O_SOCKET_FLAG_DONT_READ);
 
     if (sock == NULL) {
+        close(fd);
         /* create socket failed */
         on_listener_error(conn, "on_getaddr", strerror(errno));
         return;
@@ -651,11 +660,18 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
                 h2o_socket_t *sock;
                 int fd = socket(AF_UNIX,
                                 SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
-                bind(fd, (const struct sockaddr *)&sa, sizeof(sa));
-                listen(fd, 64);
-                sock = h2o_evloop_socket_create(c->loop, fd,
-                                                H2O_SOCKET_FLAG_DONT_READ);
+                if (fd == -1) {
+                    sock = NULL;
+                } else if ((bind(fd, (const struct sockaddr *)&sa,
+                                 sizeof(sa)) == -1) ||
+                           (listen(fd, 64) == -1)) {
+                    sock = NULL;
+                } else {
+                    sock = h2o_evloop_socket_create(c->loop, fd,
+                                                    H2O_SOCKET_FLAG_DONT_READ);
+                }
                 if (sock == NULL) {
+                    if (fd != -1) close(fd);
                     /* create socket failed */
                     on_listener_error(conn, "on_notification", strerror(errno));
                 } else {
