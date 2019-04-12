@@ -43,9 +43,10 @@ struct libh2o_websocket_client_ctx_t;
 const char *libh2o_websocket_client_get_version(void);
 
 /**
- * moudle init, will init all resources for libh2o websocket client
+ * moudle start, will init all resources for libh2o websocket client
  * @param client_init init parameters
  * @return client context for success or else error
+ * @note the caller will be blocked wating event loop thread ready
  */
 struct libh2o_websocket_client_ctx_t *libh2o_websocket_client_start(
     const struct websocket_client_init_t *client_init);

@@ -546,7 +546,7 @@ static void init_conn_poll(struct libh2o_http_client_ctx_t *c)
     sockpool = h2o_mem_alloc(sizeof(*sockpool));
     h2o_socketpool_init_global(sockpool, 128);
     h2o_socketpool_set_timeout(sockpool,
-                               c->client_init.io_timeout + 1000 /* in msec */);
+                               c->client_init.timeout + 1000 /* in msec */);
     h2o_socketpool_register_loop(sockpool, c->ctx.loop);
     h2o_httpclient_connection_pool_init(connpool, sockpool);
     c->connpool = connpool;
@@ -641,17 +641,17 @@ libh2o_http_client_start(const struct http_client_init_t *client_init)
         memset(c, 0x00, sizeof(*c));
         h2o_linklist_init_anchor(&c->conns);
         c->chunk_size = 1024;
-        c->websocket_timeout = client_init->io_timeout;
+        c->websocket_timeout = client_init->timeout;
 
         /**
          * init http client context
          */
         c->ctx.getaddr_receiver = &c->getaddr_receiver;
-        c->ctx.io_timeout = client_init->io_timeout;
-        c->ctx.connect_timeout = client_init->io_timeout;
-        c->ctx.first_byte_timeout = client_init->io_timeout;
+        c->ctx.io_timeout = client_init->timeout;
+        c->ctx.connect_timeout = client_init->timeout;
+        c->ctx.first_byte_timeout = client_init->timeout;
         c->ctx.websocket_timeout = &c->websocket_timeout;
-        c->ctx.keepalive_timeout = client_init->io_timeout + 15000;
+        c->ctx.keepalive_timeout = client_init->timeout + 15000;
         c->ctx.max_buffer_size = H2O_SOCKET_INITIAL_INPUT_BUFFER_SIZE * 2;
         memset(&c->ctx.http2, 0x00, sizeof(c->ctx.http2));
 
@@ -748,7 +748,7 @@ int libh2o_http_client_test(int argc, char **argv)
 
     signal(SIGPIPE, SIG_IGN);
 
-    client_init.io_timeout = 10000; /* 10 sec */
+    client_init.timeout = 10000; /* 10 sec */
     client_init.cb.on_connected = cb_http_client_on_connected;
     client_init.cb.on_head = cb_http_client_on_head;
     client_init.cb.on_body = cb_http_client_on_body;

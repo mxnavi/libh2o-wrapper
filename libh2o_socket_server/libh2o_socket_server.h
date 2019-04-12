@@ -43,9 +43,10 @@ struct libh2o_socket_server_ctx_t;
 const char *libh2o_socket_server_get_version(void);
 
 /**
- * moudle init, will init all resources for libh2o socket server
+ * moudle start, will init all resources for libh2o socket server
  * @param server_init init parameters
  * @return server context for success or else error
+ * @note the caller will be blocked wating event loop thread ready
  */
 struct libh2o_socket_server_ctx_t *
 libh2o_socket_server_start(const struct socket_server_init_t *server_init);
@@ -55,6 +56,7 @@ libh2o_socket_server_start(const struct socket_server_init_t *server_init);
  * release all resources
  * @param c socket server context
  * @return
+ * @note the caller will be blocked wating event loop thread quiting
  */
 void libh2o_socket_server_stop(struct libh2o_socket_server_ctx_t *c);
 

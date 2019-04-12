@@ -25,8 +25,8 @@ extern "C" {
 /****************************************************************************
 *                       Macro Definition Section                            *
 *****************************************************************************/
-
 #define HTTP_REQUEST_HEADER_MAX 4
+
 /****************************************************************************
 *                       Type Definition Section                             *
 *****************************************************************************/
@@ -117,7 +117,7 @@ struct http_client_ssl_init_t {
  * init infos
  */
 struct http_client_init_t {
-    uint64_t io_timeout; /* io timeout in msec */
+    uint64_t timeout; /* timeout in msec */
     struct http_client_callback_t cb;
     struct http_client_ssl_init_t ssl_init;
 };

@@ -43,18 +43,20 @@ struct libh2o_socket_client_ctx_t;
 const char *libh2o_socket_client_get_version(void);
 
 /**
- * moudle init, will init all resources for libh2o socket client
+ * moudle start, will init all resources for libh2o socket client
  * @param client_init init parameters
  * @return client context for success or else error
+ * @note the caller will be blocked wating event loop thread ready
  */
 struct libh2o_socket_client_ctx_t *
 libh2o_socket_client_start(const struct socket_client_init_t *client_init);
 
 /**
- * moudle stop, will stop work thread for libh2o socket client and
+ * moudle stop, will stop event loop thread for libh2o socket client and
  * release all resources
  * @param c socket client context
  * @return
+ * @note the caller will be blocked wating event loop thread quiting
  */
 void libh2o_socket_client_stop(struct libh2o_socket_client_ctx_t *c);
 
@@ -70,7 +72,7 @@ libh2o_socket_client_req(struct libh2o_socket_client_ctx_t *c,
                          const struct socket_client_req_t *req, void *user);
 
 /**
- * queue data to event loop for sending
+ * queue data to event loop for sending for specific connection
  * @param clih socket client handle
  * @param buf buffer pointer
  * @param len buffer length in bytes
