@@ -547,7 +547,7 @@ static void on_getaddr(h2o_hostinfo_getaddr_req_t *getaddr_req, const char *err,
                sizeof(reuseaddr_flag));
 
     if ((bind(fd, res->ai_addr, res->ai_addrlen) == -1) ||
-        (listen(fd, 64) == -1)) {
+        (listen(fd, 4) == -1)) {
         close(fd);
         on_listener_error(conn, "on_getaddr", strerror(errno));
         return;
@@ -664,7 +664,7 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
                     sock = NULL;
                 } else if ((bind(fd, (const struct sockaddr *)&sa,
                                  sizeof(sa)) == -1) ||
-                           (listen(fd, 64) == -1)) {
+                           (listen(fd, 4) == -1)) {
                     sock = NULL;
                 } else {
                     sock = h2o_evloop_socket_create(c->loop, fd,
@@ -710,7 +710,7 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
                                        sizeof(reuseaddr_flag)) == -1) ||
                            (bind(fd, (const struct sockaddr *)&addr,
                                  sizeof(addr)) == -1) ||
-                           (listen(fd, 64) == -1)) {
+                           (listen(fd, 4) == -1)) {
                     sock = NULL;
                 } else {
                     sock = h2o_evloop_socket_create(c->loop, fd,
