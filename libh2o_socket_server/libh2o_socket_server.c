@@ -647,8 +647,8 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
         } else if (cmn->cmd == NOTIFICATION_LISTEN) {
             struct notification_listen_t *conn =
                 (struct notification_listen_t *)cmn;
-            h2o_iovec_t iov_name =
-                h2o_iovec_init(conn->req.host, strlen(conn->req.host));
+            h2o_iovec_t iov_name = h2o_iovec_init(
+                conn->req.host, conn->req.host ? strlen(conn->req.host) : 0);
 
             const char *to_sun_err;
             struct sockaddr_un sa;
@@ -679,7 +679,7 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
                     conn->sock = sock;
                     h2o_socket_read_start(sock, on_accept);
                 }
-            } else {
+            } else if (conn->req.host != NULL) {
                 h2o_iovec_t iov_serv =
                     h2o_iovec_init(conn->req.port, strlen(conn->req.port));
 
@@ -688,8 +688,44 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
                     &c->getaddr_receiver, iov_name, iov_serv, AF_UNSPEC,
                     SOCK_STREAM, IPPROTO_TCP, AI_ADDRCONFIG | AI_NUMERICSERV,
                     on_getaddr, conn);
-            }
+            } else {
+                struct sockaddr_in addr;
+                h2o_socket_t *sock;
+                int fd, reuseaddr_flag = 1;
+                int port;
 
+                port = atoi(conn->req.port);
+
+                memset(&addr, 0x00, sizeof(addr));
+                addr.sin_family = AF_INET;
+                addr.sin_port = htons(port);
+                addr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+                fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC,
+                            0);
+                if (fd == -1) {
+                    sock = NULL;
+                } else if ((setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
+                                       &reuseaddr_flag,
+                                       sizeof(reuseaddr_flag)) == -1) ||
+                           (bind(fd, (const struct sockaddr *)&addr,
+                                 sizeof(addr)) == -1) ||
+                           (listen(fd, 64) == -1)) {
+                    sock = NULL;
+                } else {
+                    sock = h2o_evloop_socket_create(c->loop, fd,
+                                                    H2O_SOCKET_FLAG_DONT_READ);
+                }
+                if (sock == NULL) {
+                    if (fd != -1) close(fd);
+                    /* create socket failed */
+                    on_listener_error(conn, "on_notification", strerror(errno));
+                } else {
+                    sock->data = conn;
+                    conn->sock = sock;
+                    h2o_socket_read_start(sock, on_accept);
+                }
+            }
         } else if (cmn->cmd == NOTIFICATION_CLOSE) {
             struct notification_close_t *data =
                 (struct notification_close_t *)cmn;
@@ -862,15 +898,16 @@ int libh2o_socket_server_req(struct libh2o_socket_server_ctx_t *c,
 
     if (c == NULL || req == NULL) return -1;
 
-    if (req->host == NULL) {
+    if (req->host == NULL && req->port == NULL) {
         return -1;
     }
-
-    if (strncmp(req->host, "unix:", 5) == 0) {
-        struct sockaddr_un sa;
-        if (strlen(req->host) - 6 > sizeof(sa.sun_path)) return -1;
-    } else if (req->port == NULL) {
-        return -1;
+    if (req->host != NULL) {
+        if (strncmp(req->host, "unix:", 5) == 0) {
+            struct sockaddr_un sa;
+            if (strlen(req->host) - 6 > sizeof(sa.sun_path)) return -1;
+        } else if (req->port == NULL) {
+            return -1;
+        }
     }
     conn = notify_thread_listen(c, req, user);
     return conn != NULL ? 0 : -1;
@@ -928,8 +965,8 @@ struct sock_servers_t {
 static void cb_socket_server_on_listen(void *param, const char *err,
                                        const struct socket_server_req_t *req)
 {
-    LOGW("%s() @line: %d %s:%s", __FUNCTION__, __LINE__, req->host,
-         req->port ? req->port : "");
+    LOGW("%s() @line: %d %s:%s", __FUNCTION__, __LINE__,
+         req->host ? req->host : "", req->port ? req->port : "");
 }
 
 static void
@@ -1024,7 +1061,7 @@ int libh2o_socket_server_test(int argc, char **argv)
      * on_listen_err will be called back if listen socket error
      * on connected will be called back when client connected
      */
-    struct socket_server_req_t req = {"127.0.0.1", "1234"};
+    struct socket_server_req_t req = {NULL, "1234"};
     libh2o_socket_server_req(servers.c, &req, NULL);
 
     int i;
