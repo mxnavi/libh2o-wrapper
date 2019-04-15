@@ -60,11 +60,20 @@ int libh2o_ssl_init()
 
 void libh2o_show_socket_err(const char *prefix, int fd)
 {
+    /**
+     * NOT functional because already called in h2o library
+     * SO_ERROR
+     *  Get and **clear** the pending socket error.
+     */
     int so_err = 0;
     socklen_t l = sizeof(so_err);
     if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &so_err, &l) != 0) {
-        LOGW("%s:getsockopt(%d) error: %s", prefix, fd, strerror(errno));
+        LOGW("%s:getsockopt(%d) error: %d %s", prefix, fd, errno,
+             strerror(errno));
     } else if (so_err != 0) {
-        LOGW("%s:getsockopt(%d) error: %s", prefix, fd, strerror(so_err));
+        LOGW("%s:getsockopt(%d) error: %d %s", prefix, fd, so_err,
+             strerror(so_err));
+    } else {
+        /* No error */
     }
 }
