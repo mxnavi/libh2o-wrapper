@@ -480,6 +480,9 @@ static void on_connect(h2o_socket_t *sock, const char *err)
 
     if (err != NULL) {
         /* connection failed */
+        if (err == h2o_socket_error_conn_fail) {
+            libh2o_show_socket_err("on_connect", h2o_socket_get_fd(sock));
+        }
         on_error(conn, "on_connect", err);
         return;
     }

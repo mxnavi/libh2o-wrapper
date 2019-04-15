@@ -13,6 +13,11 @@
 /****************************************************************************
  *                       Include File Section                                *
  *****************************************************************************/
+#include <string.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+
 #include <openssl/ssl.h>
 #include <pthread.h>
 
@@ -51,4 +56,15 @@ int libh2o_ssl_init()
 {
     pthread_once(&once, init_ssl_once);
     return openssl_inited > 0;
+}
+
+void libh2o_show_socket_err(const char *prefix, int fd)
+{
+    int so_err = 0;
+    socklen_t l = sizeof(so_err);
+    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &so_err, &l) != 0) {
+        LOGW("%s:getsockopt(%d) error: %s", prefix, fd, strerror(errno));
+    } else if (so_err != 0) {
+        LOGW("%s:getsockopt(%d) error: %s", prefix, fd, strerror(so_err));
+    }
 }
