@@ -111,7 +111,6 @@ struct server_context_t {
     size_t num_listeners;
 
     uint32_t serial_counter;    /* http_request serial counter */
-    uint32_t ws_serial_counter; /* websocket serial counter */
 #ifdef ENABLE_DATA_SERIAL
     uint32_t broadcast_serial_counter; /* websocket broadcast serial counter */
 #endif
@@ -463,7 +462,9 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
 
         h2o_linklist_init_anchor(&conn->pending);
 
-        conn->clih.serial = __sync_add_and_fetch(&c->ws_serial_counter, 1);
+        do {
+            conn->clih.serial = __sync_add_and_fetch(&c->serial_counter, 1);
+        } while (conn->clih.serial == 0);
 #ifdef DEBUG_SERIAL
         LOGV("%s() serial: %u websocket conn: %p wsconn: %p open", __FUNCTION__,
              conn->clih.serial, conn, wsconn);
@@ -481,7 +482,9 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
         conn->thread_index = thread_index;
         conn->req.req = req;
 
-        conn->req.serial = __sync_add_and_fetch(&c->serial_counter, 1);
+        do {
+            conn->req.serial = __sync_add_and_fetch(&c->serial_counter, 1);
+        } while (conn->req.serial == 0);
 #ifdef DEBUG_SERIAL
         LOGV("%s() serial: %u http req: %p conn: %p open", __FUNCTION__,
              conn->req.serial, req, conn);

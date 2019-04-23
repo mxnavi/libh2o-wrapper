@@ -177,7 +177,9 @@ notify_thread_connect(struct libh2o_websocket_client_ctx_t *c,
 
     h2o_linklist_init_anchor(&msg->pending);
 
-    msg->clih.serial = __sync_add_and_fetch(&c->serial_counter, 1);
+    do {
+        msg->clih.serial = __sync_add_and_fetch(&c->serial_counter, 1);
+    } while (msg->clih.serial == 0);
     msg->clih.user = user;
 #ifdef DEBUG_SERIAL
     LOGV("create serial: %u", msg->clih.serial);
@@ -605,7 +607,7 @@ on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *_method,
         return NULL;
     }
     callback_on_connected(conn);
-    conn->fd = open("/dev/urandom", O_RDONLY);
+    conn->fd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
     url_parsed = &conn->url_parsed;
     *_method = h2o_iovec_init(H2O_STRLIT("GET"));
     *url = conn->url_parsed;

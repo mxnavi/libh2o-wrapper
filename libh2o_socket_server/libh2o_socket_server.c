@@ -143,7 +143,9 @@ notify_thread_listen(struct libh2o_socket_server_ctx_t *c,
     msg->cmn.c = c;
 
     /* server handle */
-    msg->clih.serial = __sync_add_and_fetch(&c->serial_counter, 1);
+    do {
+        msg->clih.serial = __sync_add_and_fetch(&c->serial_counter, 1);
+    } while (msg->clih.serial == 0);
     msg->clih.user = user;
 #ifdef DEBUG_SERIAL
     LOGV("create listener: %u", (uint32_t)msg->clih.serial);
