@@ -468,6 +468,7 @@ static void on_handshake_complete(h2o_socket_t *sock, const char *err)
 
     callback_on_connected(conn);
     h2o_socket_read_start(sock, on_read);
+    write_pending(conn);
 }
 
 static void on_connect(h2o_socket_t *sock, const char *err)
@@ -505,6 +506,7 @@ static void on_connect(h2o_socket_t *sock, const char *err)
     } else {
         callback_on_connected(conn);
         h2o_socket_read_start(sock, on_read);
+        write_pending(conn);
     }
 }
 
@@ -1030,7 +1032,9 @@ int libh2o_socket_client_test(int argc, char **argv)
         state = __sync_fetch_and_or(&cli->state, 0);
         if (state > SOCKET_CLIENT_STATE_CONNECTED && cli->clih) {
             for (i = 0; i < 10; ++i) {
-                const char *p = "hello server\n";
+                char tmp[256];
+                const char *p = tmp;
+                snprintf(tmp, sizeof(tmp), "hello server: %d\n", i);
                 const char *buf = strdup(p);
                 /**
                  * 3: send data for this connection
