@@ -1,21 +1,21 @@
 /********** Copyright(C) 2017 MXNavi Co.,Ltd. ALL RIGHTS RESERVED **********/
 /****************************************************************************
-*   FILE NAME   : libh2o_http_server.c
-*   CREATE DATE : 2018-01-09
-*   MODULE      : libh2o_http_server
-*   AUTHOR      :
-*---------------------------------------------------------------------------*
-*   MEMO        :
-*****************************************************************************/
+ *   FILE NAME   : libh2o_http_server.c
+ *   CREATE DATE : 2018-01-09
+ *   MODULE      : libh2o_http_server
+ *   AUTHOR      :
+ *---------------------------------------------------------------------------*
+ *   MEMO        :
+ *****************************************************************************/
 
 #ifndef LOG_TAG
 #define LOG_TAG "libh2o.server"
 #endif
 
 // #define LOG_NDEBUG 0
-/****************************************************************************
-*                       Include File Section                                *
-*****************************************************************************/
+/*****************************************************************************
+ *                       Include File Section                                *
+ *****************************************************************************/
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -41,9 +41,9 @@
 #include "libh2o_log.h"
 #include "libh2o_http_server.h"
 
-/****************************************************************************
-*                       Macro Definition Section                            *
-*****************************************************************************/
+/*****************************************************************************
+ *                       Macro Definition Section                            *
+ *****************************************************************************/
 #define DEBUG_SERIAL 1
 
 #define USE_HTTPS 0
@@ -64,9 +64,9 @@
  */
 #undef SO_REUSEPORT
 
-/****************************************************************************
-*                       Type Definition Section                             *
-*****************************************************************************/
+/*****************************************************************************
+ *                       Type Definition Section                             *
+ *****************************************************************************/
 
 /* forward declarations */
 struct server_context_t;
@@ -110,7 +110,7 @@ struct server_context_t {
     struct listener_config_t **listeners;
     size_t num_listeners;
 
-    uint32_t serial_counter;    /* http_request serial counter */
+    uint32_t serial_counter; /* http_request serial counter */
 #ifdef ENABLE_DATA_SERIAL
     uint32_t broadcast_serial_counter; /* websocket broadcast serial counter */
 #endif
@@ -133,7 +133,7 @@ struct server_context_t {
         int _num_connections; /* number of currently handled incoming
                                * connections, should use atomic functions to
                                * update the value
-                                 */
+                               */
     } state;
 
     /**
@@ -182,7 +182,7 @@ struct notification_ws_conn_t {
     h2o_timer_t dispose_timeout;
     h2o_websocket_conn_t *wsconn; /* real connection */
 #ifdef ENABLE_DATA_SERIAL
-    uint32_t serial_counter;      /* data serial counter */
+    uint32_t serial_counter; /* data serial counter */
 #endif
     struct websocket_handle_t clih;
 };
@@ -201,20 +201,27 @@ struct server_tls_data_t {
 };
 
 /****************************************************************************
-*                       Global Variables Section                            *
-*****************************************************************************/
+ *                       Global Variables Section                            *
+ *****************************************************************************/
 static pthread_mutex_t *mutexes;
 
 /****************************************************************************
-*                       Functions Prototype Section                         *
-*****************************************************************************/
+ *                       Functions Prototype Section                         *
+ *****************************************************************************/
 static void release_notification_ws_conn(struct notification_ws_conn_t *conn);
 
 static void process_ready_req_item(struct notification_http_conn_t *conn);
 
 /****************************************************************************
-*                       Functions Implement Section                         *
-*****************************************************************************/
+ *                       Functions Implement Section                         *
+ *****************************************************************************/
+
+static inline size_t h2o_mem_refcnt_shared(void *p)
+{
+    struct st_h2o_mem_pool_shared_entry_t *entry =
+        H2O_STRUCT_FROM_MEMBER(struct st_h2o_mem_pool_shared_entry_t, bytes, p);
+    return entry->refcnt;
+}
 
 /**
  * MUST tbe called in event loop thread
@@ -410,11 +417,25 @@ static void process_timeout_req_item(struct notification_http_conn_t *conn)
     }
 
     ASSERT(h2o_linklist_is_linked(&conn->node));
-    h2o_linklist_unlink(&conn->node);
+    if (h2o_linklist_is_linked(&conn->node)) {
+        h2o_linklist_unlink(&conn->node);
+    }
 
-    h2o_send_error_503(conn->req.req, "Service Unavailable",
-                       "please try again later", 0);
+    if (h2o_mem_refcnt_shared(conn) > 1 && conn->req.req) {
+        h2o_send_error_503(conn->req.req, "Service Unavailable",
+                           "please try again later", 0);
+    } else {
+        LOGD("%s() serial: %u http req disposed conn: %p", __FUNCTION__,
+             conn->req.serial, conn);
+    }
+
     callback_on_finish_http_req(conn);
+    /**
+     * FIXME: defer release
+     */
+    if (h2o_mem_release_shared(conn)) {
+        LOGD("%s() disposed conn: %p", __FUNCTION__, conn);
+    }
 }
 
 static void resp_timeout_cb(h2o_timer_t *entry)
@@ -425,14 +446,19 @@ static void resp_timeout_cb(h2o_timer_t *entry)
                                   entry);
     callback_on_http_resp_timeout(conn);
 
-    if (conn->req.resp.status == 0) {
-        process_timeout_req_item(conn);
-    } else {
-        process_ready_req_item(conn);
-    }
+    process_timeout_req_item(conn);
 }
 
 static void on_handler_dispose(h2o_handler_t *self) {}
+
+static void pool_disposed(void *p)
+{
+    struct notification_http_conn_t *conn = p;
+
+    LOGD("%s() serial: %u dispose http req: %p conn: %p", __FUNCTION__,
+         conn->req.serial, conn->req.req, conn);
+    conn->req.req = NULL;
+}
 
 static int on_req(h2o_handler_t *self, h2o_req_t *req)
 {
@@ -475,7 +501,7 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
                             &conn->cmn.super.link);
     } else {
         struct notification_http_conn_t *conn =
-            h2o_mem_alloc_pool(&req->pool, *conn, 1);
+            h2o_mem_alloc_shared(&req->pool, sizeof(*conn), pool_disposed);
         memset(conn, 0x00, sizeof(*conn));
 
         conn->cmn.c = c;
@@ -497,6 +523,7 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
             h2o_timer_link(c->threads[thread_index].ctx.loop,
                            c->server_init.resp_timeout, &conn->_timeout);
         }
+        h2o_mem_addref_shared(conn);
         callback_on_http_req(conn);
     }
 
@@ -867,27 +894,37 @@ static void process_ready_req_item(struct notification_http_conn_t *conn)
     }
 
     ASSERT(h2o_linklist_is_linked(&conn->node));
-    h2o_linklist_unlink(&conn->node);
-
-    conn->req.req->res.status = conn->req.resp.status;
-    conn->req.req->res.reason =
-        conn->req.resp.reason != NULL ? conn->req.resp.reason : "OK";
-
-    for (i = 0; i < HTTP_RESPONSE_HEADER_MAX; ++i) {
-        if (conn->req.resp.header[i].token == NULL) break;
-        h2o_add_header(&conn->req.req->pool, &conn->req.req->res.headers,
-                       conn->req.resp.header[i].token, NULL,
-                       conn->req.resp.header[i].value.base,
-                       conn->req.resp.header[i].value.len);
+    if (h2o_linklist_is_linked(&conn->node)) {
+        h2o_linklist_unlink(&conn->node);
     }
-    h2o_start_response(conn->req.req, &generator);
 
-    /**
-     * conn->req.resp.body memory allocatd from is from conn->req.req->pool
-     */
-    h2o_send(conn->req.req, conn->req.resp.body.data, conn->req.resp.body.cnt,
-             H2O_SEND_STATE_FINAL);
+    if (h2o_mem_refcnt_shared(conn) > 1 && conn->req.req) {
+        conn->req.req->res.status = conn->req.resp.status;
+        conn->req.req->res.reason =
+            conn->req.resp.reason != NULL ? conn->req.resp.reason : "OK";
+
+        for (i = 0; i < HTTP_RESPONSE_HEADER_MAX; ++i) {
+            if (conn->req.resp.header[i].token == NULL) break;
+            h2o_add_header(&conn->req.req->pool, &conn->req.req->res.headers,
+                           conn->req.resp.header[i].token, NULL,
+                           conn->req.resp.header[i].value.base,
+                           conn->req.resp.header[i].value.len);
+        }
+        h2o_start_response(conn->req.req, &generator);
+
+        /**
+         * conn->req.resp.body memory allocatd from is from conn->req.req->pool
+         */
+        h2o_send(conn->req.req, conn->req.resp.body.data,
+                 conn->req.resp.body.cnt, H2O_SEND_STATE_FINAL);
+    } else {
+        LOGD("%s() serial: %u http req disposed conn: %p", __FUNCTION__,
+             conn->req.serial, conn);
+    }
     callback_on_finish_http_req(conn);
+    if (h2o_mem_release_shared(conn)) {
+        LOGD("%s() disposed conn: %p", __FUNCTION__, conn);
+    }
 }
 
 static void release_notification_data(struct notification_data_t *msg)
