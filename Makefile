@@ -163,5 +163,5 @@ LOCAL_LIBDIRS +=
 #######################################################
 
 
-include $(ROOT_DIR)/build/makefile-$(TARGET_ARCH).mk
+include $(ROOT_DIR)/build/makefile-$(TARGET_PLATFORM)-$(TARGET_ARCH).mk
 
