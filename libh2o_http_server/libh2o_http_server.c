@@ -421,7 +421,6 @@ static void process_timeout_req_item(struct notification_http_conn_t *conn)
         h2o_linklist_unlink(&conn->node);
     }
 
-    assert(h2o_mem_refcnt_shared(conn) > 0);
     if (h2o_mem_refcnt_shared(conn) > 1 && conn->req.req) {
         h2o_send_error_503(conn->req.req, "Service Unavailable",
                            "please try again later", 0);
@@ -501,14 +500,8 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
         h2o_linklist_insert(&c->threads[thread_index].ws_conns,
                             &conn->cmn.super.link);
     } else {
-        /**
-         * FIXME: seems no need to alloc shared because the pool remain valid
-         * until the request been served, even the peer close the connection.
-         * when handling request, the sock is neither pooling for read nor write
-         */
         struct notification_http_conn_t *conn =
             h2o_mem_alloc_shared(&req->pool, sizeof(*conn), pool_disposed);
-        assert(h2o_mem_refcnt_shared(conn) == 1);
         memset(conn, 0x00, sizeof(*conn));
 
         conn->cmn.c = c;
@@ -530,11 +523,7 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
             h2o_timer_link(c->threads[thread_index].ctx.loop,
                            c->server_init.resp_timeout, &conn->_timeout);
         }
-        /**
-         * increase refcnt before call back
-         */
         h2o_mem_addref_shared(conn);
-        assert(h2o_mem_refcnt_shared(conn) == 2);
         callback_on_http_req(conn);
     }
 
@@ -909,7 +898,6 @@ static void process_ready_req_item(struct notification_http_conn_t *conn)
         h2o_linklist_unlink(&conn->node);
     }
 
-    assert(h2o_mem_refcnt_shared(conn) > 0);
     if (h2o_mem_refcnt_shared(conn) > 1 && conn->req.req) {
         conn->req.req->res.status = conn->req.resp.status;
         conn->req.req->res.reason =
