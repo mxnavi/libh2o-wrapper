@@ -654,10 +654,16 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
 
             const char *to_sun_err;
             struct sockaddr_un sa;
-
+            size_t alen = 0;
             h2o_linklist_insert(&c->listeners, &msg->link);
 
             to_sun_err = h2o_url_host_to_sun(iov_name, &sa);
+            if(*(iov_name.base + strlen("unix:")) == '0'){
+                alen = offsetof(struct sockaddr_un, sun_path) + strlen(sa.sun_path + 1) + 1;
+            }
+            else{
+                alen = sizeof(sa);
+            }
             if (to_sun_err == NULL) {
                 h2o_socket_t *sock;
                 int fd = socket(AF_UNIX,
@@ -665,7 +671,7 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
                 if (fd == -1) {
                     sock = NULL;
                 } else if ((bind(fd, (const struct sockaddr *)&sa,
-                                 sizeof(sa)) == -1) ||
+                                 alen) == -1) ||
                            (listen(fd, 4) == -1)) {
                     sock = NULL;
                 } else {

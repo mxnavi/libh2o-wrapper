@@ -608,6 +608,7 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
 
             const char *to_sun_err;
             struct sockaddr_un sa;
+            size_t alen = 0;
 
             h2o_linklist_insert(&c->conns, &msg->link);
 
@@ -619,10 +620,16 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
             }
 
             to_sun_err = h2o_url_host_to_sun(iov_name, &sa);
+            if(*(iov_name.base + strlen("unix:")) == '0'){
+                alen = offsetof(struct sockaddr_un, sun_path) + strlen(sa.sun_path + 1) + 1;
+            }
+            else{
+                alen = sizeof(sa);
+            }
             if (to_sun_err == NULL) {
                 h2o_socket_t *sock;
                 sock = h2o_socket_connect(c->loop, (struct sockaddr *)&sa,
-                                          sizeof(sa), on_connect);
+                                          alen, on_connect);
                 if (sock == NULL) {
                     /* create socket failed */
                     on_error(conn, "on_notification", strerror(errno));
