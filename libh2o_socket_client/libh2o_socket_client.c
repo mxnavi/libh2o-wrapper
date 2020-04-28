@@ -603,12 +603,17 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
         } else if (cmn->cmd == NOTIFICATION_CONN) {
             struct notification_conn_t *conn =
                 (struct notification_conn_t *)cmn;
-            h2o_iovec_t iov_name =
-                h2o_iovec_init(conn->req.host, strlen(conn->req.host));
+            size_t iov_len = strlen(conn->req.host);
+
+            if (strncmp(conn->req.host, "unix:", 5) == 0) {
+                if (conn->req.host[5] == '\0') {
+                    iov_len = 5 + 1 + strlen(conn->req.host + 6);
+                }
+            }
+            h2o_iovec_t iov_name = h2o_iovec_init(conn->req.host, iov_len);
 
             const char *to_sun_err;
             struct sockaddr_un sa;
-            size_t alen = 0;
 
             h2o_linklist_insert(&c->conns, &msg->link);
 
@@ -620,13 +625,12 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
             }
 
             to_sun_err = h2o_url_host_to_sun(iov_name, &sa);
-            if(*(iov_name.base + strlen("unix:")) == '0'){
-                alen = offsetof(struct sockaddr_un, sun_path) + strlen(sa.sun_path + 1) + 1;
-            }
-            else{
-                alen = sizeof(sa);
-            }
             if (to_sun_err == NULL) {
+                size_t alen = sizeof(sa);
+                if (sa.sun_path[0] == '\0') {
+                    alen = offsetof(struct sockaddr_un, sun_path) +
+                           strlen(sa.sun_path + 1) + 1;
+                }
                 h2o_socket_t *sock;
                 sock = h2o_socket_connect(c->loop, (struct sockaddr *)&sa,
                                           alen, on_connect);
@@ -867,7 +871,14 @@ libh2o_socket_client_req(struct libh2o_socket_client_ctx_t *c,
 
     if (strncmp(req->host, "unix:", 5) == 0) {
         struct sockaddr_un sa;
-        if (strlen(req->host) - 6 > sizeof(sa.sun_path)) return NULL;
+        size_t len = strlen(req->host);
+
+        /*
+         * for abstract:
+         * Note: The path in this case is *not* supposed to be
+         * '\0'-terminated. ("man 7 unix" for the gory details.)
+         */
+        if (len > 5 && len - 6 > sizeof(sa.sun_path)) return NULL;
     } else if (req->port == NULL) {
         return NULL;
     }

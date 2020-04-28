@@ -649,22 +649,29 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
         } else if (cmn->cmd == NOTIFICATION_LISTEN) {
             struct notification_listen_t *conn =
                 (struct notification_listen_t *)cmn;
-            h2o_iovec_t iov_name = h2o_iovec_init(
-                conn->req.host, conn->req.host ? strlen(conn->req.host) : 0);
+            size_t iov_len = 0;
+            if (conn->req.host) {
+                iov_len = strlen(conn->req.host);
+
+                if (strncmp(conn->req.host, "unix:", 5) == 0) {
+                    if (conn->req.host[5] == '\0') {
+                        iov_len = 5 + 1 + strlen(conn->req.host + 6);
+                    }
+                }
+            }
+            h2o_iovec_t iov_name = h2o_iovec_init(conn->req.host, iov_len);
 
             const char *to_sun_err;
             struct sockaddr_un sa;
-            size_t alen = 0;
             h2o_linklist_insert(&c->listeners, &msg->link);
 
             to_sun_err = h2o_url_host_to_sun(iov_name, &sa);
-            if(*(iov_name.base + strlen("unix:")) == '0'){
-                alen = offsetof(struct sockaddr_un, sun_path) + strlen(sa.sun_path + 1) + 1;
-            }
-            else{
-                alen = sizeof(sa);
-            }
             if (to_sun_err == NULL) {
+                size_t alen = sizeof(sa);
+                if (sa.sun_path[0] == '\0') {
+                    alen = offsetof(struct sockaddr_un, sun_path) +
+                           strlen(sa.sun_path + 1) + 1;
+                }
                 h2o_socket_t *sock;
                 int fd = socket(AF_UNIX,
                                 SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
@@ -912,7 +919,8 @@ int libh2o_socket_server_req(struct libh2o_socket_server_ctx_t *c,
     if (req->host != NULL) {
         if (strncmp(req->host, "unix:", 5) == 0) {
             struct sockaddr_un sa;
-            if (strlen(req->host) - 6 > sizeof(sa.sun_path)) return -1;
+            size_t len = strlen(req->host);
+            if (len > 5 && len - 6 > sizeof(sa.sun_path)) return -1;
         } else if (req->port == NULL) {
             return -1;
         }
