@@ -873,11 +873,6 @@ libh2o_socket_client_req(struct libh2o_socket_client_ctx_t *c,
         struct sockaddr_un sa;
         size_t len = strlen(req->host);
 
-        /*
-         * for abstract:
-         * Note: The path in this case is *not* supposed to be
-         * '\0'-terminated. ("man 7 unix" for the gory details.)
-         */
         if (len > 5 && len - 6 > sizeof(sa.sun_path)) return NULL;
     } else if (req->port == NULL) {
         return NULL;

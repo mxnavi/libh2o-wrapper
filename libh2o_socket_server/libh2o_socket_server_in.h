@@ -29,6 +29,11 @@ extern "C" {
 *****************************************************************************/
 
 struct socket_server_req_t {
+    /*
+     * for unix abstract socket:
+     * host is: "unix:" + '\0' + socket name, eg: 'unix:\0xxxxxx'
+     * ("man 7 unix" for the gory details.)
+     */
     const char *host; /* const string pointer from user */
     const char *port; /* const string pointer from user */
 };
