@@ -13,7 +13,7 @@ else
 LIBH2O_BORINGSSL := true
 endif
 
-H2O_SRC_FILES := \
+h2o_SRC_FILES := \
     h2o/deps/cloexec/cloexec.c \
     h2o/deps/hiredis/async.c \
     h2o/deps/hiredis/hiredis.c \
@@ -110,7 +110,7 @@ H2O_SRC_FILES := \
     libh2o_log.c \
     libh2o_cmn.c \
 
-WSLAY_SRC_FILES := \
+wslay_SRC_FILES := \
     wslay/lib/wslay_event.c \
     wslay/lib/wslay_frame.c \
     wslay/lib/wslay_net.c \
@@ -136,8 +136,8 @@ LOCAL_SRC_FILES := \
     libh2o_http_client/libh2o_http_client.c \
     libh2o_http_server/libh2o_http_server.c \
     libh2o_websocket_client/libh2o_websocket_client.c \
-    $(H2O_SRC_FILES) \
-    $(WSLAY_SRC_FILES) \
+    $(h2o_SRC_FILES) \
+    $(wslay_SRC_FILES) \
 
 LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/wslay/lib/includes \
@@ -179,7 +179,7 @@ include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES := \
     libh2o_socket_client/libh2o_socket_client.c \
-    $(H2O_SRC_FILES) \
+    $(h2o_SRC_FILES) \
 
 LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/wslay/lib/includes \
@@ -224,7 +224,7 @@ include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES := \
     libh2o_http_client/libh2o_http_client.c \
-    $(H2O_SRC_FILES) \
+    $(h2o_SRC_FILES) \
 
 LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/wslay/lib/includes \
@@ -269,8 +269,8 @@ include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES := \
     libh2o_websocket_client/libh2o_websocket_client.c \
-    $(H2O_SRC_FILES) \
-    $(WSLAY_SRC_FILES) \
+    $(h2o_SRC_FILES) \
+    $(wslay_SRC_FILES) \
 
 LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH) \
