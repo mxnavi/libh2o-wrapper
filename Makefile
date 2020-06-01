@@ -152,6 +152,7 @@ h2o_cmn_clfags :=  -Wno-error=return-type -Wno-unused-parameter -Wno-missing-fie
     -DWSLAY_VERSION=\"1.0.1-DEV\" \
     -DHAVE_ARPA_INET_H -DHAVE_NETINET_IN_H \
     -Dh2o_error_printf=libh2o_error_printf \
+    -DH2O_EVLOOP_USE_CLOCK_MONOTONIC \
 
 LOCAL_CFLAGS := $(h2o_cmn_clfags)
 
