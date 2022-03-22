@@ -430,6 +430,16 @@ on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *_method,
         h2o_add_header(&conn->pool, &headers_vec, conn->req.header[i].token,
                        NULL, conn->req.header[i].value.base,
                        conn->req.header[i].value.len);
+
+        if (conn->req.header[i].token == H2O_TOKEN_TRANSFER_ENCODING) {
+            /* http1 only */
+            if (h2o_memis(conn->req.header[i].value.base,
+                          conn->req.header[i].value.len,
+                          H2O_STRLIT("chunked"))) {
+                static const int chunked = 1;
+                props->chunked = (int *)&chunked;
+            }
+        }
     }
 
     if (conn->req.body.len > 0) {
