@@ -47,8 +47,7 @@ struct http_client_req_t {
         header[HTTP_REQUEST_HEADER_MAX]; /* optional request header */
     /*  NULL or optional fill body by user when body not provided */
     void (*fill_request_body)(void * /* param */,
-                              const struct http_client_handle_t * /* clih */,
-                              h2o_iovec_t *reqbuf, int *is_end_stream);
+                              const struct http_client_handle_t * /* clih */);
 };
 
 /**

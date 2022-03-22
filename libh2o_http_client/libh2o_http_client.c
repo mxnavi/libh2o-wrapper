@@ -244,16 +244,13 @@ static int callback_on_connected(struct notification_conn_t *conn)
     return 0;
 }
 
-static void callback_on_fill_reqest_body(struct notification_conn_t *conn,
-                                         h2o_iovec_t *reqbuf,
-                                         int *is_end_stream)
+static void callback_on_fill_reqest_body(struct notification_conn_t *conn)
 {
     struct libh2o_http_client_ctx_t *c = conn->cmn.c;
     struct http_client_init_t *p = &c->client_init;
 
-    ASSERT(comm->req.fill_request_body);
-    comm->req.fill_request_body(p->cb.param, &conn->clih, reqbuf,
-                                is_end_stream);
+    ASSERT(conn->req.fill_request_body);
+    conn->req.fill_request_body(p->cb.param, &conn->clih);
 }
 
 static int callback_on_head(struct notification_conn_t *conn, int version,
@@ -386,14 +383,12 @@ static void timeout_cb(h2o_timer_t *entry)
     struct st_timeout_ctx *tctx =
         H2O_STRUCT_FROM_MEMBER(struct st_timeout_ctx, _timeout, entry);
     struct notification_conn_t *conn = tctx->client->data;
-    int is_end_stream = 0;
     h2o_timer_unlink(&tctx->_timeout);
     if (comm->req.fill_request_body) {
-        callback_on_fill_reqest_body(conn, &reqbuf, &is_end_stream);
+        callback_on_fill_reqest_body(conn);
     } else {
         fill_body(conn, &reqbuf);
-        is_end_stream = conn->req.body.len == 0;
-        tctx->client->write_req(tctx->client, reqbuf, is_end_stream);
+        tctx->client->write_req(tctx->client, reqbuf, conn->req.body.len == 0);
     }
     free(tctx);
 
@@ -717,6 +712,19 @@ libh2o_http_client_req(struct libh2o_http_client_ctx_t *c,
 
     msg = notify_thread_connect(c, req, user);
     return &msg->clih;
+}
+
+int libh2o_http_client_send_request_body(
+    const struct http_client_handle_t *clih, h2o_iovec_t *reqbuf,
+    int is_end_stream)
+{
+    struct notification_conn_t *conn =
+        H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, clih, clih);
+    struct libh2o_http_client_ctx_t *c = conn->cmn.c;
+    ASSERT(c->tid == pthread_self());
+    ASSERT(conn->req.fill_request_body);
+    if (!conn->client) return -1;
+    return conn->client->write_req(conn->client, reqbuf, is_end_stream);
 }
 
 #ifdef LIBH2O_UNIT_TEST
