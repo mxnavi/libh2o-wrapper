@@ -59,7 +59,6 @@ struct libh2o_http_client_ctx_t {
     SSL_CTX *ssl_ctx;
     uint32_t serial_counter;
     int exit_loop;
-    int chunk_size;
     int delay_interval_ms;
 };
 
@@ -371,7 +370,8 @@ static void fill_request_body(struct notification_conn_t *conn,
                               h2o_iovec_t *reqbuf)
 {
     if (conn->req.body.len > 0) {
-        reqbuf->len = MIN(conn->req.body.len, conn->cmn.c->chunk_size);
+        reqbuf->len =
+            MIN(conn->req.body.len, conn->cmn.c->client_init.chunk_size);
         reqbuf->base = conn->req.body.base;
         conn->req.body.len -= reqbuf->len;
         conn->req.body.base += reqbuf->len;
@@ -666,7 +666,6 @@ libh2o_http_client_start(const struct http_client_init_t *client_init)
     if (c) {
         memset(c, 0x00, sizeof(*c));
         h2o_linklist_init_anchor(&c->conns);
-        c->chunk_size = 1024;
         c->websocket_timeout = client_init->timeout;
 
         /**
@@ -682,6 +681,9 @@ libh2o_http_client_start(const struct http_client_init_t *client_init)
         memset(&c->ctx.http2, 0x00, sizeof(c->ctx.http2));
 
         memcpy(&c->client_init, client_init, sizeof(*client_init));
+        if (!c->client_init.chunk_size) {
+            c->client_init.chunk_size = 4096;
+        }
 
         h2o_sem_init(&c->sem, 0);
         h2o_multithread_create_thread(&c->tid, NULL, client_loop, (void *)c);
