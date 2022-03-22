@@ -1,12 +1,12 @@
 /********** Copyright(C) 2018 MXNavi Co.,Ltd. ALL RIGHTS RESERVED **********/
 /****************************************************************************
-*   FILE NAME   : libh2o_http_client.c
-*   CREATE DATE : 2018-12-10
-*   MODULE      : libh2o_http_client
-*   AUTHOR      : chenbd
-*---------------------------------------------------------------------------*
-*   MEMO        :
-*****************************************************************************/
+ *   FILE NAME   : libh2o_http_client.c
+ *   CREATE DATE : 2018-12-10
+ *   MODULE      : libh2o_http_client
+ *   AUTHOR      : chenbd
+ *---------------------------------------------------------------------------*
+ *   MEMO        :
+ *****************************************************************************/
 
 #ifndef LOG_TAG
 #define LOG_TAG "libh2o.http"
@@ -14,9 +14,9 @@
 
 // #define LOG_NDEBUG 0
 
-/****************************************************************************
-*                       Include File Section                                *
-*****************************************************************************/
+/*****************************************************************************
+ *                       Include File Section                                *
+ *****************************************************************************/
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -30,24 +30,22 @@
 #define MIN(a, b) (((a) > (b)) ? (b) : (a))
 #endif
 
-
-/****************************************************************************
-*                       Macro Definition Section                            *
-*****************************************************************************/
+/*****************************************************************************
+ *                       Macro Definition Section                            *
+ *****************************************************************************/
 // #define DEBUG_SERIAL 1
 
 #define NOTIFICATION_CONN 0
 #define NOTIFICATION_QUIT 0xFFFFFFFF
 
-
-/****************************************************************************
-*                       Type Definition Section                             *
-*****************************************************************************/
+/*****************************************************************************
+ *                       Type Definition Section                             *
+ *****************************************************************************/
 /**
  * http client context type
  */
 struct libh2o_http_client_ctx_t {
-    pthread_t tid;            /* event loop thread id */
+    pthread_t tid; /* event loop thread id */
     h2o_sem_t sem;
     h2o_httpclient_ctx_t ctx; /* http client context */
     h2o_multithread_queue_t *queue;
@@ -92,13 +90,13 @@ struct st_timeout_ctx {
     h2o_httpclient_t *client;
     h2o_timer_t _timeout;
 };
-/****************************************************************************
-*                       Global Variables Section                            *
-*****************************************************************************/
+/*****************************************************************************
+ *                       Global Variables Section                            *
+ *****************************************************************************/
 
-/****************************************************************************
-*                       Functions Prototype Section                         *
-*****************************************************************************/
+/*****************************************************************************
+ *                       Functions Prototype Section                         *
+ *****************************************************************************/
 
 static h2o_httpclient_head_cb
 on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *method,
@@ -114,9 +112,9 @@ static h2o_httpclient_body_cb on_head(h2o_httpclient_t *client,
 static void on_error(struct notification_conn_t *conn, const char *prefix,
                      const char *err);
 
-/****************************************************************************
-*                       Functions Implement Section                         *
-*****************************************************************************/
+/*****************************************************************************
+ *                       Functions Implement Section                         *
+ *****************************************************************************/
 static void notify_thread_quit(struct libh2o_http_client_ctx_t *c)
 {
     struct notification_quit_t *msg = h2o_mem_alloc(sizeof(*msg));
@@ -146,6 +144,7 @@ static void dup_req(struct http_client_req_t *dst,
         dst->header[i].value = h2o_strdup(NULL, src->header[i].value.base,
                                           src->header[i].value.len);
     }
+    dst->fill_request_body = src->fill_request_body;
 }
 
 static void free_req(struct http_client_req_t *req)
@@ -243,6 +242,18 @@ static int callback_on_connected(struct notification_conn_t *conn)
         return p->cb.on_connected(p->cb.param, &conn->clih);
     }
     return 0;
+}
+
+static void callback_on_fill_reqest_body(struct notification_conn_t *conn,
+                                         h2o_iovec_t *reqbuf,
+                                         int *is_end_stream)
+{
+    struct libh2o_http_client_ctx_t *c = conn->cmn.c;
+    struct http_client_init_t *p = &c->client_init;
+
+    ASSERT(comm->req.fill_request_body);
+    comm->req.fill_request_body(p->cb.param, &conn->clih, reqbuf,
+                                is_end_stream);
 }
 
 static int callback_on_head(struct notification_conn_t *conn, int version,
@@ -375,10 +386,15 @@ static void timeout_cb(h2o_timer_t *entry)
     struct st_timeout_ctx *tctx =
         H2O_STRUCT_FROM_MEMBER(struct st_timeout_ctx, _timeout, entry);
     struct notification_conn_t *conn = tctx->client->data;
-
-    fill_body(conn, &reqbuf);
+    int is_end_stream = 0;
     h2o_timer_unlink(&tctx->_timeout);
-    tctx->client->write_req(tctx->client, reqbuf, conn->req.body.len <= 0);
+    if (comm->req.fill_request_body) {
+        callback_on_fill_reqest_body(conn, &reqbuf, &is_end_stream);
+    } else {
+        fill_body(conn, &reqbuf);
+        is_end_stream = conn->req.body.len == 0;
+        tctx->client->write_req(tctx->client, reqbuf, is_end_stream);
+    }
     free(tctx);
 
     return;
@@ -442,12 +458,14 @@ on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *_method,
         }
     }
 
-    if (conn->req.body.len > 0) {
-        char *clbuf = h2o_mem_alloc_pool(&conn->pool, char,
-                                         sizeof(H2O_UINT32_LONGEST_STR) - 1);
-        size_t clbuf_len = sprintf(clbuf, "%d", (int)conn->req.body.len);
-        h2o_add_header(&conn->pool, &headers_vec, H2O_TOKEN_CONTENT_LENGTH,
-                       NULL, clbuf, clbuf_len);
+    if (conn->req.body.len > 0 || conn->req.fill_request_body) {
+        if (conn->req.body.len > 0) {
+            char *clbuf = h2o_mem_alloc_pool(
+                &conn->pool, char, sizeof(H2O_UINT32_LONGEST_STR) - 1);
+            size_t clbuf_len = sprintf(clbuf, "%d", (int)conn->req.body.len);
+            h2o_add_header(&conn->pool, &headers_vec, H2O_TOKEN_CONTENT_LENGTH,
+                           NULL, clbuf, clbuf_len);
+        }
 
         *proceed_req_cb = proceed_request;
 
