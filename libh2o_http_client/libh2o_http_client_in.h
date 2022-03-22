@@ -39,6 +39,7 @@ struct http_request_header_t {
     h2o_iovec_t value;
 };
 
+struct http_client_handle_t;
 struct http_client_req_t {
     char *url;          /* MUST */
     const char *method; /* const string, if NULL, default is 'GET' */

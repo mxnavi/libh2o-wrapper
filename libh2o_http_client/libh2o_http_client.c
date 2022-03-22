@@ -384,7 +384,7 @@ static void timeout_cb(h2o_timer_t *entry)
         H2O_STRUCT_FROM_MEMBER(struct st_timeout_ctx, _timeout, entry);
     struct notification_conn_t *conn = tctx->client->data;
     h2o_timer_unlink(&tctx->_timeout);
-    if (comm->req.fill_request_body) {
+    if (conn->req.fill_request_body) {
         callback_on_fill_reqest_body(conn);
     } else {
         fill_body(conn, &reqbuf);
@@ -715,7 +715,7 @@ libh2o_http_client_req(struct libh2o_http_client_ctx_t *c,
 }
 
 int libh2o_http_client_send_request_body(
-    const struct http_client_handle_t *clih, h2o_iovec_t *reqbuf,
+    const struct http_client_handle_t *clih, h2o_iovec_t reqbuf,
     int is_end_stream)
 {
     struct notification_conn_t *conn =
