@@ -90,6 +90,7 @@ struct st_timeout_ctx {
     h2o_httpclient_t *client;
     h2o_timer_t _timeout;
 };
+
 /*****************************************************************************
  *                       Global Variables Section                            *
  *****************************************************************************/
@@ -103,6 +104,7 @@ on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *method,
            h2o_url_t *url, const h2o_header_t **headers, size_t *num_headers,
            h2o_iovec_t *body, h2o_httpclient_proceed_req_cb *proceed_req_cb,
            h2o_httpclient_properties_t *props, h2o_url_t *origin);
+
 static h2o_httpclient_body_cb on_head(h2o_httpclient_t *client,
                                       const char *errstr, int version,
                                       int status, h2o_iovec_t msg,
@@ -244,7 +246,7 @@ static int callback_on_connected(struct notification_conn_t *conn)
     return 0;
 }
 
-static void callback_on_fill_reqest_body(struct notification_conn_t *conn)
+static void callback_on_fill_request_body(struct notification_conn_t *conn)
 {
     struct libh2o_http_client_ctx_t *c = conn->cmn.c;
     struct http_client_init_t *p = &c->client_init;
@@ -365,7 +367,8 @@ h2o_httpclient_body_cb on_head(h2o_httpclient_t *client, const char *errstr,
     return on_body;
 }
 
-static void fill_body(struct notification_conn_t *conn, h2o_iovec_t *reqbuf)
+static void fill_request_body(struct notification_conn_t *conn,
+                              h2o_iovec_t *reqbuf)
 {
     if (conn->req.body.len > 0) {
         reqbuf->len = MIN(conn->req.body.len, conn->cmn.c->chunk_size);
@@ -385,21 +388,19 @@ static void timeout_cb(h2o_timer_t *entry)
     struct notification_conn_t *conn = tctx->client->data;
     h2o_timer_unlink(&tctx->_timeout);
     if (conn->req.fill_request_body) {
-        callback_on_fill_reqest_body(conn);
+        callback_on_fill_request_body(conn);
     } else {
-        fill_body(conn, &reqbuf);
+        fill_request_body(conn, &reqbuf);
         tctx->client->write_req(tctx->client, reqbuf, conn->req.body.len == 0);
     }
     free(tctx);
-
-    return;
 }
 
 static void proceed_request(h2o_httpclient_t *client, size_t written,
                             int is_end_stream)
 {
     struct notification_conn_t *conn = client->data;
-    if (conn->req.body.len > 0) {
+    if (conn->req.body.len > 0 || conn->req.fill_request_body) {
         struct st_timeout_ctx *tctx;
         tctx = h2o_mem_alloc(sizeof(*tctx));
         memset(tctx, 0, sizeof(*tctx));
@@ -724,6 +725,7 @@ int libh2o_http_client_send_request_body(
     ASSERT(c->tid == pthread_self());
     ASSERT(conn->req.fill_request_body);
     if (!conn->client) return -1;
+    if (is_end_stream) conn->req.fill_request_body = NULL;
     return conn->client->write_req(conn->client, reqbuf, is_end_stream);
 }
 
