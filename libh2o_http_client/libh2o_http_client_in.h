@@ -125,6 +125,7 @@ struct http_client_init_t {
     struct http_client_callback_t cb;
     struct http_client_ssl_init_t ssl_init;
     uint32_t chunk_size; /* trunk size or 0 for default */
+    int8_t http2_ratio;  /* -1 for default or 0 - 100 */
 };
 
 /*****************************************************************************
