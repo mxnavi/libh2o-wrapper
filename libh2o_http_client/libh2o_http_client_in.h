@@ -29,6 +29,37 @@ extern "C" {
 #define HTTP_REQUEST_HEADER_MAX 4
 #endif
 
+#define SHOW_STATUS_LINE(version, status, msg)                                 \
+    do {                                                                       \
+        char __buf[1024];                                                      \
+        int r = 0;                                                             \
+        r +=                                                                   \
+            snprintf(__buf + r, sizeof(__buf) - r, "HTTP/%d", (version >> 8)); \
+        if ((version & 0xff) != 0) {                                           \
+            r +=                                                               \
+                snprintf(__buf + r, sizeof(__buf) - r, ".%d", version & 0xff); \
+        }                                                                      \
+        r += snprintf(__buf + r, sizeof(__buf) - r, " %d", status);            \
+        if (msg.len != 0) {                                                    \
+            r += snprintf(__buf + r, sizeof(__buf) - r, " %.*s\n",             \
+                          (int)msg.len, msg.base);                             \
+        } else {                                                               \
+            r += snprintf(__buf + r, sizeof(__buf) - r, "\n");                 \
+        }                                                                      \
+        LOGI("%.*s", r, __buf);                                                \
+    } while (0)
+
+#define SHOW_RESPONSE_HEADERS(version, status, msg, headers, num_headers)      \
+    do {                                                                       \
+        SHOW_STATUS_LINE(version, status, msg);                                \
+        for (size_t i = 0; i != num_headers; ++i) {                            \
+            const char *name = headers[i].orig_name;                           \
+            if (name == NULL) name = headers[i].name->base;                    \
+            LOGI("%.*s: %.*s\n", (int)headers[i].name->len, name,              \
+                 (int)headers[i].value.len, headers[i].value.base);            \
+        }                                                                      \
+    } while (0)
+
 /*****************************************************************************
  *                       Type Definition Section                             *
  *****************************************************************************/
