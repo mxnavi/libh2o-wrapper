@@ -138,6 +138,7 @@ static void dup_req(struct http_client_req_t *dst,
         dst->body.base = h2o_mem_alloc(dst->body.len);
         memcpy(dst->body.base, src->body.base, dst->body.len);
     }
+    dst->fill_request_body = src->fill_request_body;
 
     for (i = 0; i < HTTP_REQUEST_HEADER_MAX; ++i) {
         if (src->header[i].token == NULL) break;
@@ -145,7 +146,6 @@ static void dup_req(struct http_client_req_t *dst,
         dst->header[i].value = h2o_strdup(NULL, src->header[i].value.base,
                                           src->header[i].value.len);
     }
-    dst->fill_request_body = src->fill_request_body;
 }
 
 static void free_req(struct http_client_req_t *req)
@@ -714,6 +714,7 @@ libh2o_http_client_req(struct libh2o_http_client_ctx_t *c,
     struct notification_conn_t *msg;
 
     if (c == NULL || req == NULL || req->url == NULL) return NULL;
+    if (req->fill_request_body && req->body.len) return NULL;
 
     if (req->method == NULL) req->method = "GET";
 

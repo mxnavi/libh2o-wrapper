@@ -25,7 +25,9 @@ extern "C" {
 /*****************************************************************************
  *                       Macro Definition Section                            *
  *****************************************************************************/
+#ifndef HTTP_REQUEST_HEADER_MAX
 #define HTTP_REQUEST_HEADER_MAX 4
+#endif
 
 /*****************************************************************************
  *                       Type Definition Section                             *
@@ -43,12 +45,14 @@ struct http_client_handle_t;
 struct http_client_req_t {
     char *url;          /* MUST */
     const char *method; /* const string, if NULL, default is 'GET' */
-    h2o_iovec_t body;   /* optional request body */
+    struct {
+        h2o_iovec_t body; /* optional request body */
+        /*  NULL or optional fill body by user when body not provided */
+        void (*fill_request_body)(
+            void * /* param */, const struct http_client_handle_t * /* clih */);
+    };
     struct http_request_header_t
         header[HTTP_REQUEST_HEADER_MAX]; /* optional request header */
-    /*  NULL or optional fill body by user when body not provided */
-    void (*fill_request_body)(void * /* param */,
-                              const struct http_client_handle_t * /* clih */);
 };
 
 /**
