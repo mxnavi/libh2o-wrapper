@@ -242,13 +242,13 @@ static void init_h2o_quic_init_context(h2o_httpclient_ctx_t *ctx)
     int fd;
     struct sockaddr_in sin;
     if ((fd = socket(PF_INET, SOCK_DGRAM, 0)) == -1) {
-        perror("failed to create UDP socket");
-        exit(EXIT_FAILURE);
+        LOGW("failed to create UDP socket: %d %s", errno, strerror(errno));
+        return;
     }
     memset(&sin, 0, sizeof(sin));
     if (bind(fd, (void *)&sin, sizeof(sin)) != 0) {
-        perror("failed to bind bind UDP socket");
-        exit(EXIT_FAILURE);
+        LOGW("failed to bind bind UDP socket: %d %s", errno, strerror(errno));
+        return;
     }
     h2o_socket_t *sock =
         h2o_evloop_socket_create(ctx->loop, fd, H2O_SOCKET_FLAG_DONT_READ);
@@ -721,7 +721,7 @@ static void init_conn_poll(struct libh2o_http_client_ctx_t *c)
     c->sockpool = sockpool;
 }
 
-static void release_conn_poll(struct libh2o_http_client_ctx_t *c)
+static void release_conn_pool(struct libh2o_http_client_ctx_t *c)
 {
     h2o_socketpool_dispose(c->sockpool);
     free(c->sockpool);
@@ -773,7 +773,7 @@ static void *client_loop(void *arg)
 #ifdef ENABLE_HTTP3
     h2o_quic_dispose_context(&c->ctx.http3->h3);
 #endif
-    release_conn_poll(c);
+    release_conn_pool(c);
     release_openssl(c);
 
     h2o_multithread_unregister_receiver(c->queue, &c->getaddr_receiver);
