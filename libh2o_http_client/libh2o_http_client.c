@@ -37,6 +37,7 @@
 // #define ENABLE_HTTP3 1
 
 #define NOTIFICATION_CONN 0
+#define NOTIFICATION_CANCEL 1
 #define NOTIFICATION_QUIT 0xFFFFFFFF
 
 /*****************************************************************************
@@ -80,6 +81,11 @@ struct notification_conn_t {
     struct http_client_req_t req;
     h2o_mem_pool_t pool;
     struct http_client_handle_t clih;
+};
+
+struct notification_cancel_t {
+    struct notification_cmn_t cmn;
+    struct notification_conn_t *conn;
 };
 
 struct notification_quit_t {
@@ -328,6 +334,19 @@ notify_thread_connect(struct libh2o_http_client_ctx_t *c,
     return msg;
 }
 
+static void notify_thread_cancel(struct libh2o_http_client_ctx_t *c,
+                                 struct notification_conn_t *conn)
+{
+    struct notification_cancel_t *msg = h2o_mem_alloc(sizeof(*msg));
+    memset(msg, 0x00, sizeof(*msg));
+
+    msg->cmn.cmd = NOTIFICATION_CANCEL;
+    msg->cmn.c = c;
+    msg->conn = conn;
+
+    h2o_multithread_send_message(&c->notifications, &msg->cmn.super);
+}
+
 static void release_notification_conn(struct notification_conn_t *conn)
 {
 #ifdef DEBUG_SERIAL
@@ -366,6 +385,16 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
             h2o_httpclient_connect(&conn->client, &conn->pool, conn,
                                    &conn->cmn.c->ctx, conn->cmn.c->connpool,
                                    &conn->url_parsed, on_connect);
+        } else if (cmn->cmd == NOTIFICATION_CANCEL) {
+            struct notification_cancel_t *cancel_msg =
+                (struct notification_cancel_t *)msg;
+            struct notification_conn_t *conn = cancel_msg->conn;
+            if (conn->client) {
+                conn->client->cancel(conn->client);
+                conn->client = NULL;
+            }
+            on_error(conn, "on_notification", "user cancel");
+            free(msg);
         } else if (cmn->cmd == NOTIFICATION_QUIT) {
             c->exit_loop = 1;
             free(msg);
@@ -887,6 +916,7 @@ int libh2o_http_client_send_request_body(
     const struct http_client_handle_t *clih, h2o_iovec_t reqbuf,
     int is_end_stream)
 {
+    ASSERT(clih != NULL && clih->serial != 0);
     struct notification_conn_t *conn =
         H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, clih, clih);
     struct libh2o_http_client_ctx_t *c = conn->cmn.c;
@@ -895,6 +925,15 @@ int libh2o_http_client_send_request_body(
     if (!conn->client) return -1;
     if (is_end_stream) conn->req.fill_request_body = NULL;
     return conn->client->write_req(conn->client, reqbuf, is_end_stream);
+}
+
+void libh2o_http_client_cancel(const struct http_client_handle_t *clih)
+{
+    ASSERT(clih != NULL && clih->serial != 0);
+    struct notification_conn_t *conn =
+        H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, clih, clih);
+    struct libh2o_http_client_ctx_t *c = conn->cmn.c;
+    notify_thread_cancel(c, conn);
 }
 
 #ifdef LIBH2O_UNIT_TEST

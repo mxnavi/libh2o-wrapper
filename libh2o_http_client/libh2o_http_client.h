@@ -72,6 +72,13 @@ libh2o_http_client_req(struct libh2o_http_client_ctx_t *c,
                        struct http_client_req_t *req, void *user);
 
 /**
+ * cancels a in-flight request
+ * @param clih http client handle
+ * @return void
+ */
+void libh2o_http_client_cancel(const struct http_client_handle_t *clih);
+
+/**
  * send request body which MUST only called in req.fill_request_body callback
  * @param clih http client handle
  * @param reqbuf request buffer
