@@ -79,6 +79,7 @@ struct notification_conn_t {
     h2o_httpclient_t *client;
     h2o_url_t url_parsed;
     struct http_client_req_t req;
+    h2o_iovec_t org_body;
     h2o_mem_pool_t pool;
     struct http_client_handle_t clih;
 };
@@ -290,6 +291,7 @@ static void dup_req(struct http_client_req_t *dst,
 
     for (i = 0; i < HTTP_REQUEST_HEADER_MAX; ++i) {
         if (src->header[i].token == NULL) break;
+        // ASSERT(h2o_iovec_is_token(&src->header[i].token->buf));
         dst->header[i].token = src->header[i].token;
         dst->header[i].value = h2o_strdup(NULL, src->header[i].value.base,
                                           src->header[i].value.len);
@@ -541,6 +543,9 @@ static void fill_request_body(struct notification_conn_t *conn,
                               h2o_iovec_t *reqbuf)
 {
     if (conn->req.body.len > 0) {
+        if (conn->org_body.len == 0) {
+            conn->org_body = conn->req.body;
+        }
         reqbuf->len =
             MIN(conn->req.body.len, conn->cmn.c->client_init.chunk_size);
         reqbuf->base = conn->req.body.base;
@@ -548,6 +553,9 @@ static void fill_request_body(struct notification_conn_t *conn,
         conn->req.body.base += reqbuf->len;
     } else {
         *reqbuf = h2o_iovec_init(NULL, 0);
+        if (conn->org_body.len != 0) {
+            conn->req.body.base = conn->org_body.base;
+        }
     }
 }
 
