@@ -298,11 +298,15 @@ static void dup_req(struct http_client_req_t *dst,
     }
 }
 
-static void free_req(struct http_client_req_t *req)
+static void free_req(struct notification_conn_t *conn)
 {
+    struct http_client_req_t *req = &conn->req;
     int i;
     ASSERT(req->url);
     free(req->url);
+    if (conn->org_body.base != NULL && req->body.base != conn->org_body.base) {
+        req->body.base = conn->org_body.base;
+    }
     if (req->body.base) {
         free(req->body.base);
     }
@@ -357,7 +361,7 @@ static void release_notification_conn(struct notification_conn_t *conn)
     if (h2o_linklist_is_linked(&conn->cmn.super.link)) {
         h2o_linklist_unlink(&conn->cmn.super.link);
     }
-    free_req(&conn->req);
+    free_req(conn);
     h2o_mem_clear_pool(&conn->pool);
     free(conn);
 }
@@ -553,9 +557,6 @@ static void fill_request_body(struct notification_conn_t *conn,
         conn->req.body.base += reqbuf->len;
     } else {
         *reqbuf = h2o_iovec_init(NULL, 0);
-        if (conn->org_body.len != 0) {
-            conn->req.body.base = conn->org_body.base;
-        }
     }
 }
 
