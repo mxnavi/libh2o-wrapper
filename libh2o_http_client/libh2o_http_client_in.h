@@ -160,38 +160,7 @@ struct http_client_init_t {
     struct http_client_callback_t cb;
     struct http_client_ssl_init_t ssl_init;
     uint32_t chunk_size; /* trunk size or 0 for default */
-    struct {
-        int8_t ratio; /* -1 for default or 0 - 100 */
-    } http2;
-    struct {
-        /**
-         * (default: 1472)
-         */
-        uint16_t max_udp_payload_size;
-
-        /**
-         * Maximum size of packets that we are willing to send when
-         * path-specific information is unavailable. As a path-specific
-         * optimization, quicly acting as a server expands this
-         * value to `min(local.tp.max_udp_payload_size,
-         * remote.tp.max_udp_payload_size,
-         * max_size_of_incoming_datagrams)` when it receives the Transport
-         * Parameters from the client.
-         * (default: 1280)
-         */
-        uint16_t initial_egress_max_udp_payload_size;
-
-        /**
-         * How frequent the endpoint should induce ACKs from the peer,
-         * relative to RTT (or CWND) multiplied by 1024. As an example, 128
-         * will request the peer to send one ACK every 1/8 RTT (or CWND). 0
-         * disables the use of the delayed-ack extension.
-         */
-        uint16_t ack_frequency;
-        int8_t ratio; /* -1 for default or 0 - 100 */
-        uint8_t disallowed_delayed_ack : 1;
-        uint32_t max_stream_data;
-    } http3;
+    int8_t http2_ratio;  /* -1 for default or 0 - 100 */
 };
 
 /*****************************************************************************

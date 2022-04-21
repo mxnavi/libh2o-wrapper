@@ -34,7 +34,6 @@
  *                       Macro Definition Section                            *
  *****************************************************************************/
 // #define DEBUG_SERIAL 1
-// #define ENABLE_HTTP3 1
 
 #define NOTIFICATION_CONN 0
 #define NOTIFICATION_CANCEL 1
@@ -105,6 +104,7 @@ struct st_timeout_ctx {
 /*****************************************************************************
  *                       Functions Prototype Section                         *
  *****************************************************************************/
+
 static h2o_httpclient_head_cb
 on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *method,
            h2o_url_t *url, const h2o_header_t **headers, size_t *num_headers,
@@ -123,148 +123,6 @@ static void on_error(struct notification_conn_t *conn, const char *prefix,
 /*****************************************************************************
  *                       Functions Implement Section                         *
  *****************************************************************************/
-#ifdef ENABLE_HTTP3
-static struct {
-    ptls_iovec_t token;
-    ptls_iovec_t ticket;
-    quicly_transport_parameters_t tp;
-} http3_session;
-
-static int save_http3_token_cb(quicly_save_resumption_token_t *self,
-                               quicly_conn_t *conn, ptls_iovec_t token)
-{
-    free(http3_session.token.base);
-    http3_session.token = ptls_iovec_init(h2o_mem_alloc(token.len), token.len);
-    memcpy(http3_session.token.base, token.base, token.len);
-    return 0;
-}
-
-static int save_http3_ticket_cb(ptls_save_ticket_t *self, ptls_t *tls,
-                                ptls_iovec_t src)
-{
-    quicly_conn_t *conn = *ptls_get_data_ptr(tls);
-    assert(quicly_get_tls(conn) == tls);
-
-    free(http3_session.ticket.base);
-    http3_session.ticket = ptls_iovec_init(h2o_mem_alloc(src.len), src.len);
-    memcpy(http3_session.ticket.base, src.base, src.len);
-    http3_session.tp = *quicly_get_remote_transport_parameters(conn);
-    return 0;
-}
-
-static int load_http3_session(h2o_httpclient_ctx_t *ctx,
-                              struct sockaddr *server_addr,
-                              const char *server_name, ptls_iovec_t *token,
-                              ptls_iovec_t *ticket,
-                              quicly_transport_parameters_t *tp)
-{
-    /* TODO respect server_addr, server_name */
-    if (http3_session.token.base != NULL) {
-        *token = ptls_iovec_init(h2o_mem_alloc(http3_session.token.len),
-                                 http3_session.token.len);
-        memcpy(token->base, http3_session.token.base, http3_session.token.len);
-    }
-    if (http3_session.ticket.base != NULL) {
-        *ticket = ptls_iovec_init(h2o_mem_alloc(http3_session.ticket.len),
-                                  http3_session.ticket.len);
-        memcpy(ticket->base, http3_session.ticket.base,
-               http3_session.ticket.len);
-        *tp = http3_session.tp;
-    }
-    return 1;
-}
-
-static h2o_http3client_ctx_t *
-get_h2o_http3client_ctx(const struct http_client_init_t *client_init)
-{
-    static quicly_save_resumption_token_t save_http3_token = {
-        save_http3_token_cb};
-    static ptls_save_ticket_t save_http3_ticket = {save_http3_ticket_cb};
-    static const ptls_key_exchange_algorithm_t *h3_key_exchanges[] = {
-#if PTLS_OPENSSL_HAVE_X25519
-        &ptls_openssl_x25519,
-#endif
-        &ptls_openssl_secp256r1,
-        NULL
-    };
-    static h2o_http3client_ctx_t h3ctx = {
-        .tls =
-            {
-                .random_bytes = ptls_openssl_random_bytes,
-                .get_time = &ptls_get_time,
-                .key_exchanges = h3_key_exchanges,
-                .cipher_suites = ptls_openssl_cipher_suites,
-                .save_ticket = &save_http3_ticket,
-            },
-    };
-    quicly_amend_ptls_context(&h3ctx.tls);
-    h3ctx.quic = quicly_spec_context;
-    h3ctx.quic.transport_params.max_streams_uni = 10;
-    h3ctx.quic.transport_params.max_datagram_frame_size = 1500;
-    h3ctx.quic.receive_datagram_frame =
-        &h2o_httpclient_http3_on_receive_datagram_frame;
-    h3ctx.quic.tls = &h3ctx.tls;
-    h3ctx.quic.save_resumption_token = &save_http3_token;
-    {
-        uint8_t random_key[PTLS_SHA256_DIGEST_SIZE];
-        h3ctx.tls.random_bytes(random_key, sizeof(random_key));
-        h3ctx.quic.cid_encryptor = quicly_new_default_cid_encryptor(
-            &ptls_openssl_bfecb, &ptls_openssl_aes128ecb, &ptls_openssl_sha256,
-            ptls_iovec_init(random_key, sizeof(random_key)));
-        ptls_clear_memory(random_key, sizeof(random_key));
-    }
-    h3ctx.quic.stream_open = &h2o_httpclient_http3_on_stream_open;
-    h3ctx.load_session = load_http3_session;
-
-    if (client_init->max_udp_payload_size) {
-        h3ctx.quic.transport_params.max_udp_payload_size =
-            client_init->max_udp_payload_size;
-    }
-    if (client_init->initial_egress_max_udp_payload_size) {
-        h3ctx.quic.initial_egress_max_udp_payload_size =
-            client_init->initial_egress_max_udp_payload_size;
-    }
-    if (client_init->ack_frequency) {
-        h3ctx.quic.ack_frequency = client_init->ack_frequency;
-    }
-    if (client_init->disallowed_delayed_ack) {
-        h3ctx.quic.transport_params.min_ack_delay_usec = UINT64_MAX;
-    }
-    if (client_init->max_stream_data) {
-        h3ctx.quic.transport_params.max_stream_data.uni =
-            client_init->max_stream_data;
-        h3ctx.quic.transport_params.max_stream_data.bidi_local =
-            client_init->max_stream_data;
-        h3ctx.quic.transport_params.max_stream_data.bidi_remote =
-            client_init->max_stream_data;
-    }
-
-    return &h3ctx;
-}
-
-static void init_h2o_quic_init_context(h2o_httpclient_ctx_t *ctx)
-{
-    /* initialize QUIC context */
-    h2o_http3client_ctx_t *h3ctx = ctx->http3;
-    int fd;
-    struct sockaddr_in sin;
-    if ((fd = socket(PF_INET, SOCK_DGRAM, 0)) == -1) {
-        LOGW("failed to create UDP socket: %d %s", errno, strerror(errno));
-        return;
-    }
-    memset(&sin, 0, sizeof(sin));
-    if (bind(fd, (void *)&sin, sizeof(sin)) != 0) {
-        LOGW("failed to bind bind UDP socket: %d %s", errno, strerror(errno));
-        return;
-    }
-    h2o_socket_t *sock =
-        h2o_evloop_socket_create(ctx->loop, fd, H2O_SOCKET_FLAG_DONT_READ);
-    h2o_quic_init_context(&h3ctx->h3, ctx->loop, sock, &h3ctx.quic, NULL,
-                          h2o_httpclient_http3_notify_connection_update,
-                          1 /* use_gso */, NULL);
-}
-#endif
-
 static void notify_thread_quit(struct libh2o_http_client_ctx_t *c)
 {
     struct notification_quit_t *msg = h2o_mem_alloc(sizeof(*msg));
@@ -786,21 +644,11 @@ static void *client_loop(void *arg)
     init_openssl(c);
     init_conn_poll(c);
     h2o_socketpool_set_ssl_ctx(c->sockpool, c->ssl_ctx);
-#ifdef ENABLE_HTTP3
-    init_h2o_quic_init_context(&c->ctx);
-#endif
 
     while (!c->exit_loop) {
         h2o_evloop_run(c->ctx.loop, INT32_MAX);
     }
-#ifdef ENABLE_HTTP3
-    if (c->ctx.protocol_selector.ratio.http3 > 0) {
-        h2o_quic_close_all_connections(&c->ctx.http3->h3);
-        while (h2o_quic_num_connections(&c->ctx.http3->h3) != 0) {
-            h2o_evloop_run(c->ctx.loop, 10);
-        }
-    }
-#endif
+
     while (!h2o_linklist_is_empty(&c->conns)) {
         h2o_evloop_run(c->ctx.loop, 10);
     }
@@ -808,9 +656,6 @@ static void *client_loop(void *arg)
     ASSERT(h2o_linklist_is_empty(&c->conns));
     release_conns(c, "event loop quiting");
 
-#ifdef ENABLE_HTTP3
-    h2o_quic_dispose_context(&c->ctx.http3->h3);
-#endif
     release_conn_pool(c);
     release_openssl(c);
 
@@ -872,16 +717,10 @@ libh2o_http_client_start(const struct http_client_init_t *client_init)
         c->ctx.keepalive_timeout = client_init->timeout + 15000;
         c->ctx.max_buffer_size = H2O_SOCKET_INITIAL_INPUT_BUFFER_SIZE * 2;
         memset(&c->ctx.http2, 0x00, sizeof(c->ctx.http2));
-        if (client_init->http2.ratio != 0) {
+        if (client_init->http2_ratio != 0) {
             c->ctx.http2.max_concurrent_streams = 100;
-            c->ctx.http2.ratio = client_init->http2.ratio;
+            c->ctx.http2.ratio = client_init->http2_ratio;
         }
-#ifdef ENABLE_HTTP3
-        c->ctx.http3 = get_h2o_http3client_ctx(client_init);
-        // TODO:
-        c->ctx.protocol_selector.ratio.http2 = client_init->http2.ratio;
-        c->ctx.protocol_selector.ratio.http3 = client_init->http3.ratio;
-#endif
 
         memcpy(&c->client_init, client_init, sizeof(*client_init));
         if (!c->client_init.chunk_size) {
