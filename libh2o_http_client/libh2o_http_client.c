@@ -76,6 +76,7 @@ struct notification_cmn_t {
 struct notification_conn_t {
     struct notification_cmn_t cmn;
     h2o_httpclient_t *client;
+    h2o_timer_t _timeout;
     h2o_url_t url_parsed;
     struct http_client_req_t req;
     h2o_iovec_t org_body;
@@ -90,11 +91,6 @@ struct notification_cancel_t {
 
 struct notification_quit_t {
     struct notification_cmn_t cmn;
-};
-
-struct st_timeout_ctx {
-    h2o_httpclient_t *client;
-    h2o_timer_t _timeout;
 };
 
 /*****************************************************************************
@@ -218,6 +214,9 @@ static void release_notification_conn(struct notification_conn_t *conn)
 #endif
     if (h2o_linklist_is_linked(&conn->cmn.super.link)) {
         h2o_linklist_unlink(&conn->cmn.super.link);
+    }
+    if (h2o_timer_is_linked(&conn->_timeout)) {
+        h2o_timer_unlink(&conn->_timeout);
     }
     free_req(conn);
     h2o_mem_clear_pool(&conn->pool);
@@ -421,17 +420,15 @@ static void fill_request_body(struct notification_conn_t *conn,
 static void timeout_cb(h2o_timer_t *entry)
 {
     h2o_iovec_t reqbuf;
-    struct st_timeout_ctx *tctx =
-        H2O_STRUCT_FROM_MEMBER(struct st_timeout_ctx, _timeout, entry);
-    struct notification_conn_t *conn = tctx->client->data;
-    h2o_timer_unlink(&tctx->_timeout);
+    struct notification_conn_t *conn =
+        H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, _timeout, entry);
+    h2o_timer_unlink(&conn->_timeout);
     if (conn->req.fill_request_body) {
         callback_on_fill_request_body(conn);
     } else {
         fill_request_body(conn, &reqbuf);
-        tctx->client->write_req(tctx->client, reqbuf, conn->req.body.len == 0);
+        conn->client->write_req(conn->client, reqbuf, conn->req.body.len == 0);
     }
-    free(tctx);
 }
 
 static void proceed_request(h2o_httpclient_t *client, size_t written,
@@ -439,13 +436,9 @@ static void proceed_request(h2o_httpclient_t *client, size_t written,
 {
     struct notification_conn_t *conn = client->data;
     if (conn->req.body.len > 0 || conn->req.fill_request_body) {
-        struct st_timeout_ctx *tctx;
-        tctx = h2o_mem_alloc(sizeof(*tctx));
-        memset(tctx, 0, sizeof(*tctx));
-        tctx->client = client;
-        tctx->_timeout.cb = timeout_cb;
+        conn->_timeout.cb = timeout_cb;
         h2o_timer_link(client->ctx->loop, conn->cmn.c->delay_interval_ms,
-                       &tctx->_timeout);
+                       &conn->_timeout);
     }
 }
 
@@ -502,14 +495,9 @@ on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *_method,
         }
 
         *proceed_req_cb = proceed_request;
-
-        struct st_timeout_ctx *tctx;
-        tctx = h2o_mem_alloc(sizeof(*tctx));
-        memset(tctx, 0, sizeof(*tctx));
-        tctx->client = client;
-        tctx->_timeout.cb = timeout_cb;
+        conn->_timeout.cb = timeout_cb;
         h2o_timer_link(client->ctx->loop, conn->cmn.c->delay_interval_ms,
-                       &tctx->_timeout);
+                       &conn->_timeout);
     }
 
     *headers = headers_vec.entries;
