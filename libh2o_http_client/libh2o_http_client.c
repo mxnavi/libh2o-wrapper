@@ -96,6 +96,9 @@ struct notification_quit_t {
 /*****************************************************************************
  *                       Global Variables Section                            *
  *****************************************************************************/
+static const char __httpclient_error_callback[] = "callback error";
+static const char __httpclient_error_url[] = "url error";
+static const char __httpclient_error_cancelled[] = "user cancelled";
 
 /*****************************************************************************
  *                       Functions Prototype Section                         *
@@ -241,7 +244,7 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
             if (h2o_url_parse(conn->req.url, SIZE_MAX, &conn->url_parsed) !=
                 0) {
                 LOGW("unrecognized type of URL: %s", conn->req.url);
-                on_error(conn, "on_notification", "URL error");
+                on_error(conn, "on_notification", __httpclient_error_url);
                 continue;
             }
             h2o_linklist_insert(&c->conns, &msg->link);
@@ -256,7 +259,7 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
                 conn->client->cancel(conn->client);
                 conn->client = NULL;
             }
-            on_error(conn, "on_notification", "user cancel");
+            on_error(conn, "on_notification", __httpclient_error_cancelled);
             free(msg);
         } else if (cmn->cmd == NOTIFICATION_QUIT) {
             c->exit_loop = 1;
@@ -369,7 +372,7 @@ static int on_body(h2o_httpclient_t *client, const char *errstr)
     if (errstr == h2o_httpclient_error_is_eos) {
         on_error(conn, "on_body", errstr);
     } else if (rc) {
-        on_error(conn, "on_body", "callback");
+        on_error(conn, "on_body", __httpclient_error_callback);
         return -1;
     }
 
@@ -391,10 +394,10 @@ h2o_httpclient_body_cb on_head(h2o_httpclient_t *client, const char *errstr,
 
     rc = callback_on_head(conn, version, status, msg, headers, num_headers);
     if (errstr == h2o_httpclient_error_is_eos) {
-        on_error(conn, "on_head", "no body");
+        on_error(conn, "on_head", errstr);
         return NULL;
     } else if (rc) {
-        on_error(conn, "on_head", "callback");
+        on_error(conn, "on_head", __httpclient_error_callback);
         return NULL;
     }
     return on_body;
@@ -460,7 +463,7 @@ on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *_method,
 
     rc = callback_on_connected(conn);
     if (rc) {
-        on_error(conn, "on_connect", "callback");
+        on_error(conn, "on_connect", __httpclient_error_callback);
         return NULL;
     }
 
