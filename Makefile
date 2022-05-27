@@ -146,6 +146,7 @@ LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/h2o/deps/yoml \
     $(LOCAL_PATH)/h2o/deps/libgkc \
     $(LOCAL_PATH)/h2o/deps/golombset \
+    $(ROOT_DIR)/foundation/include \
 
 h2o_cmn_clfags :=  -Wno-error=return-type -Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare \
     -DH2O_USE_EPOLL=1 \
