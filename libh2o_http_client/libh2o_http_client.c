@@ -99,6 +99,7 @@ struct notification_quit_t {
 static const char __httpclient_error_callback[] = "callback error";
 static const char __httpclient_error_url[] = "url error";
 static const char __httpclient_error_cancelled[] = "user cancelled";
+static const char __httpclient_error_evloop_quiting[] = "evloop quiting";
 
 /*****************************************************************************
  *                       Functions Prototype Section                         *
@@ -645,7 +646,7 @@ static void *client_loop(void *arg)
     }
 
     ASSERT(h2o_linklist_is_empty(&c->conns));
-    release_conns(c, "event loop quiting");
+    release_conns(c, __httpclient_error_evloop_quiting);
 
     release_conn_pool(c);
     release_openssl(c);
