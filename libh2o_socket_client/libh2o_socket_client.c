@@ -22,6 +22,8 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include "cloexec.h"
 #include "h2o.h"
 
 #include "libh2o_log.h"
@@ -495,11 +497,13 @@ static void on_connect(h2o_socket_t *sock, const char *err)
         return;
     }
 
-    if (c->ssl_ctx != NULL && strncmp(conn->req.host, "unix:", 5) != 0) {
+    if (c->ssl_ctx != NULL && strncmp(conn->req.host, "unix:", 5) != 0 &&
+        strncmp(conn->req.host, "udp:", 4) != 0) {
         const char *host = conn->req.host;
         if (conn->req.alias_host) {
             host = conn->req.alias_host;
         }
+        if (!strncmp(host, "tcp:", 4)) host += 4;
         h2o_socket_ssl_handshake(sock, c->ssl_ctx, host,
                                  h2o_iovec_init(NULL, 0),
                                  on_handshake_complete);
@@ -517,6 +521,7 @@ static void on_getaddr(h2o_hostinfo_getaddr_req_t *getaddr_req, const char *err,
     struct libh2o_socket_client_ctx_t *c = conn->cmn.c;
     h2o_socket_t *sock;
     struct addrinfo *selected;
+    int connectionless = 0;
 
     conn->hostinfo_req = NULL;
     if (err != NULL) {
@@ -530,8 +535,21 @@ static void on_getaddr(h2o_hostinfo_getaddr_req_t *getaddr_req, const char *err,
     }
 
     selected = h2o_hostinfo_select_one(res);
-    sock = h2o_socket_connect(c->loop, selected->ai_addr, selected->ai_addrlen,
-                              on_connect);
+    if (selected->ai_socktype == SOCK_STREAM) {
+        sock = h2o_socket_connect(c->loop, selected->ai_addr,
+                                  selected->ai_addrlen, on_connect);
+    } else {
+        int fd;
+        if ((fd = cloexec_socket(selected->ai_family, SOCK_DGRAM, 0)) == -1)
+            return;
+        fcntl(fd, F_SETFL, O_NONBLOCK);
+        if (connect(fd, selected->ai_addr, selected->ai_addrlen) != 0) {
+            close(fd);
+            return;
+        }
+        sock = h2o_evloop_socket_create(c->loop, fd, 0);
+        connectionless = 1;
+    }
     if (sock == NULL) {
         /* create socket failed */
         on_error(conn, "on_getaddr", strerror(errno));
@@ -540,6 +558,7 @@ static void on_getaddr(h2o_hostinfo_getaddr_req_t *getaddr_req, const char *err,
     sock->data = conn;
     conn->sock = sock;
     callback_on_host_resolved(conn, selected);
+    if (connectionless) on_connect(sock, NULL);
     return;
 }
 
@@ -644,11 +663,21 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
             } else {
                 h2o_iovec_t iov_serv =
                     h2o_iovec_init(conn->req.port, strlen(conn->req.port));
-
+                int socktype = SOCK_STREAM;
+                int protocol = IPPROTO_TCP;
+                if (!strncmp(iov_name.base, "tcp:", 4)) {
+                    iov_name.base = (char *)iov_name.base + 4;
+                    iov_name.len -= 4;
+                } else if (!strncmp(iov_name.base, "udp:", 4)) {
+                    iov_name.base = (char *)iov_name.base + 4;
+                    iov_name.len -= 4;
+                    socktype = SOCK_DGRAM;
+                    protocol = IPPROTO_UDP;
+                }
                 /* resolve host name */
                 conn->hostinfo_req = h2o_hostinfo_getaddr(
                     &c->getaddr_receiver, iov_name, iov_serv, AF_UNSPEC,
-                    SOCK_STREAM, IPPROTO_TCP, AI_ADDRCONFIG | AI_NUMERICSERV,
+                    socktype, protocol, AI_ADDRCONFIG | AI_NUMERICSERV,
                     on_getaddr, conn);
             }
 
