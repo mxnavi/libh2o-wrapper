@@ -95,6 +95,15 @@ struct http_client_handle_t {
 };
 
 /**
+ * data statistics
+ * @note for http client, the request/response header is not considered
+ */
+struct data_statistics_t {
+    size_t bytes_read;    /* total bytes received */
+    size_t bytes_written; /* total bytes sent */
+};
+
+/**
  * http client callback defination
  *
  * @param param parameter from user
@@ -110,6 +119,7 @@ typedef int (*http_client_on_body)(
     const struct http_client_handle_t * /* clih */);
 typedef void (*http_client_on_finish)(
     void * /* param */, const char * /* err */,
+    const struct data_statistics_t *,
     const struct http_client_handle_t * /* clih */);
 
 /**

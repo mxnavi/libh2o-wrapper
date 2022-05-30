@@ -82,6 +82,7 @@ struct notification_conn_t {
     h2o_iovec_t org_body;
     h2o_mem_pool_t pool;
     struct http_client_handle_t clih;
+    struct data_statistics_t statistics;
 };
 
 struct notification_cancel_t {
@@ -325,7 +326,7 @@ static void callback_on_on_finish(struct notification_conn_t *conn,
     struct http_client_init_t *p = &c->client_init;
 
     if (p->cb.on_finish) {
-        p->cb.on_finish(p->cb.param, err, &conn->clih);
+        p->cb.on_finish(p->cb.param, err, &conn->statistics, &conn->clih);
     }
 }
 
@@ -368,6 +369,7 @@ static int on_body(h2o_httpclient_t *client, const char *errstr)
     }
 
     rc = callback_on_body(conn, (*client->buf)->bytes, (*client->buf)->size);
+    conn->statistics.bytes_read += (*client->buf)->size;
     h2o_buffer_consume(&(*client->buf), (*client->buf)->size);
 
     if (errstr == h2o_httpclient_error_is_eos) {
@@ -431,6 +433,7 @@ static void timeout_cb(h2o_timer_t *entry)
         callback_on_fill_request_body(conn);
     } else {
         fill_request_body(conn, &reqbuf);
+        conn->statistics.bytes_written += reqbuf.len;
         conn->client->write_req(conn->client, reqbuf, conn->req.body.len == 0);
     }
 }
@@ -764,6 +767,8 @@ int libh2o_http_client_send_request_body(
     ASSERT(conn->req.fill_request_body);
     if (!conn->client) return -1;
     if (is_end_stream) conn->req.fill_request_body = NULL;
+
+    conn->statistics.bytes_written += reqbuf.len;
     return conn->client->write_req(conn->client, reqbuf, is_end_stream);
 }
 
@@ -823,6 +828,7 @@ static int cb_http_client_on_body(void *param, void *buf, size_t len,
 }
 
 static void cb_http_client_on_finish(void *param, const char *err,
+                                     const struct data_statistics_t *statistics,
                                      const struct http_client_handle_t *clih)
 {
     LOGV("%s() @line: %d err: %s", __FUNCTION__, __LINE__, err);
