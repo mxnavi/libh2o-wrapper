@@ -361,16 +361,18 @@ static void on_error(struct notification_conn_t *conn, const char *prefix,
 
 static int on_body(h2o_httpclient_t *client, const char *errstr)
 {
-    int rc;
+    int rc = 0;
     struct notification_conn_t *conn = client->data;
     if (errstr != NULL && errstr != h2o_httpclient_error_is_eos) {
         on_error(conn, "on_body", errstr);
         return -1;
     }
-
-    rc = callback_on_body(conn, (*client->buf)->bytes, (*client->buf)->size);
-    conn->statistics.bytes_read += (*client->buf)->size;
-    h2o_buffer_consume(&(*client->buf), (*client->buf)->size);
+    size_t size = (*client->buf)->size;
+    if (size > 0) {
+        rc = callback_on_body(conn, (*client->buf)->bytes, size);
+        conn->statistics.bytes_read += size;
+        h2o_buffer_consume(&(*client->buf), size);
+    }
 
     if (errstr == h2o_httpclient_error_is_eos) {
         on_error(conn, "on_body", errstr);
