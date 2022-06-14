@@ -115,7 +115,7 @@ typedef int (*http_client_on_head)(
     h2o_header_t *headers, size_t num_headers,
     const struct http_client_handle_t * /* clih */);
 typedef int (*http_client_on_body)(
-    void * /* param */, void * /* buf */, size_t /* len */,
+    void * /* param */, void * /* buf */, size_t /* len */, int /* eos */,
     const struct http_client_handle_t * /* clih */);
 typedef void (*http_client_on_finish)(
     void * /* param */, const char * /* err */,
