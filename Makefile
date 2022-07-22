@@ -15,6 +15,7 @@
 PROJ = h2o-wrapper
 
 LOCAL_PATH:= $(shell pwd)
+H2O_HAS_WSLAY ?= false
 
 ####################################################
 h2o_SRC_FILES := \
@@ -101,8 +102,6 @@ h2o_SRC_FILES := \
     h2o/lib/handler/configurator/headers_util.c \
     h2o/lib/http1.c \
     h2o/lib/tunnel.c \
-    h2o/lib/websocket.c \
-    h2o/lib/websocketclient.c \
     h2o/lib/http2/cache_digests.c \
     h2o/lib/http2/casper.c \
     h2o/lib/http2/connection.c \
@@ -112,27 +111,33 @@ h2o_SRC_FILES := \
     h2o/lib/http2/stream.c \
     h2o/lib/http2/http2_debug_state.c \
 
-h2o_wrapper_SRC_FILES += \
+h2o_wrapper_SRC_FILES := \
     libh2o_log.c \
     libh2o_cmn.c \
     libh2o_socket_client/libh2o_socket_client.c \
     libh2o_http_client/libh2o_http_client.c \
     libh2o_http_server/libh2o_http_server.c \
-    libh2o_websocket_client/libh2o_websocket_client.c \
     libh2o_socket_server/libh2o_socket_server.c \
 
 
-wslay_SRC_FILES += \
+wslay_SRC_FILES := \
     wslay/lib/wslay_event.c \
     wslay/lib/wslay_frame.c \
     wslay/lib/wslay_net.c \
     wslay/lib/wslay_queue.c \
     wslay/lib/wslay_stack.c \
 
+ifeq ($(H2O_HAS_WSLAY), true)
+h2o_SRC_FILES += \
+    h2o/lib/websocket.c \
+    h2o/lib/websocketclient.c \
+    libh2o_websocket_client/libh2o_websocket_client.c \
+    $(wslay_SRC_FILES)
+endif
+
 LOCAL_SRC_FILES := \
     $(h2o_SRC_FILES) \
     $(h2o_wrapper_SRC_FILES) \
-    $(wslay_SRC_FILES) \
 
 LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH) \
