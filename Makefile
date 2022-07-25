@@ -161,8 +161,7 @@ h2o_cmn_clfags :=  -Wno-error=return-type -Wno-unused-parameter -Wno-missing-fie
 
 LOCAL_CFLAGS := $(h2o_cmn_clfags)
 
-ifeq ($(TARGET_PLATFORM), posix)
-# posix, eg qnx
+ifeq ($(TARGET_PLATFORM), qnx)
 LOCAL_CFLAGS += -DH2O_USE_POLL=1
 else
 # linux, android
