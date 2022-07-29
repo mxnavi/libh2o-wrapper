@@ -89,6 +89,26 @@ int libh2o_http_client_send_request_body(
     const struct http_client_handle_t *clih, h2o_iovec_t reqbuf,
     int is_end_stream);
 
+/**
+ * create timer on the event loop
+ * @param c http client context pointer
+ * @param to  timedout info
+ * @param timeout_ms timeout in milisecond
+ * @param flags flags
+ * @return event loop timer handle for success or else NULL when error
+ */
+const struct libh2o_evloop_timer_t *
+libh2o_http_evloop_start_timer(struct libh2o_http_client_ctx_t *c,
+                               struct libh2o_evloop_timedout_t *to,
+                               uint32_t timeout_ms, uint32_t flags);
+
+/**
+ * cancels the timer
+ * @param tm the timer
+ * @return void
+ */
+void libh2o_http_evloop_stop_timer(const struct libh2o_evloop_timer_t *tm);
+
 #ifdef LIBH2O_UNIT_TEST
 int libh2o_http_client_test(int argc, char **argv);
 #endif

@@ -60,6 +60,8 @@ extern "C" {
         }                                                                      \
     } while (0)
 
+#define LIBH2O_EVLOOP_TIMER_REPEAT 1
+
 /*****************************************************************************
  *                       Type Definition Section                             *
  *****************************************************************************/
@@ -171,6 +173,14 @@ struct http_client_init_t {
     struct http_client_ssl_init_t ssl_init;
     uint32_t chunk_size; /* trunk size or 0 for default */
     int8_t http2_ratio;  /* -1 for default or 0 - 100 */
+};
+
+struct libh2o_evloop_timer_t; /* timer instance for evloop */
+
+/* timeout for user */
+struct libh2o_evloop_timedout_t {
+    void (*timedout)(void *param, struct libh2o_evloop_timer_t *);
+    void *param;
 };
 
 /*****************************************************************************
