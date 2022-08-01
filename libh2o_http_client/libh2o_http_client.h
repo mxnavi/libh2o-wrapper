@@ -109,6 +109,14 @@ libh2o_http_evloop_start_timer(struct libh2o_http_client_ctx_t *c,
  */
 void libh2o_http_evloop_stop_timer(const struct libh2o_evloop_timer_t *tm);
 
+/**
+ * free the timer memory
+ * @param tm the timer
+ * @return void
+ * @note only called when event loop thread quit but the timer left pending
+ */
+void libh2o_http_evloop_free_timer(const struct libh2o_evloop_timer_t *tm);
+
 #ifdef LIBH2O_UNIT_TEST
 int libh2o_http_client_test(int argc, char **argv);
 #endif

@@ -893,6 +893,14 @@ void libh2o_http_evloop_stop_timer(const struct libh2o_evloop_timer_t *tm)
     notify_thread_stop_timer(c, timer);
 }
 
+void libh2o_http_evloop_free_timer(const struct libh2o_evloop_timer_t *tm)
+{
+    ASSERT(tm != NULL);
+    struct notification_start_timer_t *timer =
+        H2O_STRUCT_FROM_MEMBER(struct notification_start_timer_t, timer, tm);
+    free(timer);
+}
+
 #ifdef LIBH2O_UNIT_TEST
 #include <signal.h>
 
