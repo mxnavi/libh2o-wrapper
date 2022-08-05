@@ -36,9 +36,8 @@
 // #define DEBUG_SERIAL 1
 
 #define NOTIFICATION_CONN 0
-#define NOTIFICATION_CANCEL 1
-#define NOTIFICATION_START_TIMER 2
-#define NOTIFICATION_STOP_TIMER 3
+#define NOTIFICATION_START_TIMER 1
+#define NOTIFICATION_STOP_TIMER 2
 #define NOTIFICATION_QUIT 0xFFFFFFFF
 
 /*****************************************************************************
@@ -85,11 +84,6 @@ struct notification_conn_t {
     h2o_mem_pool_t pool;
     struct http_client_handle_t clih;
     struct data_statistics_t statistics;
-};
-
-struct notification_cancel_t {
-    struct notification_cmn_t cmn;
-    struct notification_conn_t *conn;
 };
 
 struct libh2o_evloop_timer_t {
@@ -220,19 +214,6 @@ notify_thread_connect(struct libh2o_http_client_ctx_t *c,
     return msg;
 }
 
-static void notify_thread_cancel(struct libh2o_http_client_ctx_t *c,
-                                 struct notification_conn_t *conn)
-{
-    struct notification_cancel_t *msg = h2o_mem_alloc(sizeof(*msg));
-    memset(msg, 0x00, sizeof(*msg));
-
-    msg->cmn.cmd = NOTIFICATION_CANCEL;
-    msg->cmn.c = c;
-    msg->conn = conn;
-
-    h2o_multithread_send_message(&c->notifications, &msg->cmn.super);
-}
-
 static struct notification_start_timer_t *
 notify_thread_start_timer(struct libh2o_http_client_ctx_t *c,
                           struct libh2o_evloop_timedout_t *to,
@@ -305,16 +286,6 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
             h2o_httpclient_connect(&conn->client, &conn->pool, conn,
                                    &conn->cmn.c->ctx, conn->cmn.c->connpool,
                                    &conn->url_parsed, on_connect);
-        } else if (cmn->cmd == NOTIFICATION_CANCEL) {
-            struct notification_cancel_t *cancel_msg =
-                (struct notification_cancel_t *)msg;
-            struct notification_conn_t *conn = cancel_msg->conn;
-            if (conn->client) {
-                conn->client->cancel(conn->client);
-                conn->client = NULL;
-            }
-            on_error(conn, "on_notification", __httpclient_error_cancelled);
-            free(msg);
         } else if (cmn->cmd == NOTIFICATION_START_TIMER) {
             struct notification_start_timer_t *timer =
                 (struct notification_start_timer_t *)msg;
@@ -869,7 +840,12 @@ void libh2o_http_client_cancel(const struct http_client_handle_t *clih)
     struct notification_conn_t *conn =
         H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, clih, clih);
     struct libh2o_http_client_ctx_t *c = conn->cmn.c;
-    notify_thread_cancel(c, conn);
+    ASSERT(c->tid == pthread_self());
+    if (conn->client) {
+        conn->client->cancel(conn->client);
+        conn->client = NULL;
+    }
+    on_error(conn, "user cancel", __httpclient_error_cancelled);
 }
 
 const struct libh2o_evloop_timer_t *

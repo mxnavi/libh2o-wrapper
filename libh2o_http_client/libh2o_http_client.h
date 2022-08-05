@@ -72,7 +72,7 @@ libh2o_http_client_req(struct libh2o_http_client_ctx_t *c,
                        struct http_client_req_t *req, void *user);
 
 /**
- * cancels a in-flight request
+ * cancels a in-flight request which MUST only called in callbacks
  * @param clih http client handle
  * @return void
  */
