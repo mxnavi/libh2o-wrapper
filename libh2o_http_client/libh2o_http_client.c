@@ -21,6 +21,9 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include "h2o.h"
+#if defined(HAVE_PRCTL)
+#include <sys/prctl.h>
+#endif
 
 #include "libh2o_log.h"
 #include "libh2o_cmn.h"
@@ -684,7 +687,9 @@ static void release_conn_pool(struct libh2o_http_client_ctx_t *c)
 static void *client_loop(void *arg)
 {
     struct libh2o_http_client_ctx_t *c = arg;
-
+#if defined(HAVE_PRCTL)
+    prctl(PR_SET_NAME, (unsigned long)"http-evloop", 0, 0, 0);
+#endif
 #ifdef H2O_THREAD_LOCAL_UNINITIALIZED
     h2o_init_thread();
 #endif
