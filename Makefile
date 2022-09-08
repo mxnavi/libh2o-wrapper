@@ -159,6 +159,10 @@ h2o_cmn_clfags :=  -Wno-error=return-type -Wno-unused-parameter -Wno-missing-fie
     -Dh2o_error_printf=libh2o_error_printf \
     -DH2O_EVLOOP_USE_CLOCK_MONOTONIC \
 
+ifeq ($(H2O_HAS_WSLAY), true)
+h2o_cmn_clfags += -DH2O_HAS_WSLAY
+endif
+
 LOCAL_CFLAGS := $(h2o_cmn_clfags)
 
 ifeq ($(TARGET_PLATFORM), qnx)

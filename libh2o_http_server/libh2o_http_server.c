@@ -36,7 +36,9 @@
 #include "h2o/http1.h"
 #include "h2o/http2.h"
 #include "h2o/memcached.h"
+#ifdef H2O_HAS_WSLAY
 #include "h2o/websocket.h"
+#endif
 
 #include "libh2o_log.h"
 #include "libh2o_http_server.h"
@@ -180,7 +182,9 @@ struct notification_ws_conn_t {
     int thread_index;       /* to which thread this connection belongs to */
     h2o_linklist_t pending; /* list for pending data sent */
     h2o_timer_t dispose_timeout;
+#ifdef H2O_HAS_WSLAY
     h2o_websocket_conn_t *wsconn; /* real connection */
+#endif
 #ifdef ENABLE_DATA_SERIAL
     uint32_t serial_counter;      /* data serial counter */
 #endif
@@ -380,6 +384,7 @@ static void dispose_timeout_cb(h2o_timer_t *entry)
     release_notification_ws_conn(conn);
 }
 
+#ifdef H2O_HAS_WSLAY
 static void on_ws_message(h2o_websocket_conn_t *_conn,
                           const struct wslay_event_on_msg_recv_arg *arg)
 {
@@ -402,6 +407,7 @@ static void on_ws_message(h2o_websocket_conn_t *_conn,
         callback_on_ws_recv(conn, (void *)arg->msg, arg->msg_length);
     }
 }
+#endif
 
 static void process_timeout_req_item(struct notification_http_conn_t *conn)
 {
@@ -446,6 +452,7 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
 
     thread_index = get_current_thread_index(c);
 
+#ifdef H2O_HAS_WSLAY
     if (h2o_is_websocket_handshake(req, &client_key) == 0 &&
         client_key != NULL) {
         h2o_websocket_conn_t *wsconn;
@@ -473,7 +480,9 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
 
         h2o_linklist_insert(&c->threads[thread_index].ws_conns,
                             &conn->cmn.super.link);
-    } else {
+    } else
+#endif
+    {
         struct notification_http_conn_t *conn =
             h2o_mem_alloc_pool(&req->pool, *conn, 1);
         memset(conn, 0x00, sizeof(*conn));
@@ -918,6 +927,7 @@ static void release_pending_data_linklist(struct notification_ws_conn_t *conn,
     }
 }
 
+#ifdef H2O_HAS_WSLAY
 static void release_notification_ws_conn(struct notification_ws_conn_t *conn)
 {
 #ifdef DEBUG_SERIAL
@@ -1018,6 +1028,7 @@ static void queue_ws_connection_close(struct server_context_t *c,
     foreach_ws_conn(&c->threads[thread_index].ws_conns,
                     queue_websocket_close_cb, NULL);
 }
+#endif
 
 static void on_server_notification(h2o_multithread_receiver_t *receiver,
                                    h2o_linklist_t *messages)
@@ -1029,7 +1040,10 @@ static void on_server_notification(h2o_multithread_receiver_t *receiver,
         struct server_context_t *c = cmn->c;
 
         h2o_linklist_unlink(&msg->link);
-        if (cmn->cmd == NOTIFICATION_WS_DATA) {
+        if (0) {
+        }
+#ifdef H2O_HAS_WSLAY
+        else if (cmn->cmd == NOTIFICATION_WS_DATA) {
             struct notification_data_t *data =
                 (struct notification_data_t *)cmn;
             struct notification_ws_conn_t *conn = data->conn;
@@ -1042,7 +1056,9 @@ static void on_server_notification(h2o_multithread_receiver_t *receiver,
                 LOGW("caller want to send data without connection");
                 h2o_linklist_insert(&conn->pending, &msg->link);
             }
-        } else if (cmn->cmd == NOTIFICATION_HTTP_RESP) {
+        }
+#endif
+        else if (cmn->cmd == NOTIFICATION_HTTP_RESP) {
             struct notification_http_conn_t *conn =
                 (struct notification_http_conn_t *)cmn;
             process_ready_req_item(conn);

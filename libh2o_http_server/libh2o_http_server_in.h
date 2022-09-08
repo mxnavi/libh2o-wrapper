@@ -14,7 +14,6 @@
 *                       Include File Section                                *
 *****************************************************************************/
 #include "h2o.h"
-#include "h2o/websocket.h"
 #include "h2o/http1.h"
 
 #ifdef __cplusplus

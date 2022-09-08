@@ -1,4 +1,5 @@
 LOCAL_PATH := $(call my-dir)
+H2O_HAS_WSLAY ?= false
 
 # boringssl starts from android 6.0, sdk version > 22
 ifeq ($(strip $(PLATFORM_SDK_VERSION)), 19)
@@ -97,8 +98,6 @@ h2o_SRC_FILES := \
     h2o/lib/handler/configurator/headers_util.c \
     h2o/lib/http1.c \
     h2o/lib/tunnel.c \
-    h2o/lib/websocket.c \
-    h2o/lib/websocketclient.c \
     h2o/lib/http2/cache_digests.c \
     h2o/lib/http2/casper.c \
     h2o/lib/http2/connection.c \
@@ -117,6 +116,14 @@ wslay_SRC_FILES := \
     wslay/lib/wslay_queue.c \
     wslay/lib/wslay_stack.c \
 
+ifeq ($(H2O_HAS_WSLAY), true)
+h2o_SRC_FILES += \
+    h2o/lib/websocket.c \
+    h2o/lib/websocketclient.c \
+    libh2o_websocket_client/libh2o_websocket_client.c \
+    $(wslay_SRC_FILES)
+endif
+
 
 h2o_cmn_clfags := -Wno-error=return-type -Wno-error=implicit-function-declaration -Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare \
     -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION) \
@@ -126,6 +133,9 @@ h2o_cmn_clfags := -Wno-error=return-type -Wno-error=implicit-function-declaratio
     -Dh2o_error_printf=libh2o_error_printf \
     -DH2O_EVLOOP_USE_CLOCK_MONOTONIC \
 
+ifeq ($(H2O_HAS_WSLAY), true)
+h2o_cmn_clfags += -DH2O_HAS_WSLAY
+endif
 
 ###########################################
 # libh2o-wrapper static library
@@ -136,9 +146,7 @@ LOCAL_SRC_FILES := \
     libh2o_socket_client/libh2o_socket_client.c \
     libh2o_http_client/libh2o_http_client.c \
     libh2o_http_server/libh2o_http_server.c \
-    libh2o_websocket_client/libh2o_websocket_client.c \
     $(h2o_SRC_FILES) \
-    $(wslay_SRC_FILES) \
 
 LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/wslay/lib/includes \
@@ -263,6 +271,7 @@ include $(BUILD_EXECUTABLE)
 
 
 
+ifeq ($(H2O_HAS_WSLAY), true)
 ###########################################
 # websocket client test executable
 ###########################################
@@ -307,3 +316,4 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libh2o_websocket_client_test
 
 include $(BUILD_EXECUTABLE)
+endif
