@@ -1063,7 +1063,9 @@ static void on_server_notification(h2o_multithread_receiver_t *receiver,
                 (struct notification_http_conn_t *)cmn;
             process_ready_req_item(conn);
 
-        } else if (cmn->cmd == NOTIFICATION_WS_BROADCAST) {
+        }
+#ifdef H2O_HAS_WSLAY
+        else if (cmn->cmd == NOTIFICATION_WS_BROADCAST) {
             struct notification_data_t *data =
                 (struct notification_data_t *)cmn;
             int thread_index = get_current_thread_index(c);
@@ -1073,7 +1075,9 @@ static void on_server_notification(h2o_multithread_receiver_t *receiver,
             process_ws_broadcast(c, thread_index, data);
             free(data->data.base);
             release_notification_data(data);
-        } else if (cmn->cmd == NOTIFICATION_QUIT) {
+        }
+#endif
+        else if (cmn->cmd == NOTIFICATION_QUIT) {
             int thread_index = get_current_thread_index(c);
             queue_ws_connection_close(c, thread_index);
             c->threads[thread_index].exit_loop = 1;
@@ -1375,6 +1379,7 @@ void libh2o_http_server_queue_response(struct http_request_t *req)
     notify_thread_resp(conn);
 }
 
+#ifdef H2O_HAS_WSLAY
 static void notify_thread_data(struct notification_ws_conn_t *conn,
                                const void *buf, size_t len)
 {
@@ -1455,6 +1460,7 @@ size_t libh2o_http_server_broadcast_ws_message(struct server_context_t *c,
     notify_thread_broadcast(c, buf, len);
     return len;
 }
+#endif
 
 #ifdef LIBH2O_UNIT_TEST
 #include <signal.h>
