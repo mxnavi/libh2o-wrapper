@@ -60,7 +60,7 @@ extern "C" {
         }                                                                      \
     } while (0)
 
-#define LIBH2O_EVLOOP_TIMER_REPEAT 1
+#define LIBH2O_EVLOOP_TIMER_REPEAT 0x1
 
 /*****************************************************************************
  *                       Type Definition Section                             *

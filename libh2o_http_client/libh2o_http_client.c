@@ -479,7 +479,7 @@ static void timeout_cb(h2o_timer_t *entry)
     h2o_iovec_t reqbuf;
     struct notification_conn_t *conn =
         H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, _timeout, entry);
-    h2o_timer_unlink(&conn->_timeout);
+    ASSERT(!h2o_timer_is_linked(&conn->_timeout));
     if (conn->req.fill_request_body) {
         callback_on_fill_request_body(conn);
     } else {
@@ -493,7 +493,7 @@ static void user_timeout_cb(h2o_timer_t *entry)
 {
     struct notification_start_timer_t *timer = H2O_STRUCT_FROM_MEMBER(
         struct notification_start_timer_t, _timeout, entry);
-    h2o_timer_unlink(&timer->_timeout);
+    ASSERT(!h2o_timer_is_linked(&timer->_timeout));
     timer->timer.to.timedout(timer->timer.to.param, &timer->timer);
     if (timer->timer.flags & LIBH2O_EVLOOP_TIMER_REPEAT) {
         h2o_timer_link(timer->cmn.c->ctx.loop, timer->timer.timeout_ms,
@@ -868,6 +868,7 @@ libh2o_http_evloop_start_timer(struct libh2o_http_client_ctx_t *c,
 void libh2o_http_evloop_stop_timer(const struct libh2o_evloop_timer_t *tm)
 {
     ASSERT(tm != NULL);
+    ASSERT(tm->flags & LIBH2O_EVLOOP_TIMER_REPEAT);
     struct notification_start_timer_t *timer =
         H2O_STRUCT_FROM_MEMBER(struct notification_start_timer_t, timer, tm);
     struct libh2o_http_client_ctx_t *c = timer->cmn.c;
