@@ -1079,7 +1079,9 @@ static void on_server_notification(h2o_multithread_receiver_t *receiver,
 #endif
         else if (cmn->cmd == NOTIFICATION_QUIT) {
             int thread_index = get_current_thread_index(c);
+#ifdef H2O_HAS_WSLAY
             queue_ws_connection_close(c, thread_index);
+#endif
             c->threads[thread_index].exit_loop = 1;
             free(msg);
         } else {
