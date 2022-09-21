@@ -375,6 +375,7 @@ static void callback_on_ws_closed(struct notification_ws_conn_t *conn,
     }
 }
 
+#ifdef H2O_HAS_WSLAY
 static void dispose_timeout_cb(h2o_timer_t *entry)
 {
     struct notification_ws_conn_t *conn;
@@ -384,7 +385,6 @@ static void dispose_timeout_cb(h2o_timer_t *entry)
     release_notification_ws_conn(conn);
 }
 
-#ifdef H2O_HAS_WSLAY
 static void on_ws_message(h2o_websocket_conn_t *_conn,
                           const struct wslay_event_on_msg_recv_arg *arg)
 {
