@@ -16,24 +16,13 @@ PROJ = h2o-wrapper
 
 LOCAL_PATH:= $(shell pwd)
 H2O_HAS_WSLAY ?= false
+H2O_HAS_HIREDIS ?= false
+H2O_HAS_LIBYRMCDS ?= false
 
 ####################################################
 h2o_SRC_FILES := \
     h2o/deps/cloexec/cloexec.c \
-    h2o/deps/hiredis/async.c \
-    h2o/deps/hiredis/hiredis.c \
-    h2o/deps/hiredis/net.c \
-    h2o/deps/hiredis/read.c \
-    h2o/deps/hiredis/sds.c \
     h2o/deps/libgkc/gkc.c \
-    h2o/deps/libyrmcds/close.c \
-    h2o/deps/libyrmcds/connect.c \
-    h2o/deps/libyrmcds/recv.c \
-    h2o/deps/libyrmcds/send.c \
-    h2o/deps/libyrmcds/send_text.c \
-    h2o/deps/libyrmcds/socket.c \
-    h2o/deps/libyrmcds/strerror.c \
-    h2o/deps/libyrmcds/text_mode.c \
     h2o/deps/picohttpparser/picohttpparser.c \
     h2o/lib/common/cache.c \
     h2o/lib/common/file.c \
@@ -42,10 +31,8 @@ h2o_SRC_FILES := \
     h2o/lib/common/http1client.c \
     h2o/lib/common/http2client.c \
     h2o/lib/common/httpclient.c \
-    h2o/lib/common/memcached.c \
     h2o/lib/common/memory.c \
     h2o/lib/common/multithread.c \
-    h2o/lib/common/redis.c \
     h2o/lib/common/serverutil.c \
     h2o/lib/common/socket.c \
     h2o/lib/common/socketpool.c \
@@ -135,6 +122,31 @@ h2o_SRC_FILES += \
     $(wslay_SRC_FILES)
 endif
 
+ifeq ($(H2O_HAS_HIREDIS), true)
+h2o_SRC_FILES += \
+    h2o/deps/hiredis/async.c \
+    h2o/deps/hiredis/hiredis.c \
+    h2o/deps/hiredis/net.c \
+    h2o/deps/hiredis/read.c \
+    h2o/deps/hiredis/sds.c \
+    h2o/lib/common/redis.c \
+
+endif
+
+ifeq ($(H2O_HAS_LIBYRMCDS), true)
+h2o_SRC_FILES += \
+    h2o/deps/libyrmcds/close.c \
+    h2o/deps/libyrmcds/connect.c \
+    h2o/deps/libyrmcds/recv.c \
+    h2o/deps/libyrmcds/send.c \
+    h2o/deps/libyrmcds/send_text.c \
+    h2o/deps/libyrmcds/socket.c \
+    h2o/deps/libyrmcds/strerror.c \
+    h2o/deps/libyrmcds/text_mode.c \
+    h2o/lib/common/memcached.c \
+
+endif
+
 LOCAL_SRC_FILES := \
     $(h2o_SRC_FILES) \
     $(h2o_wrapper_SRC_FILES) \
@@ -161,6 +173,13 @@ h2o_cmn_clfags :=  -Wno-error=return-type -Wno-unused-parameter -Wno-missing-fie
 
 ifeq ($(H2O_HAS_WSLAY), true)
 h2o_cmn_clfags += -DH2O_HAS_WSLAY
+endif
+
+ifeq ($(H2O_HAS_HIREDIS), true)
+h2o_cmn_clfags += -DH2O_HAS_HIREDIS
+endif
+ifeq ($(H2O_HAS_LIBYRMCDS), true)
+h2o_cmn_clfags += -DH2O_HAS_LIBYRMCDS
 endif
 
 LOCAL_CFLAGS := $(h2o_cmn_clfags)
