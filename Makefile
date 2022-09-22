@@ -172,6 +172,8 @@ else
 LOCAL_CFLAGS += -DH2O_USE_EPOLL=1
 endif
 
+# warning: ‘XXX’ is deprecated: Since OpenSSL 3.0
+LOCAL_CFLAGS += -Wno-deprecated-declarations
 
 # for unit test
 ifeq ($(SELF_TEST), true)
