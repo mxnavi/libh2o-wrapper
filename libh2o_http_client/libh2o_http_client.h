@@ -95,27 +95,19 @@ int libh2o_http_client_send_request_body(
  * @param to  timedout info
  * @param timeout_ms timeout in milisecond
  * @param flags flags
- * @return event loop timer handle for success or else NULL when error
+ * @return event loop timer handle for success or else 0 when error
  */
-const struct libh2o_evloop_timer_t *
-libh2o_http_evloop_start_timer(struct libh2o_http_client_ctx_t *c,
-                               struct libh2o_evloop_timedout_t *to,
-                               uint32_t timeout_ms, uint32_t flags);
+uint32_t libh2o_http_evloop_start_timer(struct libh2o_http_client_ctx_t *c,
+                                        struct libh2o_evloop_timedout_t *to,
+                                        uint32_t timeout_ms, uint32_t flags);
 
 /**
  * cancels the timer
- * @param tm the timer
+ * @param tm the timer handle
  * @return void
  */
-void libh2o_http_evloop_stop_timer(const struct libh2o_evloop_timer_t *tm);
-
-/**
- * free the timer memory
- * @param tm the timer
- * @return void
- * @note only called when event loop thread quit but the timer left pending
- */
-void libh2o_http_evloop_free_timer(const struct libh2o_evloop_timer_t *tm);
+void libh2o_http_evloop_stop_timer(struct libh2o_http_client_ctx_t *c,
+                                   uint32_t id);
 
 #ifdef LIBH2O_UNIT_TEST
 int libh2o_http_client_test(int argc, char **argv);

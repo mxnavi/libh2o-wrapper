@@ -175,11 +175,9 @@ struct http_client_init_t {
     int8_t http2_ratio;  /* -1 for default or 0 - 100 */
 };
 
-struct libh2o_evloop_timer_t; /* timer instance for evloop */
-
 /* timeout for user */
 struct libh2o_evloop_timedout_t {
-    void (*timedout)(void *param, struct libh2o_evloop_timer_t *);
+    void (*timedout)(void *param, uint32_t id);
     void *param;
 };
 
