@@ -302,13 +302,12 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
         } else if (cmn->cmd == NOTIFICATION_START_TIMER) {
             struct notification_start_timer_t *timer =
                 (struct notification_start_timer_t *)msg;
-            if (!h2o_linklist_is_linked(&msg->link))
-                h2o_linklist_insert(&c->timers, &msg->link);
-            if (!h2o_timer_is_linked(&timer->_timeout)) {
-                timer->_timeout.cb = user_timeout_cb;
-                h2o_timer_link(c->ctx.loop, timer->timer.timeout_ms,
-                               &timer->_timeout);
-            }
+            ASSERT(!h2o_linklist_is_linked(&msg->link));
+            h2o_linklist_insert(&c->timers, &msg->link);
+            ASSERT(!h2o_timer_is_linked(&timer->_timeout));
+            timer->_timeout.cb = user_timeout_cb;
+            h2o_timer_link(c->ctx.loop, timer->timer.timeout_ms,
+                           &timer->_timeout);
         } else if (cmn->cmd == NOTIFICATION_STOP_TIMER) {
             struct notification_stop_timer_t *stop_timer_msg =
                 (struct notification_stop_timer_t *)msg;
