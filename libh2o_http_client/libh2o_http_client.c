@@ -308,8 +308,6 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
                 timer->_timeout.cb = user_timeout_cb;
                 h2o_timer_link(c->ctx.loop, timer->timer.timeout_ms,
                                &timer->_timeout);
-            } else {
-                LOGW("timer=%p already running", timer);
             }
         } else if (cmn->cmd == NOTIFICATION_STOP_TIMER) {
             struct notification_stop_timer_t *stop_timer_msg =
