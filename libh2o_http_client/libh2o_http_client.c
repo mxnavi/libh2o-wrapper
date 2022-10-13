@@ -29,10 +29,6 @@
 #include "libh2o_cmn.h"
 #include "libh2o_http_client.h"
 
-#ifndef MIN
-#define MIN(a, b) (((a) > (b)) ? (b) : (a))
-#endif
-
 /*****************************************************************************
  *                       Macro Definition Section                            *
  *****************************************************************************/
@@ -302,9 +298,7 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
         } else if (cmn->cmd == NOTIFICATION_START_TIMER) {
             struct notification_start_timer_t *timer =
                 (struct notification_start_timer_t *)msg;
-            ASSERT(!h2o_linklist_is_linked(&msg->link));
             h2o_linklist_insert(&c->timers, &msg->link);
-            ASSERT(!h2o_timer_is_linked(&timer->_timeout));
             timer->_timeout.cb = user_timeout_cb;
             h2o_timer_link(c->ctx.loop, timer->timer.timeout_ms,
                            &timer->_timeout);
@@ -470,8 +464,10 @@ static void fill_request_body(struct notification_conn_t *conn,
         if (conn->org_body.len == 0) {
             conn->org_body = conn->req.body;
         }
+#define MIN(a, b) (((a) > (b)) ? (b) : (a))
         reqbuf->len =
             MIN(conn->req.body.len, conn->cmn.c->client_init.chunk_size);
+#undef MIN
         reqbuf->base = conn->req.body.base;
         conn->req.body.len -= reqbuf->len;
         conn->req.body.base += reqbuf->len;
@@ -839,7 +835,8 @@ libh2o_http_client_start(const struct http_client_init_t *client_init)
 
         memcpy(&c->client_init, client_init, sizeof(*client_init));
         if (!c->client_init.chunk_size) {
-            c->client_init.chunk_size = 4096;
+            c->client_init.chunk_size =
+                H2O_SOCKET_INITIAL_INPUT_BUFFER_SIZE * 2;
         }
 
         h2o_sem_init(&c->sem, 0);
