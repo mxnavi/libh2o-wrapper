@@ -646,6 +646,27 @@ static void init_openssl(struct libh2o_http_client_ctx_t *c)
         c->ssl_ctx = SSL_CTX_new(TLSv1_2_client_method());
         SSL_CTX_load_verify_locations(c->ssl_ctx,
                                       c->client_init.ssl_init.cert_file, NULL);
+#if 0 // !defined(__ANDROID__)
+#define LOAD_VERIFY_LOCATION(location)                                         \
+    do {                                                                       \
+        if (0 == access(location, F_OK)) {                                     \
+            SSL_CTX_load_verify_locations(c->ssl_ctx, location, NULL);         \
+        }                                                                      \
+    } while (0)
+
+        /* Debian/Ubuntu/Gentoo etc. */
+        LOAD_VERIFY_LOCATION("/etc/ssl/certs/ca-certificates.crt");
+        /* Fedora/RHEL 6 */
+        // LOAD_VERIFY_LOCATION("/etc/pki/tls/certs/ca-bundle.crt");
+        /* CentOS/RHEL 7 */
+        // LOAD_VERIFY_LOCATION(
+        //    "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem");
+        /* OpenSUSE */
+        // LOAD_VERIFY_LOCATION("/etc/ssl/ca-bundle.pem");
+        /* OpenELEC */
+        // LOAD_VERIFY_LOCATION("/etc/pki/tls/cacert.pem");
+#undef LOAD_VERIFY_LOCATION
+#endif
         SSL_CTX_set_verify(c->ssl_ctx,
                            SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
                            NULL);
