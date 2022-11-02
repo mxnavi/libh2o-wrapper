@@ -26,7 +26,7 @@ extern "C" {
  *                       Macro Definition Section                            *
  *****************************************************************************/
 #ifndef HTTP_REQUEST_HEADER_MAX
-#define HTTP_REQUEST_HEADER_MAX 4
+#define HTTP_REQUEST_HEADER_MAX 5
 #endif
 
 #define SHOW_STATUS_LINE(version, status, msg)                                 \
