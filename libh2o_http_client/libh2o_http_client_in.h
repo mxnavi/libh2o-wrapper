@@ -168,7 +168,8 @@ struct http_client_ssl_init_t {
  * init infos
  */
 struct http_client_init_t {
-    uint64_t timeout; /* timeout in msec */
+    uint32_t timeout;         /* timeout in msec */
+    uint32_t connect_timeout; /* connect timeout in msec */
     struct http_client_callback_t cb;
     struct http_client_ssl_init_t ssl_init;
     uint32_t chunk_size; /* trunk size or 0 for default */

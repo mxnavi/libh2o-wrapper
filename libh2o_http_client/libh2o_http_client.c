@@ -843,7 +843,9 @@ libh2o_http_client_start(const struct http_client_init_t *client_init)
          */
         c->ctx.getaddr_receiver = &c->getaddr_receiver;
         c->ctx.io_timeout = client_init->timeout;
-        c->ctx.connect_timeout = client_init->timeout;
+        c->ctx.connect_timeout = client_init->connect_timeout != 0
+                                     ? client_init->connect_timeout
+                                     : client_init->timeout;
         c->ctx.first_byte_timeout = client_init->timeout;
         c->ctx.websocket_timeout = &c->websocket_timeout;
         c->ctx.keepalive_timeout = client_init->timeout + 15000;
@@ -1010,7 +1012,8 @@ int libh2o_http_client_test(int argc, char **argv)
 
     signal(SIGPIPE, SIG_IGN);
 
-    client_init.timeout = 10000; /* 10 sec */
+    client_init.timeout = 30000;         /* 30 sec */
+    client_init.connect_timeout = 10000; /* 10 sec */
     client_init.cb.on_connected = cb_http_client_on_connected;
     client_init.cb.on_head = cb_http_client_on_head;
     client_init.cb.on_body = cb_http_client_on_body;
