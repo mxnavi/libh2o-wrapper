@@ -1,5 +1,5 @@
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
-load("//cyber/ehp:build/build.bzl", "COPTS", "NDS_FORMAT_CFLAGS")
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("//:build/build.bzl", "COPTS")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -80,6 +80,8 @@ h2o_SRC_FILES = [
     "h2o/lib/http2/scheduler.c",
     "h2o/lib/http2/stream.c",
     "h2o/lib/http2/http2_debug_state.c",
+    "h2o/deps/ssl-conservatory/openssl/openssl_hostname_validation.c",
+    "//foundation:common_hdrs",
 ]
 
 h2o_wrapper_SRC_FILES = [
@@ -91,22 +93,21 @@ h2o_wrapper_SRC_FILES = [
     "libh2o_socket_server/libh2o_socket_server.c",
 ]
 
-local_include = [
-    "-isystem cyber/ehp/foundation/include",
-    "-isystem cyber/ehp/libh2o-wrapper",
-    "-isystem cyber/ehp/libh2o-wrapper/wslay/lib/includes",
-    "-isystem cyber/ehp/libh2o-wrapper/h2o/include",
-    "-isystem cyber/ehp/libh2o-wrapper/h2o/deps/klib",
-    "-isystem cyber/ehp/libh2o-wrapper/h2o/deps/picohttpparser",
-    "-isystem cyber/ehp/libh2o-wrapper/h2o/deps/libyrmcds",
-    "-isystem cyber/ehp/libh2o-wrapper/h2o/deps/cloexec",
-    "-isystem cyber/ehp/libh2o-wrapper/h2o/deps/hiredis",
-    "-isystem cyber/ehp/libh2o-wrapper/h2o/deps/yoml",
-    "-isystem cyber/ehp/libh2o-wrapper/h2o/deps/libgkc",
-    "-isystem cyber/ehp/libh2o-wrapper/h2o/deps/golombset",
-]
-
-local_flag = [
+local_copts = [
+    "-isystem foundation/include",
+    "-isystem libh2o-wrapper",
+    "-isystem libh2o-wrapper/wslay/lib/includes",
+    "-isystem libh2o-wrapper/h2o/include",
+    "-isystem libh2o-wrapper/h2o/deps/klib",
+    "-isystem libh2o-wrapper/h2o/deps/picohttpparser",
+    "-isystem libh2o-wrapper/h2o/deps/libyrmcds",
+    "-isystem libh2o-wrapper/h2o/deps/cloexec",
+    "-isystem libh2o-wrapper/h2o/deps/hiredis",
+    "-isystem libh2o-wrapper/h2o/deps/yoml",
+    "-isystem libh2o-wrapper/h2o/deps/libgkc",
+    "-isystem libh2o-wrapper/h2o/deps/golombset",
+    "-isystem libh2o-wrapper/h2o/lib/common",
+    "-isystem libh2o-wrapper/h2o/deps/ssl-conservatory/openssl/",
     "-Wno-deprecated-declarations",
     "-Wno-error=return-type",
     "-Wno-unused-paramete",
@@ -120,11 +121,12 @@ local_flag = [
 
 cc_library(
     name = "h2o-wrapper",
+    hdrs = glob([
+        "*.h",
+        "**/*.h",
+    ]),
     srcs = h2o_SRC_FILES + h2o_wrapper_SRC_FILES,
     visibility = ["//visibility:public"],
     alwayslink = True,
-    copts = COPTS + local_include + local_flag,
-    deps = [
-        "//cyber",
-    ],
+    copts = COPTS + local_copts,
 )
