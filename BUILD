@@ -1,5 +1,5 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
-load("//:build/build.bzl", "COPTS")
+load("//modules/map/hdmap_static:build/build.bzl", "COPTS")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -81,7 +81,6 @@ h2o_SRC_FILES = [
     "h2o/lib/http2/stream.c",
     "h2o/lib/http2/http2_debug_state.c",
     "h2o/deps/ssl-conservatory/openssl/openssl_hostname_validation.c",
-    "//foundation:common_hdrs",
 ]
 
 h2o_wrapper_SRC_FILES = [
@@ -94,20 +93,20 @@ h2o_wrapper_SRC_FILES = [
 ]
 
 local_copts = [
-    "-isystem foundation/include",
-    "-isystem libh2o-wrapper",
-    "-isystem libh2o-wrapper/wslay/lib/includes",
-    "-isystem libh2o-wrapper/h2o/include",
-    "-isystem libh2o-wrapper/h2o/deps/klib",
-    "-isystem libh2o-wrapper/h2o/deps/picohttpparser",
-    "-isystem libh2o-wrapper/h2o/deps/libyrmcds",
-    "-isystem libh2o-wrapper/h2o/deps/cloexec",
-    "-isystem libh2o-wrapper/h2o/deps/hiredis",
-    "-isystem libh2o-wrapper/h2o/deps/yoml",
-    "-isystem libh2o-wrapper/h2o/deps/libgkc",
-    "-isystem libh2o-wrapper/h2o/deps/golombset",
-    "-isystem libh2o-wrapper/h2o/lib/common",
-    "-isystem libh2o-wrapper/h2o/deps/ssl-conservatory/openssl/",
+    "-isystem modules/map/hdmap_static/foundation/include",
+    "-isystem modules/map/hdmap_static/libh2o-wrapper",
+    "-isystem modules/map/hdmap_static/libh2o-wrapper/wslay/lib/includes",
+    "-isystem modules/map/hdmap_static/libh2o-wrapper/h2o/include",
+    "-isystem modules/map/hdmap_static/libh2o-wrapper/h2o/deps/klib",
+    "-isystem modules/map/hdmap_static/libh2o-wrapper/h2o/deps/picohttpparser",
+    "-isystem modules/map/hdmap_static/libh2o-wrapper/h2o/deps/libyrmcds",
+    "-isystem modules/map/hdmap_static/libh2o-wrapper/h2o/deps/cloexec",
+    "-isystem modules/map/hdmap_static/libh2o-wrapper/h2o/deps/hiredis",
+    "-isystem modules/map/hdmap_static/libh2o-wrapper/h2o/deps/yoml",
+    "-isystem modules/map/hdmap_static/libh2o-wrapper/h2o/deps/libgkc",
+    "-isystem modules/map/hdmap_static/libh2o-wrapper/h2o/deps/golombset",
+    "-isystem modules/map/hdmap_static/libh2o-wrapper/h2o/lib/common",
+    "-isystem modules/map/hdmap_static/libh2o-wrapper/h2o/deps/ssl-conservatory/openssl/",
     "-Wno-deprecated-declarations",
     "-Wno-error=return-type",
     "-Wno-unused-paramete",
@@ -121,12 +120,11 @@ local_copts = [
 
 cc_library(
     name = "h2o-wrapper",
-    hdrs = glob([
-        "*.h",
-        "**/*.h",
-    ]),
     srcs = h2o_SRC_FILES + h2o_wrapper_SRC_FILES,
     visibility = ["//visibility:public"],
     alwayslink = True,
     copts = COPTS + local_copts,
+    deps = [
+        "//modules/map/hdmap_static",
+    ],
 )
