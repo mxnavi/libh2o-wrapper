@@ -3,6 +3,35 @@ load("//modules/map/hdmap_static:build/build.bzl", "COPTS")
 
 package(default_visibility = ["//visibility:public"])
 
+config_setting(
+    name = "H2O_HAS_WSLAY",
+    values = {
+        "define" : "H2O_HAS_WSLAY=1",
+    },
+)
+
+config_setting(
+    name = "H2O_HAS_HIREDIS",
+    values = {
+        "define" : "H2O_HAS_HIREDIS=1",
+    },
+)
+
+config_setting(
+    name = "H2O_HAS_LIBYRMCDS",
+    values = {
+        "define" : "H2O_HAS_LIBYRMCDS=1",
+    },
+)
+
+config_setting(
+    name = "qnx",
+    values = {
+        "define" : "platform=qnx",
+    },
+    # constraint_values = ["@bazel_tools//platforms:qnx"],  # not work
+)
+
 h2o_SRC_FILES = [
     "h2o/deps/cloexec/cloexec.c",
     "h2o/deps/libgkc/gkc.c",
@@ -81,7 +110,42 @@ h2o_SRC_FILES = [
     "h2o/lib/http2/stream.c",
     "h2o/lib/http2/http2_debug_state.c",
     "h2o/deps/ssl-conservatory/openssl/openssl_hostname_validation.c",
-]
+] + select({
+    ":H2O_HAS_WSLAY" : [
+        "h2o/lib/websocket.c",
+        "h2o/lib/websocketclient.c",
+        "libh2o_websocket_client/libh2o_websocket_client.c",
+        "wslay/lib/wslay_event.c",
+        "wslay/lib/wslay_frame.c",
+        "wslay/lib/wslay_net.c",
+        "wslay/lib/wslay_queue.c",
+        "wslay/lib/wslay_stack.c",
+    ],
+    "//conditions:default": [],}
+) + select({
+    ":H2O_HAS_HIREDIS" : [
+        "h2o/deps/hiredis/async.c",
+        "h2o/deps/hiredis/hiredis.c",
+        "h2o/deps/hiredis/net.c",
+        "h2o/deps/hiredis/read.c",
+        "h2o/deps/hiredis/sds.c",
+        "h2o/lib/common/redis.c",
+    ],
+    "//conditions:default": [],}
+) + select ({
+    ":H2O_HAS_LIBYRMCDS" : [
+        "h2o/deps/libyrmcds/close.c",
+        "h2o/deps/libyrmcds/connect.c",
+        "h2o/deps/libyrmcds/recv.c",
+        "h2o/deps/libyrmcds/send.c",
+        "h2o/deps/libyrmcds/send_text.c",
+        "h2o/deps/libyrmcds/socket.c",
+        "h2o/deps/libyrmcds/strerror.c",
+        "h2o/deps/libyrmcds/text_mode.c",
+        "h2o/lib/common/memcached.c",
+    ],
+    "//conditions:default": [],}
+)
 
 h2o_wrapper_SRC_FILES = [
     "libh2o_log.c",
@@ -115,8 +179,29 @@ local_copts = [
     "-DHAVE_ARPA_INET_H -DHAVE_NETINET_IN_H",
     "-Dh2o_error_printf=libh2o_error_printf",
     "-DH2O_EVLOOP_USE_CLOCK_MONOTONIC",
-    "-DH2O_USE_EPOLL=1",
-]
+] + select({
+    ":H2O_HAS_WSLAY" : [
+        "-DH2O_HAS_WSLAY",
+    ],
+    "//conditions:default": [],}
+) + select({
+    ":H2O_HAS_HIREDIS" : [
+        "-DH2O_HAS_HIREDIS",
+    ],
+    "//conditions:default": [],}
+) + select ({
+    ":H2O_HAS_LIBYRMCDS" : [
+        "-DH2O_HAS_LIBYRMCDS",
+    ],
+    "//conditions:default": [],}
+) + select ({
+    ":qnx" : [
+        "-DH2O_USE_POLL=1",
+    ],
+    "//conditions:default": [ # linux android
+        "-DH2O_USE_EPOLL=1",
+    ],}
+)
 
 cc_library(
     name = "h2o-wrapper",
