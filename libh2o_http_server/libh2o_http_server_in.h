@@ -26,6 +26,8 @@ extern "C" {
 #define HTTP_RESPONSE_BODY_IOV_MAX 4
 #define HTTP_RESPONSE_HEADER_MAX 4
 
+#define LIBH2O_EVLOOP_TIMER_REPEAT 0x1
+
 /****************************************************************************
 *                       Type Definition Section                             *
 *****************************************************************************/
@@ -178,6 +180,12 @@ struct http_server_init_t {
     const char *doc_root;
     struct server_ssl_init_t ssl_init;
     struct server_callback_t cb;
+};
+
+/* timeout for user */
+struct libh2o_evloop_timedout_t {
+    void (*timedout)(void *param, uint32_t id);
+    void *param;
 };
 
 /****************************************************************************

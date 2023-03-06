@@ -54,6 +54,8 @@
 #define NOTIFICATION_HTTP_RESP 0
 #define NOTIFICATION_WS_DATA 1
 #define NOTIFICATION_WS_BROADCAST 2
+#define NOTIFICATION_START_TIMER 3
+#define NOTIFICATION_STOP_TIMER 4
 #define NOTIFICATION_QUIT 0xFFFFFFFF
 
 /**
@@ -117,6 +119,7 @@ struct server_context_t {
     uint32_t broadcast_serial_counter; /* websocket broadcast serial counter */
 #endif
 
+    uint32_t timer_counter;
     pthread_key_t tls;
 
     struct {
@@ -126,6 +129,7 @@ struct server_context_t {
         h2o_linklist_t conns;    /* http connection list */
         h2o_linklist_t ws_conns; /* websocket connection list */
         h2o_multithread_receiver_t server_notifications;
+        h2o_linklist_t timers;
 #if USE_MEMCACHED
         h2o_multithread_receiver_t memcached;
 #endif
@@ -157,6 +161,24 @@ struct notification_cmn_t {
         super; /* used to call h2o_multithread_send_message() */
     struct server_context_t *c;
     uint32_t cmd;
+};
+
+struct libh2o_evloop_timer_t {
+    struct libh2o_evloop_timedout_t to;
+    uint32_t id;
+    uint32_t timeout_ms;
+    uint32_t flags;
+};
+
+struct notification_start_timer_t {
+    struct notification_cmn_t cmn;
+    struct libh2o_evloop_timer_t timer;
+    h2o_timer_t _timeout;
+};
+
+struct notification_stop_timer_t {
+    struct notification_cmn_t cmn;
+    uint32_t id;
 };
 
 struct notification_quit_t {
@@ -1030,6 +1052,60 @@ static void queue_ws_connection_close(struct server_context_t *c,
 }
 #endif
 
+static void release_notification_timer(struct notification_start_timer_t *timer)
+{
+    if (h2o_timer_is_linked(&timer->_timeout))
+        h2o_timer_unlink(&timer->_timeout);
+    if (h2o_linklist_is_linked(&timer->cmn.super.link))
+        h2o_linklist_unlink(&timer->cmn.super.link);
+    free(timer);
+}
+
+static void release_timers_linkedlist(struct server_context_t *c,
+                                      h2o_linklist_t *messages)
+{
+    while (!h2o_linklist_is_empty(messages)) {
+        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(
+            h2o_multithread_message_t, link, messages->next);
+        struct notification_start_timer_t *timer =
+            (struct notification_start_timer_t *)msg;
+        ASSERT(c == timer->cmn.c);
+        release_notification_timer(timer);
+    }
+}
+
+static struct notification_start_timer_t *
+find_notification_timer(struct server_context_t *c, uint32_t id)
+{
+    h2o_linklist_t *messages = &c->threads[0].timers;
+    if (h2o_linklist_is_empty(messages)) return NULL;
+    while (1) {
+        h2o_multithread_message_t *msg = H2O_STRUCT_FROM_MEMBER(
+            h2o_multithread_message_t, link, messages->next);
+        struct notification_start_timer_t *timer =
+            (struct notification_start_timer_t *)msg;
+        ASSERT(c == timer->cmn.c);
+        if (timer->timer.id == id) return timer;
+        messages = messages->next;
+        if (messages == &c->threads[0].timers) break;
+    }
+    return NULL;
+}
+
+static void user_timeout_cb(h2o_timer_t *entry)
+{
+    struct notification_start_timer_t *timer = H2O_STRUCT_FROM_MEMBER(
+        struct notification_start_timer_t, _timeout, entry);
+    ASSERT(!h2o_timer_is_linked(&timer->_timeout));
+    timer->timer.to.timedout(timer->timer.to.param, timer->timer.id);
+    if (timer->timer.flags & LIBH2O_EVLOOP_TIMER_REPEAT) {
+        h2o_timer_link(timer->cmn.c->threads[0].ctx.loop,
+                       timer->timer.timeout_ms, &timer->_timeout);
+    } else {
+        release_notification_timer(timer);
+    }
+}
+
 static void on_server_notification(h2o_multithread_receiver_t *receiver,
                                    h2o_linklist_t *messages)
 {
@@ -1077,7 +1153,23 @@ static void on_server_notification(h2o_multithread_receiver_t *receiver,
             release_notification_data(data);
         }
 #endif
-        else if (cmn->cmd == NOTIFICATION_QUIT) {
+        else if (cmn->cmd == NOTIFICATION_START_TIMER) {
+            struct notification_start_timer_t *timer =
+                (struct notification_start_timer_t *)msg;
+            h2o_linklist_insert(&c->threads[0].timers, &msg->link);
+            timer->_timeout.cb = user_timeout_cb;
+            h2o_timer_link(c->threads[0].ctx.loop, timer->timer.timeout_ms,
+                           &timer->_timeout);
+        } else if (cmn->cmd == NOTIFICATION_STOP_TIMER) {
+            struct notification_stop_timer_t *stop_timer_msg =
+                (struct notification_stop_timer_t *)msg;
+            struct notification_start_timer_t *timer =
+                find_notification_timer(c, stop_timer_msg->id);
+            if (timer) {
+                release_notification_timer(timer);
+            }
+            free(msg);
+        } else if (cmn->cmd == NOTIFICATION_QUIT) {
             int thread_index = get_current_thread_index(c);
 #ifdef H2O_HAS_WSLAY
             queue_ws_connection_close(c, thread_index);
@@ -1225,6 +1317,10 @@ static void *server_loop(void *_param)
 static void free_server_thread_data(struct server_context_t *c)
 {
     if (c->threads) {
+        int i;
+        for (i = 0; i < c->server_init.num_threads; ++i) {
+            release_timers_linkedlist(c, &c->threads[i].timers);
+        }
         free(c->threads);
         c->threads = NULL;
     }
@@ -1297,6 +1393,7 @@ libh2o_http_server_start(const struct http_server_init_t *server_init)
     for (i = 0; i < c->server_init.num_threads; ++i) {
         h2o_linklist_init_anchor(&c->threads[i].conns);
         h2o_linklist_init_anchor(&c->threads[i].ws_conns);
+        h2o_linklist_init_anchor(&c->threads[i].timers);
     }
 
 #if USE_HTTPS
@@ -1463,6 +1560,60 @@ size_t libh2o_http_server_broadcast_ws_message(struct server_context_t *c,
     return len;
 }
 #endif
+
+static struct notification_start_timer_t *
+notify_thread_start_timer(struct server_context_t *c,
+                          struct libh2o_evloop_timedout_t *to,
+                          uint32_t timeout_ms, uint32_t flags)
+{
+    struct notification_start_timer_t *msg = h2o_mem_alloc(sizeof(*msg));
+    memset(msg, 0x00, sizeof(*msg));
+
+    msg->cmn.cmd = NOTIFICATION_START_TIMER;
+    msg->cmn.c = c;
+    msg->timer.to = *to;
+    msg->timer.timeout_ms = timeout_ms;
+    msg->timer.flags = flags;
+    do {
+        msg->timer.id = __sync_add_and_fetch(&c->timer_counter, 1);
+    } while (msg->timer.id == 0);
+
+    h2o_multithread_send_message(&c->threads[0].server_notifications,
+                                 &msg->cmn.super);
+    return msg;
+}
+
+static void notify_thread_stop_timer(struct server_context_t *c, uint32_t id)
+{
+    struct notification_stop_timer_t *msg = h2o_mem_alloc(sizeof(*msg));
+    memset(msg, 0x00, sizeof(*msg));
+
+    msg->cmn.cmd = NOTIFICATION_STOP_TIMER;
+    msg->cmn.c = c;
+    msg->id = id;
+
+    h2o_multithread_send_message(&c->threads[0].server_notifications,
+                                 &msg->cmn.super);
+}
+
+uint32_t
+libh2o_http_server_evloop_start_timer(struct server_context_t *c,
+                                      struct libh2o_evloop_timedout_t *to,
+                                      uint32_t timeout_ms, uint32_t flags)
+{
+    struct notification_start_timer_t *msg;
+    if (c == NULL || to == NULL) return 0;
+
+    msg = notify_thread_start_timer(c, to, timeout_ms, flags);
+    return msg->timer.id;
+}
+
+void libh2o_http_server_evloop_stop_timer(struct server_context_t *c,
+                                          uint32_t id)
+{
+    if (c == NULL || id == 0) return;
+    notify_thread_stop_timer(c, id);
+}
 
 #ifdef LIBH2O_UNIT_TEST
 #include <signal.h>

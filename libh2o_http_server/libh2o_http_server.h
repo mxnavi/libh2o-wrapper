@@ -91,6 +91,27 @@ libh2o_http_server_queue_ws_message(const struct websocket_handle_t *clih,
 size_t libh2o_http_server_broadcast_ws_message(struct server_context_t *c,
                                                const void *buf, size_t len);
 
+/**
+ * create timer on the event loop
+ * @param c http client context pointer
+ * @param to  timedout info
+ * @param timeout_ms timeout in milisecond
+ * @param flags flags
+ * @return event loop timer handle for success or else 0 when error
+ */
+uint32_t
+libh2o_http_server_evloop_start_timer(struct server_context_t *c,
+                                      struct libh2o_evloop_timedout_t *to,
+                                      uint32_t timeout_ms, uint32_t flags);
+
+/**
+ * cancels the timer
+ * @param tm the timer handle
+ * @return void
+ */
+void libh2o_http_server_evloop_stop_timer(struct server_context_t *c,
+                                          uint32_t id);
+
 #ifdef LIBH2O_UNIT_TEST
 int libh2o_http_server_test(int argc, char **argv);
 #endif
