@@ -194,6 +194,10 @@ endif
 # warning: ‘XXX’ is deprecated: Since OpenSSL 3.0
 LOCAL_CFLAGS += -Wno-deprecated-declarations
 
+ifneq ($(H2O_HOSTINFO_SELECT_AF),)
+LOCAL_CFLAGS += -DH2O_HOSTINFO_SELECT_AF=$(H2O_HOSTINFO_SELECT_AF)
+endif
+
 # for unit test
 ifeq ($(SELF_TEST), true)
 LOCAL_CFLAGS += -DLIBH2O_UNIT_TEST
