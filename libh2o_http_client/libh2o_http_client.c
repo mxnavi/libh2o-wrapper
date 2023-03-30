@@ -555,9 +555,11 @@ static void proceed_request(h2o_httpclient_t *client, size_t written,
 {
     struct notification_conn_t *conn = client->data;
     if (conn->req.body.len > 0 || conn->req.fill_request_body) {
-        conn->_timeout.cb = timeout_cb;
-        h2o_timer_link(client->ctx->loop, conn->cmn.c->delay_interval_ms,
-                       &conn->_timeout);
+        if (!h2o_timer_is_linked(&conn->_timeout)) {
+            conn->_timeout.cb = timeout_cb;
+            h2o_timer_link(client->ctx->loop, conn->cmn.c->delay_interval_ms,
+                           &conn->_timeout);
+        }
     }
 }
 
