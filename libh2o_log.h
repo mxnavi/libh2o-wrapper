@@ -15,7 +15,9 @@
  *                       Include File Section                                *
  *****************************************************************************/
 #include <stdio.h>
+#ifndef LIBH2O_MISSING_CUTILS_LOG
 #include <cutils/log.h>
+#endif
 
 /****************************************************************************
  *                       Macro Definition Section                            *
