@@ -769,10 +769,12 @@ static void *client_loop(void *arg)
 
     ASSERT(h2o_linklist_is_empty(&c->conns));
     release_conns(c, "event loop quiting");
+    h2o_hostinfo_interrupt();
 
     release_conn_poll(c);
     release_openssl(c);
 
+    h2o_hostinfo_wait();
     h2o_multithread_unregister_receiver(c->queue, &c->getaddr_receiver);
     h2o_multithread_unregister_receiver(c->queue, &c->notifications);
     h2o_multithread_destroy_queue(c->queue);
