@@ -792,6 +792,8 @@ static void *client_loop(void *arg)
     release_openssl(c);
 
     h2o_hostinfo_wait();
+    h2o_hostinfo_getaddr_receiver(&c->getaddr_receiver,
+                                  &c->getaddr_receiver._messages);
     h2o_multithread_unregister_receiver(c->queue, &c->getaddr_receiver);
     h2o_multithread_unregister_receiver(c->queue, &c->notifications);
     h2o_multithread_destroy_queue(c->queue);
