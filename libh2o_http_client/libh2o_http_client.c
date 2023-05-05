@@ -356,13 +356,13 @@ static int callback_on_head(struct notification_conn_t *conn, int version,
 }
 
 static int callback_on_body(struct notification_conn_t *conn, void *buf,
-                            size_t len, int eos)
+                            size_t len)
 {
     struct libh2o_http_client_ctx_t *c = conn->cmn.c;
     struct http_client_init_t *p = &c->client_init;
 
     if (p->cb.on_body) {
-        return p->cb.on_body(p->cb.param, buf, len, eos, &conn->clih);
+        return p->cb.on_body(p->cb.param, buf, len, &conn->clih);
     }
     return 0;
 }
@@ -417,8 +417,7 @@ static int on_body(h2o_httpclient_t *client, const char *errstr)
     }
     size_t size = (*client->buf)->size;
     if (size > 0) {
-        rc = callback_on_body(conn, (*client->buf)->bytes, size,
-                              errstr == h2o_httpclient_error_is_eos ? 1 : 0);
+        rc = callback_on_body(conn, (*client->buf)->bytes, size);
         conn->statistics.bytes_read += size;
         h2o_buffer_consume(&(*client->buf), size);
     }
@@ -996,7 +995,7 @@ static int cb_http_client_on_head(void *param, int version, int status,
     return 0;
 }
 
-static int cb_http_client_on_body(void *param, void *buf, size_t len, int eos,
+static int cb_http_client_on_body(void *param, void *buf, size_t len,
                                   const struct http_client_handle_t *clih)
 {
     // LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
