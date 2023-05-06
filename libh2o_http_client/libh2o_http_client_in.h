@@ -62,6 +62,18 @@ extern "C" {
 
 #define LIBH2O_EVLOOP_TIMER_REPEAT 0x1
 
+/**
+ * Helper macro to declare and initialize http request
+ */
+#define DECLARE_HTTP_REQ(NAME, __URI, __METHOD, __BODY)                        \
+    struct http_client_req_t NAME = {                                          \
+        .url = __URI,                                                          \
+        .method = __METHOD,                                                    \
+        .body = __BODY,                                                        \
+        .fill_request_body = NULL,                                             \
+        .header = {0},                                                         \
+    }
+
 /*****************************************************************************
  *                       Type Definition Section                             *
  *****************************************************************************/
@@ -78,12 +90,10 @@ struct http_client_handle_t;
 struct http_client_req_t {
     char *url;          /* MUST */
     const char *method; /* const string, if NULL, default is 'GET' */
-    struct {
-        h2o_iovec_t body; /* optional request body */
-        /*  NULL or optional fill body by user when body not provided */
-        void (*fill_request_body)(
-            void * /* param */, const struct http_client_handle_t * /* clih */);
-    };
+    h2o_iovec_t body;   /* optional request body */
+    /*  NULL or optional fill body by user when body not provided */
+    void (*fill_request_body)(void * /* param */,
+                              const struct http_client_handle_t * /* clih */);
     struct http_request_header_t
         header[HTTP_REQUEST_HEADER_MAX]; /* optional request header */
 };
