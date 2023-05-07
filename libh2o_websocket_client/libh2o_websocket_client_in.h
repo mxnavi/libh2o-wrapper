@@ -14,6 +14,7 @@
 *                       Include File Section                                *
 *****************************************************************************/
 #include <sys/types.h>
+#include "../libh2o_cmn.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -24,6 +24,7 @@ extern "C" {
  *                       Type Definition Section                             *
  *****************************************************************************/
 int libh2o_ssl_init();
+void libh2o_signal_init();
 
 void libh2o_show_socket_err(const char *prefix, int fd);
 

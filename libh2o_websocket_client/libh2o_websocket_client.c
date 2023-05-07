@@ -991,7 +991,7 @@ int libh2o_websocket_client_test(int argc, char **argv)
     struct websock_clients_t clients;
     int running = 1;
 
-    signal(SIGPIPE, SIG_IGN);
+    libh2o_signal_init();
 
     /**
      * client init param

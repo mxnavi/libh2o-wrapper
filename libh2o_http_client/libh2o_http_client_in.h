@@ -17,6 +17,7 @@
 #include <sys/types.h>
 #include <netdb.h>
 #include "h2o.h"
+#include "../libh2o_cmn.h"
 
 #ifdef __cplusplus
 extern "C" {

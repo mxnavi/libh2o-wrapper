@@ -15,6 +15,7 @@
 *****************************************************************************/
 #include "h2o.h"
 #include "h2o/http1.h"
+#include "../libh2o_cmn.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -15,6 +15,8 @@
  *****************************************************************************/
 #include <string.h>
 #include <errno.h>
+#include <signal.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
@@ -34,8 +36,9 @@
 /****************************************************************************
  *                       Global Variables Section                            *
  *****************************************************************************/
-static pthread_once_t once = PTHREAD_ONCE_INIT;
+static pthread_once_t ssl_once = PTHREAD_ONCE_INIT;
 static int openssl_inited = 0;
+static pthread_once_t signal_once = PTHREAD_ONCE_INIT;
 
 /****************************************************************************
  *                       Functions Prototype Section                         *
@@ -54,9 +57,22 @@ static void init_ssl_once()
 
 int libh2o_ssl_init()
 {
-    pthread_once(&once, init_ssl_once);
+    pthread_once(&ssl_once, init_ssl_once);
     return openssl_inited > 0;
 }
+
+static void __set_signal_handler(int signo, void (*cb)(int signo))
+{
+    struct sigaction action;
+    memset(&action, 0, sizeof(action));
+    sigemptyset(&action.sa_mask);
+    action.sa_handler = cb;
+    sigaction(signo, &action, NULL);
+}
+
+static void init_signal_once() { __set_signal_handler(SIGPIPE, SIG_IGN); }
+
+void libh2o_signal_init() { pthread_once(&signal_once, init_signal_once); }
 
 void libh2o_show_socket_err(const char *prefix, int fd)
 {

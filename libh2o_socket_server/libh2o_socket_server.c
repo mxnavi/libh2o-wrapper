@@ -1037,7 +1037,7 @@ int libh2o_socket_server_test(int argc, char **argv)
     char cwd[256], *p;
     char buf[2][256];
 
-    signal(SIGPIPE, SIG_IGN);
+    libh2o_signal_init();
     registerSigHandler();
 
     p = getcwd(cwd, sizeof(cwd));

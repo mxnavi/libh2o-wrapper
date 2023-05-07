@@ -1015,7 +1015,7 @@ int libh2o_http_client_test(int argc, char **argv)
     struct http_client_init_t client_init;
     memset(&client_init, 0x00, sizeof(client_init));
 
-    signal(SIGPIPE, SIG_IGN);
+    libh2o_signal_init();
 
     client_init.timeout = 30000;         /* 30 sec */
     client_init.connect_timeout = 10000; /* 10 sec */
