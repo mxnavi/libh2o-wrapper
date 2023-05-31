@@ -746,8 +746,21 @@ static void init_conn_poll(struct libh2o_http_client_ctx_t *c)
     c->sockpool = sockpool;
 }
 
+static void release_h2conns(struct libh2o_http_client_ctx_t *c)
+{
+    h2o_httpclient_connection_pool_t *pool = c->connpool;
+    while (!h2o_linklist_is_empty(&pool->http2.conns)) {
+        h2o_linklist_t *node = pool->http2.conns.next;
+        int r = h2o_httpclient_close_h2conn(node);
+        if (r == 0) {
+            h2o_evloop_run(c->ctx.loop, 0);
+        }
+    }
+}
+
 static void release_conn_pool(struct libh2o_http_client_ctx_t *c)
 {
+    release_h2conns(c);
     h2o_socketpool_dispose(c->sockpool);
     free(c->sockpool);
     free(c->connpool);
