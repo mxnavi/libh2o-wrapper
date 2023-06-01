@@ -753,7 +753,7 @@ static void release_h2conns(struct libh2o_http_client_ctx_t *c)
         h2o_linklist_t *node = pool->http2.conns.next;
         int r = h2o_httpclient_close_h2conn(node);
         if (r == 0) {
-            h2o_evloop_run(c->ctx.loop, 0);
+            h2o_evloop_run(c->ctx.loop, 1);
         }
     }
 }
