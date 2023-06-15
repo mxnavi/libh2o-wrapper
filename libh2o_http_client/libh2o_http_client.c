@@ -605,15 +605,14 @@ on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *_method,
         }
     }
 
-    if (conn->req.body.len > 0 || conn->req.fill_request_body) {
-        if (conn->req.body.len > 0) {
-            char *clbuf = h2o_mem_alloc_pool(
-                &conn->pool, char, sizeof(H2O_UINT32_LONGEST_STR) - 1);
-            size_t clbuf_len = sprintf(clbuf, "%d", (int)conn->req.body.len);
-            h2o_add_header(&conn->pool, &headers_vec, H2O_TOKEN_CONTENT_LENGTH,
-                           NULL, clbuf, clbuf_len);
-        }
-
+    if (conn->req.body.len > 0) {
+        char *clbuf = h2o_mem_alloc_pool(&conn->pool, char,
+                                         sizeof(H2O_UINT32_LONGEST_STR) - 1);
+        size_t clbuf_len = sprintf(clbuf, "%d", (int)conn->req.body.len);
+        h2o_add_header(&conn->pool, &headers_vec, H2O_TOKEN_CONTENT_LENGTH,
+                       NULL, clbuf, clbuf_len);
+        *body = h2o_iovec_init(conn->req.body.base, conn->req.body.len);
+    } else if (conn->req.fill_request_body) {
         *proceed_req_cb = proceed_request;
         conn->_timeout.cb = timeout_cb;
         h2o_timer_link(client->ctx->loop, conn->cmn.c->delay_interval_ms,
