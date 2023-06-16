@@ -483,10 +483,6 @@ static void timeout_cb(h2o_timer_t *entry)
     ASSERT(!h2o_timer_is_linked(&conn->_timeout));
     if (conn->req.fill_request_body) {
         callback_on_fill_request_body(conn);
-    } else {
-        fill_request_body(conn, &reqbuf);
-        conn->statistics.bytes_written += reqbuf.len;
-        conn->client->write_req(conn->client, reqbuf, conn->req.body.len == 0);
     }
 }
 
@@ -553,7 +549,7 @@ static void proceed_request(h2o_httpclient_t *client, size_t written,
                             int is_end_stream)
 {
     struct notification_conn_t *conn = client->data;
-    if (conn->req.body.len > 0 || conn->req.fill_request_body) {
+    if (conn->req.fill_request_body) {
         if (!h2o_timer_is_linked(&conn->_timeout)) {
             conn->_timeout.cb = timeout_cb;
             h2o_timer_link(client->ctx->loop, conn->cmn.c->delay_interval_ms,
@@ -612,6 +608,7 @@ on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *_method,
         h2o_add_header(&conn->pool, &headers_vec, H2O_TOKEN_CONTENT_LENGTH,
                        NULL, clbuf, clbuf_len);
         *body = h2o_iovec_init(conn->req.body.base, conn->req.body.len);
+        conn->statistics.bytes_written += conn->req.body.len;
     } else if (conn->req.fill_request_body) {
         *proceed_req_cb = proceed_request;
         conn->_timeout.cb = timeout_cb;
