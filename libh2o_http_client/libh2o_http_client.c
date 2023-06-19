@@ -862,7 +862,9 @@ libh2o_http_client_start(const struct http_client_init_t *client_init)
                                      : client_init->timeout;
         c->ctx.first_byte_timeout = client_init->timeout;
         c->ctx.websocket_timeout = &c->websocket_timeout;
-        c->ctx.keepalive_timeout = client_init->timeout + 15000;
+        c->ctx.keepalive_timeout = client_init->timeout > 1000
+                                       ? client_init->timeout - 1000
+                                       : client_init->timeout / 2;
         c->ctx.max_buffer_size = H2O_SOCKET_INITIAL_INPUT_BUFFER_SIZE * 2;
         memset(&c->ctx.http2, 0x00, sizeof(c->ctx.http2));
         if (client_init->http2_ratio != 0) {
