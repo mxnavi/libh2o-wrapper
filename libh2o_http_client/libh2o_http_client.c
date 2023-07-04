@@ -641,8 +641,26 @@ static void init_openssl(struct libh2o_http_client_ctx_t *c)
         libh2o_ssl_init();
 
         c->ssl_ctx = SSL_CTX_new(TLSv1_2_client_method());
-        SSL_CTX_load_verify_locations(c->ssl_ctx,
-                                      c->client_init.ssl_init.cert_file, NULL);
+        if (strchr(c->client_init.ssl_init.cert_file, ':') == NULL) {
+            SSL_CTX_load_verify_locations(
+                c->ssl_ctx, c->client_init.ssl_init.cert_file, NULL);
+        } else {
+            char *tmp = strdup(c->client_init.ssl_init.cert_file);
+            if (tmp) {
+                const char *cer = tmp;
+                while (*cer) {
+                    char *p = strchr(cer, ':');
+                    if (p == NULL) {
+                        SSL_CTX_load_verify_locations(c->ssl_ctx, cer, NULL);
+                        break;
+                    }
+                    *p++ = '\0';
+                    SSL_CTX_load_verify_locations(c->ssl_ctx, cer, NULL);
+                    cer = p;
+                }
+                free(tmp);
+            }
+        }
 #if 0 // !defined(__ANDROID__)
 #define LOAD_VERIFY_LOCATION(location)                                         \
     do {                                                                       \
