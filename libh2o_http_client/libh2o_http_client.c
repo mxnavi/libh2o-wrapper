@@ -665,7 +665,10 @@ static void init_openssl(struct libh2o_http_client_ctx_t *c)
 #undef LOAD_VERIFY_LOCATION
 #endif
         SSL_CTX_set_verify(c->ssl_ctx,
-                           SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
+                           c->client_init.verify_none
+                               ? SSL_VERIFY_NONE
+                               : SSL_VERIFY_PEER |
+                                     SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
                            NULL);
 
         if (c->client_init.ssl_init.cli_cert_file) {
