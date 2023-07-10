@@ -108,8 +108,8 @@ file(GLOB H2O_SRC_FILES
     ${H2O_DIR}/lib/handler/configurator/headers_util.c
     ${H2O_DIR}/lib/http1.c
     ${H2O_DIR}/lib/tunnel.c
-    ${H2O_DIR}/lib/websocket.c
-    ${H2O_DIR}/lib/websocketclient.c
+    # ${H2O_DIR}/lib/websocket.c
+    # ${H2O_DIR}/lib/websocketclient.c
     ${H2O_DIR}/lib/http2/cache_digests.c
     ${H2O_DIR}/lib/http2/casper.c
     ${H2O_DIR}/lib/http2/connection.c
@@ -126,7 +126,7 @@ file(GLOB H2O_WRAPPER_SRC_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/libh2o_socket_client/libh2o_socket_client.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libh2o_http_client/libh2o_http_client.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libh2o_http_server/libh2o_http_server.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libh2o_websocket_client/libh2o_websocket_client.c
+    # ${CMAKE_CURRENT_SOURCE_DIR}/libh2o_websocket_client/libh2o_websocket_client.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libh2o_socket_server/libh2o_socket_server.c
 )
 
