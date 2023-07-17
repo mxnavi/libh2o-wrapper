@@ -93,6 +93,8 @@ struct http_client_req_t {
     const char *method; /* const string, if NULL, default is 'GET' */
     h2o_iovec_t body;   /* optional request body */
     /*  NULL or optional fill body by user when body not provided */
+    /*  request body streaming for big request body, small request body(a few
+     * MB) may use body directly  */
     void (*fill_request_body)(void * /* param */,
                               const struct http_client_handle_t * /* clih */);
     struct http_request_header_t

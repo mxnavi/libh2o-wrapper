@@ -456,8 +456,8 @@ h2o_httpclient_body_cb on_head(h2o_httpclient_t *client, const char *errstr,
     return on_body;
 }
 
-static void fill_request_body(struct notification_conn_t *conn,
-                              h2o_iovec_t *reqbuf)
+static void do_fill_request_body(struct notification_conn_t *conn,
+                                 h2o_iovec_t *reqbuf)
 {
     if (conn->req.body.len > 0) {
         if (conn->org_body.len == 0) {
