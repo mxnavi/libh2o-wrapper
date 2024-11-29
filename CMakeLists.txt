@@ -3,12 +3,6 @@ project(h2o-wrapper)
 
 set(H2O_DIR ${CMAKE_CURRENT_SOURCE_DIR}/h2o)
 set(CMAKE_C_FLAGS "-Wno-error=return-type -Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare -fPIC")
-add_definitions(-DH2O_USE_EPOLL=1)
-add_definitions(-DWSLAY_VERSION=\"1.0.1-DEV\")
-add_definitions(-DHAVE_ARPA_INET_H)
-add_definitions(-DHAVE_NETINET_IN_H)
-add_definitions(-Dh2o_error_printf=libh2o_error_printf)
-add_definitions(-DH2O_EVLOOP_USE_CLOCK_MONOTONIC)
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -145,6 +139,15 @@ add_library(${PROJECT_NAME} STATIC
     ${H2O_WRAPPER_SRC_FILES}
     ${WSLAY_SRC_FILES}
 )
+target_compile_definitions(
+    ${PROJECT_NAME} PUBLIC
+    H2O_USE_EPOLL=1
+    WSLAY_VERSION=\"1.0.1-DEV\"
+    HAVE_ARPA_INET_H
+    HAVE_NETINET_IN_H
+    h2o_error_printf=libh2o_error_printf
+    H2O_EVLOOP_USE_CLOCK_MONOTONIC
+    LIBH2O_MISSING_CUTILS_LOG)
 
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC crypto ssl)
 
