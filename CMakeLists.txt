@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.20)
 project(h2o-wrapper)
 
 set(H2O_DIR ${CMAKE_CURRENT_SOURCE_DIR}/h2o)
