@@ -19,6 +19,8 @@ H2O_HAS_WSLAY ?= false
 H2O_HAS_HIREDIS ?= false
 H2O_HAS_LIBYRMCDS ?= false
 
+LIBH2O_HAS_DL ?= false
+
 ####################################################
 h2o_SRC_FILES := \
     h2o/deps/cloexec/cloexec.c \
@@ -147,6 +149,14 @@ h2o_SRC_FILES += \
 
 endif
 
+downloader_SRC_FILES := \
+    downloader/h2o_http_client.cpp \
+    downloader/h2o_http_server.cpp \
+    downloader/http_downloader.cpp \
+    downloader/http_request.cpp \
+    downloader/http_async_request.cpp \
+    downloader/http_async_streaming_request.cpp \
+
 LOCAL_SRC_FILES := \
     $(h2o_SRC_FILES) \
     $(h2o_wrapper_SRC_FILES) \
@@ -164,6 +174,11 @@ LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/h2o/deps/libgkc \
     $(LOCAL_PATH)/h2o/deps/golombset \
     $(ROOT_DIR)/foundation/include \
+
+ifeq ($(LIBH2O_HAS_DL), true)
+LOCAL_SRC_FILES += $(downloader_SRC_FILES)
+LOCAL_C_INCLUDES += $(ROOT_DIR)/imap/include
+endif
 
 h2o_cmn_clfags :=  -Wno-error=return-type -Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare \
     -DWSLAY_VERSION=\"1.0.1-DEV\" \
