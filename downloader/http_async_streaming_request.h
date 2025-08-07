@@ -108,9 +108,7 @@ class HttpAsyncStreamingRequest : public IHttpRequest
      */
     virtual const char *GetErrorMessage();
 
-#ifndef IMAP_STD_SHARED_PTR
   protected:
-#endif
     virtual ~HttpAsyncStreamingRequest();
 
   private:
@@ -153,21 +151,13 @@ class HttpAsyncStreamingRequest : public IHttpRequest
     DISALLOW_COPY_AND_ASSIGN(HttpAsyncStreamingRequest);
 };
 
-#ifdef IMAP_STD_SHARED_PTR
-using SpHttpAsyncStreamingRequest = std::shared_ptr<HttpAsyncStreamingRequest>;
-#else
 using SpHttpAsyncStreamingRequest = foundation::sp<HttpAsyncStreamingRequest>;
-#endif
 
 inline SpHttpAsyncStreamingRequest
 createSpHttpAsyncStreamingRequest(SpIClient &client,
                                   IHttpAsyncStreamingCallback *cb)
 {
-#ifdef IMAP_STD_SHARED_PTR
-    return std::make_shared<HttpAsyncStreamingRequest>(client, cb);
-#else
     return new HttpAsyncStreamingRequest(client, cb);
-#endif
 }
 
 #endif

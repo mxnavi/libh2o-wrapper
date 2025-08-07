@@ -65,9 +65,7 @@ class H2oHttpServer : public RefBase
 
     void StopTimer(uint32_t tm);
 
-#ifndef IMAP_STD_SHARED_PTR
   protected:
-#endif
     virtual ~H2oHttpServer();
 
   private:
@@ -110,21 +108,13 @@ class H2oHttpServer : public RefBase
     DISALLOW_COPY_AND_ASSIGN(H2oHttpServer);
 };
 
-#ifdef IMAP_STD_SHARED_PTR
-using SpH2oHttpServer = std::shared_ptr<H2oHttpServer>;
-#else
 using SpH2oHttpServer = foundation::sp<H2oHttpServer>;
-#endif
 
 inline SpH2oHttpServer createSpH2oHttpServer(const char *host, const char *port,
                                              const char *cer, const char *key,
                                              IHttpRequestListener *l)
 {
-#ifdef IMAP_STD_SHARED_PTR
-    return std::make_shared<H2oHttpServer>(host, port, cer, key, l);
-#else
     return new H2oHttpServer(host, port, cer, key, l);
-#endif
 }
 
 #endif /* __INCLUDE_H2OHTTPSERVER_H__ */

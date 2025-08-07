@@ -115,9 +115,7 @@ class HttpAsyncRequest : public IHttpRequest
         return Wait();
     }
 
-#ifndef IMAP_STD_SHARED_PTR
   protected:
-#endif
     virtual ~HttpAsyncRequest();
 
   private:
@@ -159,21 +157,13 @@ class HttpAsyncRequest : public IHttpRequest
     DISALLOW_COPY_AND_ASSIGN(HttpAsyncRequest);
 };
 
-#ifdef IMAP_STD_SHARED_PTR
-using SpHttpAsyncRequest = std::shared_ptr<HttpAsyncRequest>;
-#else
 using SpHttpAsyncRequest = foundation::sp<HttpAsyncRequest>;
-#endif
 
 inline SpHttpAsyncRequest createSpHttpAsyncRequest(SpIClient &client,
                                                    const h2o_token_t *token[],
                                                    size_t num_token)
 {
-#ifdef IMAP_STD_SHARED_PTR
-    return std::make_shared<HttpAsyncRequest>(client, token, num_token);
-#else
     return new HttpAsyncRequest(client, token, num_token);
-#endif
 }
 
 #endif

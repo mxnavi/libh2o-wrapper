@@ -85,9 +85,7 @@ class HttpRequest : public IHttpRequest
      */
     virtual const char *GetErrorMessage() { return meta_.network_error; }
 
-#ifndef IMAP_STD_SHARED_PTR
   protected:
-#endif
     virtual ~HttpRequest();
 
   private:
@@ -124,21 +122,13 @@ class HttpRequest : public IHttpRequest
     DISALLOW_COPY_AND_ASSIGN(HttpRequest);
 };
 
-#ifdef IMAP_STD_SHARED_PTR
-using SpHttpRequest = std::shared_ptr<HttpRequest>;
-#else
 using SpHttpRequest = foundation::sp<HttpRequest>;
-#endif
 
 inline SpHttpRequest createSpHttpRequest(SpIClient &client,
                                          const h2o_token_t *token[],
                                          size_t num_token)
 {
-#ifdef IMAP_STD_SHARED_PTR
-    return std::make_shared<HttpRequest>(client, token, num_token);
-#else
     return new HttpRequest(client, token, num_token);
-#endif
 }
 
 #endif

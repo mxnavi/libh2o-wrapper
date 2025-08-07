@@ -128,10 +128,7 @@ struct dl_meta_t {
 /**
  * @brief File downloader interface
  */
-class IDownloader
-#ifndef IMAP_STD_SHARED_PTR
-    : public RefBase
-#endif
+class IDownloader : public RefBase
 {
   public:
     IDownloader() {}
@@ -179,11 +176,7 @@ class IDownloader
     }
 };
 
-#ifdef IMAP_STD_SHARED_PTR
-using SpIDownloader = std::shared_ptr<IDownloader>;
-#else
 using SpIDownloader = foundation::sp<IDownloader>;
-#endif
 
 #endif
 

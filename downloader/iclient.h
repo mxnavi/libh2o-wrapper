@@ -75,10 +75,7 @@ struct cli_req_t {
 #endif
 
 #ifdef __cplusplus
-class IClient
-#ifndef IMAP_STD_SHARED_PTR
-    : public RefBase
-#endif
+class IClient : public RefBase
 {
   public:
     /**
@@ -146,11 +143,7 @@ class IClient
     const bool async_;
 };
 
-#ifdef IMAP_STD_SHARED_PTR
-using SpIClient = std::shared_ptr<IClient>;
-#else
 using SpIClient = foundation::sp<IClient>;
-#endif
 
 #endif
 

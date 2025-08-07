@@ -67,10 +67,7 @@ extern const char METHOD_PUT[];
 
 #ifdef __cplusplus
 
-class IHttpRequest
-#ifndef IMAP_STD_SHARED_PTR
-    : public RefBase
-#endif
+class IHttpRequest : public RefBase
 {
   public:
     /**
@@ -85,17 +82,11 @@ class IHttpRequest
      */
     virtual const char *GetErrorMessage() { return NULL; }
 
-#ifndef IMAP_STD_SHARED_PTR
   protected:
-#endif
     virtual ~IHttpRequest() {}
 };
 
-#ifdef IMAP_STD_SHARED_PTR
-using SpIHttpRequest = std::shared_ptr<IHttpRequest>;
-#else
 using SpIHttpRequest = foundation::sp<IHttpRequest>;
-#endif
 
 /**
  * @brief Http client event loop and request manager, run multiple clients in
@@ -118,9 +109,7 @@ class H2oHttpClient : public IClient
 
     virtual void StopTimer(uint32_t tm);
 
-#ifndef IMAP_STD_SHARED_PTR
   protected:
-#endif
     virtual ~H2oHttpClient();
 
   private:
@@ -171,13 +160,8 @@ inline SpIClient createSpH2oHttpClient(bool async, const char *cert_file,
                                        uint32_t timeout,
                                        uint32_t connect_timeout)
 {
-#ifdef IMAP_STD_SHARED_PTR
-    return std::make_shared<H2oHttpClient>(async, cert_file, cli_cer, cli_key,
-                                           timeout, connect_timeout);
-#else
     return new H2oHttpClient(async, cert_file, cli_cer, cli_key, timeout,
                              connect_timeout);
-#endif
 }
 
 /* helpers */

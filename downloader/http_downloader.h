@@ -55,9 +55,7 @@ class HttpDownloader : public IDownloader
     virtual int CheckFd() const override;
     virtual int Cancel();
 
-#ifndef IMAP_STD_SHARED_PTR
   protected:
-#endif
     virtual ~HttpDownloader();
 
   private:
@@ -92,11 +90,7 @@ class HttpDownloader : public IDownloader
 
 inline SpIDownloader createSpHttpDownloader(SpIClient &client)
 {
-#ifdef IMAP_STD_SHARED_PTR
-    return std::make_shared<HttpDownloader>(client);
-#else
     return new HttpDownloader(client);
-#endif
 }
 
 /* helpers */
