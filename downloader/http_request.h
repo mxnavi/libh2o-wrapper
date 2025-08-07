@@ -128,6 +128,7 @@ inline SpHttpRequest createSpHttpRequest(SpIClient &client,
                                          const h2o_token_t *token[],
                                          size_t num_token)
 {
+    RETURN_IF_NULL(client, NULL);
     return new HttpRequest(client, token, num_token);
 }
 

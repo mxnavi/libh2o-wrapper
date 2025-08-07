@@ -157,6 +157,7 @@ inline SpHttpAsyncStreamingRequest
 createSpHttpAsyncStreamingRequest(SpIClient &client,
                                   IHttpAsyncStreamingCallback *cb)
 {
+    RETURN_IF_NULL(client, NULL);
     return new HttpAsyncStreamingRequest(client, cb);
 }
 

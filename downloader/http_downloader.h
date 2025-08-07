@@ -90,6 +90,7 @@ class HttpDownloader : public IDownloader
 
 inline SpIDownloader createSpHttpDownloader(SpIClient &client)
 {
+    RETURN_IF_NULL(client, NULL);
     return new HttpDownloader(client);
 }
 

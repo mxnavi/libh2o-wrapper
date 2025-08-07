@@ -163,6 +163,7 @@ inline SpHttpAsyncRequest createSpHttpAsyncRequest(SpIClient &client,
                                                    const h2o_token_t *token[],
                                                    size_t num_token)
 {
+    RETURN_IF_NULL(client, NULL);
     return new HttpAsyncRequest(client, token, num_token);
 }
 
