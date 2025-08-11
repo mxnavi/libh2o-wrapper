@@ -13,6 +13,7 @@
 /*****************************************************************************
  *                       Include File Section                                *
  *****************************************************************************/
+#include "utils/tdm/tdm_constant.h"
 #include "h2o_http_client.h"
 
 #ifdef __cplusplus
@@ -45,34 +46,6 @@ extern "C" {
         }                                                                      \
     } while (0)
 
-/* max length of etag for http downloader */
-#define __HTTP_ETAG_MAXLEN (34 /* hexstring(md5()) */ + 1)
-
-/* coding */
-#define __CODING_INVALID 0
-#define __CODING_GZIP 1
-#define __CODING_ZLIB 2
-#define __CODING_AUTO 3
-#define __CODING_LZ4 4
-#define __CODING_NONE 5
-
-#define IS_VALID_CODING(coding)                                                \
-    (((coding) > __CODING_INVALID) && ((coding) <= __CODING_NONE))
-
-#define IS_VALID_NOT_NONE_CODING(coding)                                       \
-    (IS_VALID_CODING(coding) && ((coding) != __CODING_NONE))
-
-/* default coding */
-#ifndef __CODING_DEFAULT
-#define __CODING_DEFAULT __CODING_ZLIB
-#endif
-
-/**
- * The max-age=N response directive indicates that the response remains fresh
- * until N seconds after the response is generated.
- */
-#define __MAX_AGE_DEFAULT (3600 * 24 * 7)
-#define __MAX_AGE_RETRY_AFTER (180)
 
 /*****************************************************************************
  *                       Type Definition Section                             *
