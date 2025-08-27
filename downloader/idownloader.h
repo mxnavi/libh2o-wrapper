@@ -13,7 +13,7 @@
 /*****************************************************************************
  *                       Include File Section                                *
  *****************************************************************************/
-#include "utils/tdm/tdm_constant.h"
+#include "downloader_constant.h"
 #include "h2o_http_client.h"
 
 #ifdef __cplusplus
