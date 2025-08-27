@@ -177,7 +177,6 @@ LOCAL_C_INCLUDES:= \
 
 ifeq ($(LIBH2O_HAS_DL), true)
 LOCAL_SRC_FILES += $(downloader_SRC_FILES)
-LOCAL_C_INCLUDES += $(ROOT_DIR)/imap/include
 endif
 
 h2o_cmn_clfags :=  -Wno-error=return-type -Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare \
