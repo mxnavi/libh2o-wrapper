@@ -111,6 +111,23 @@ inline bool isHttpStatusMovedPermanently(const struct dl_meta_t *meta)
 {
     return IsHttpStatusMovedPermanently(meta->http.status);
 }
+inline bool isHttpStatusFound(const struct dl_meta_t *meta)
+{
+    return IsHttpStatusFound(meta->http.status);
+}
+inline bool isHttpStatusSeeOther(const struct dl_meta_t *meta)
+{
+    return IsHttpStatusSeeOther(meta->http.status);
+}
+inline bool isHttpStatusTemporaryRedirect(const struct dl_meta_t *meta)
+{
+    return IsHttpStatusTemporaryRedirect(meta->http.status);
+}
+
+inline bool isHttpStatusPermanentRedirect(const struct dl_meta_t *meta)
+{
+    return IsHttpStatusPermanentRedirect(meta->http.status);
+}
 inline bool isHttpStatusNotModified(const struct dl_meta_t *meta)
 {
     return IsHttpStatusNotModified(meta->http.status);

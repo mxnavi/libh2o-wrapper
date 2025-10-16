@@ -218,7 +218,11 @@ int HttpDownloader::on_head(int version, int status, h2o_iovec_t msg,
         ASSERT(meta->super.range > 0 && meta->super.len == meta->super.range);
     } else if (status == 404) { /* Not Found */
         meta->super.len = 0;
-    } else if (status == 301) { /* Moved Permanetly */
+    } else if ((status == 303)    /* See Other */
+               || (status == 302) /* Found */
+               || (status == 307) /* Temporary Redirect */
+               || (status == 308) /* Permanent Redirect */
+               || (status == 301) /* Moved Permanetly */) {
         ssize_t index = h2o_find_header(_headers, H2O_TOKEN_LOCATION, -1);
         if (index == -1) {
             LOGW("missing header: %s", H2O_TOKEN_LOCATION->buf.base);

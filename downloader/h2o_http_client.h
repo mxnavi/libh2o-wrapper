@@ -172,7 +172,11 @@ inline bool IsHttpStatusOkOrPartialContent(int status)
     return status == 200 || status == 206;
 }
 inline bool IsHttpStatusMovedPermanently(int status) { return status == 301; }
+inline bool IsHttpStatusFound(int status) { return status == 302; }
+inline bool IsHttpStatusSeeOther(int status) { return status == 303; }
 inline bool IsHttpStatusNotModified(int status) { return status == 304; }
+inline bool IsHttpStatusTemporaryRedirect(int status) { return status == 307; }
+inline bool IsHttpStatusPermanentRedirect(int status) { return status == 308; }
 inline bool IsHttpStatusNotFound(int status) { return status == 404; }
 inline bool IsHttpStatusInformational(int status)
 {
