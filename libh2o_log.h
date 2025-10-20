@@ -23,7 +23,7 @@
  *                       Macro Definition Section                            *
  *****************************************************************************/
 #ifndef LOGV
-#define LOGV(fmt, args...) ((void)fprintf(stderr, fmt "\n", ##args))
+#define LOGV(fmt, args...) ((void)0)
 #endif
 
 #ifndef LOGD
@@ -45,6 +45,18 @@
 #ifndef ASSERT
 #define ASSERT assert
 #endif
+
+/* clang-format off */
+#define H2O_LOGV(fmt, args...) LOGV(fmt, ##args)
+#if defined(ENABLE_TEST) || !defined(NDEBUG)
+#define H2O_LOGD(fmt, args...) LOGD(fmt, ##args)
+#else
+#define H2O_LOGD(fmt, args...) LOGV(fmt, ##args)
+#endif
+#define H2O_LOGI(fmt, args...) LOGI(fmt, ##args)
+#define H2O_LOGW(fmt, args...) LOGW(fmt, ##args)
+#define H2O_LOGE(fmt, args...) LOGE(fmt, ##args)
+/* clang-format on */
 
 #ifdef __cplusplus
 extern "C" {

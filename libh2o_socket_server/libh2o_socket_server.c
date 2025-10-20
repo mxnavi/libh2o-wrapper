@@ -148,7 +148,7 @@ notify_thread_listen(struct libh2o_socket_server_ctx_t *c,
     } while (msg->clih.serial == 0);
     msg->clih.user = user;
 #ifdef DEBUG_SERIAL
-    LOGV("create listener: %u", (uint32_t)msg->clih.serial);
+    H2O_LOGV("create listener: %u", (uint32_t)msg->clih.serial);
 #endif
 
     /* request */
@@ -323,7 +323,7 @@ static void write_pending(struct notification_conn_t *conn)
 static void release_notification_conn(struct notification_conn_t *conn)
 {
 #ifdef DEBUG_SERIAL
-    LOGV("release serial: %lld", (long long)conn->clih.serial);
+    H2O_LOGV("release serial: %lld", (long long)conn->clih.serial);
 #endif
     if (h2o_timer_is_linked(&conn->_timeout)) {
         h2o_timer_unlink(&conn->_timeout);
@@ -370,7 +370,7 @@ static void on_listener_error(struct notification_listen_t *conn,
 {
     ASSERT(err != NULL);
 
-    LOGW("%s:%s", prefix, err);
+    H2O_LOGW("%s:%s", prefix, err);
     callback_on_listen(conn, err);
     h2o_linklist_unlink(&conn->cmn.super.link);
     release_notification_listen(conn);
@@ -382,7 +382,7 @@ static void on_error(struct notification_conn_t *conn, const char *prefix,
     struct libh2o_socket_server_ctx_t *c;
     ASSERT(err != NULL);
 
-    LOGW("%s:%s", prefix, err);
+    H2O_LOGW("%s:%s", prefix, err);
 
     /* if connec timeout pending, unlink it first */
     if (h2o_timer_is_linked(&conn->_timeout)) {
@@ -472,7 +472,7 @@ create_connection(struct notification_listen_t *conn)
     msg->clih.user = conn->clih.user;
 
 #ifdef DEBUG_SERIAL
-    LOGV("create serial: %lld", (long long)msg->clih.serial);
+    H2O_LOGV("create serial: %lld", (long long)msg->clih.serial);
 #endif
 
     h2o_linklist_insert(&conn->cmn.c->conns, &msg->cmn.super.link);
@@ -485,7 +485,7 @@ static void on_handshake_complete(h2o_socket_t *sock, const char *err)
 
     if (err != NULL) {
         /* TLS handshake failed */
-        LOGW("on_handshake_complete: %s", err);
+        H2O_LOGW("on_handshake_complete: %s", err);
         h2o_socket_close(sock);
         return;
     }
@@ -639,7 +639,7 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
                 (struct notification_data_t *)cmn;
             struct notification_conn_t *conn = data->conn;
             if (conn->sock == NULL) {
-                LOGW("caller want to send data without connection");
+                H2O_LOGW("caller want to send data without connection");
                 h2o_linklist_insert(&conn->pending, &msg->link);
             } else if (!h2o_socket_is_writing(conn->sock)) {
                 do_socket_write(conn, data);
@@ -747,7 +747,7 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
             struct notification_conn_t *conn = data->conn;
             conn->cmn.cmd = NOTIFICATION_CLOSE;
             if (conn->sock == NULL) {
-                LOGW("caller want to close without connection");
+                H2O_LOGW("caller want to close without connection");
             } else if (!h2o_socket_is_writing(conn->sock)) {
                 on_error(conn, "on_notification", "User close");
             } else {
@@ -801,7 +801,7 @@ static void init_openssl(struct libh2o_socket_server_ctx_t *c)
                 c->ssl_ctx, c->server_init.ssl_init.key_file, type);
             ASSERT(rc > 0);
             if (rc <= 0) {
-                LOGW("Error setting the key file");
+                H2O_LOGW("Error setting the key file");
                 goto ERROR;
             }
         }
@@ -875,7 +875,7 @@ libh2o_socket_server_start(const struct socket_server_init_t *server_init)
 
     if (server_init->ssl_init.cert_file) {
         if (!server_init->ssl_init.key_file) {
-            LOGW("missing server key file");
+            H2O_LOGW("missing server key file");
             return NULL;
         }
     }
@@ -981,7 +981,7 @@ struct sock_servers_t {
 static void cb_socket_server_on_listen(void *param, const char *err,
                                        const struct socket_server_req_t *req)
 {
-    LOGW("%s() @line: %d %s:%s", __FUNCTION__, __LINE__,
+    H2O_LOGW("%s() @line: %d %s:%s", __FUNCTION__, __LINE__,
          req->host ? req->host : "", req->port ? req->port : "");
 }
 
@@ -989,7 +989,7 @@ static void
 cb_socket_server_on_connected(void *param,
                               const struct socket_server_handle_t *clih)
 {
-    LOGV("%s() @line: %d serial: %lld", __FUNCTION__, __LINE__,
+    H2O_LOGV("%s() @line: %d serial: %lld", __FUNCTION__, __LINE__,
          (long long)clih->serial);
     struct sock_servers_t *ss = param;
 }
@@ -1023,7 +1023,7 @@ static void
 cb_socket_server_on_closed(void *param, const char *err,
                            const struct socket_server_handle_t *clih)
 {
-    LOGV("%s() @line: %d serial: %lld", __FUNCTION__, __LINE__,
+    H2O_LOGV("%s() @line: %d serial: %lld", __FUNCTION__, __LINE__,
          (long long)clih->serial);
     struct sock_servers_t *ss = param;
 }

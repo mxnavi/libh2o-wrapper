@@ -14,8 +14,8 @@
 
 // #define LOG_NDEBUG 0
 /****************************************************************************
-*                       Include File Section                                *
-*****************************************************************************/
+ *                       Include File Section                                *
+ *****************************************************************************/
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -276,7 +276,7 @@ static void server_tls_destroy(void *value) { free(value); }
 static void set_cloexec(int fd)
 {
     if (fcntl(fd, F_SETFD, FD_CLOEXEC) == -1) {
-        LOGE("failed to set FD_CLOEXEC");
+        H2O_LOGE("failed to set FD_CLOEXEC");
     }
 }
 
@@ -481,7 +481,7 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
         struct notification_ws_conn_t *conn = h2o_mem_alloc(sizeof(*conn));
         memset(conn, 0x00, sizeof(*conn));
 
-        // LOGV("%s() thread_index: %d websocket client_key: %.24s",
+        // H2O_LOGV("%s() thread_index: %d websocket client_key: %.24s",
         // __FUNCTION__, thread_index, client_key);
 
         conn->cmn.c = c;
@@ -495,7 +495,7 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
             conn->clih.serial = __sync_add_and_fetch(&c->serial_counter, 1);
         } while (conn->clih.serial == 0);
 #ifdef DEBUG_SERIAL
-        LOGV("%s() serial: %u websocket conn: %p wsconn: %p open", __FUNCTION__,
+        H2O_LOGV("%s() serial: %u websocket conn: %p wsconn: %p open", __FUNCTION__,
              conn->clih.serial, conn, wsconn);
 #endif
         callback_on_ws_connected(conn);
@@ -517,7 +517,7 @@ static int on_req(h2o_handler_t *self, h2o_req_t *req)
             conn->req.serial = __sync_add_and_fetch(&c->serial_counter, 1);
         } while (conn->req.serial == 0);
 #ifdef DEBUG_SERIAL
-        LOGV("%s() serial: %u http req: %p conn: %p open", __FUNCTION__,
+        H2O_LOGV("%s() serial: %u http req: %p conn: %p open", __FUNCTION__,
              conn->req.serial, req, conn);
 #endif
         h2o_linklist_insert(&c->threads[thread_index].conns, &conn->node);
@@ -552,7 +552,7 @@ static void on_accept(h2o_socket_t *listener, const char *err)
     h2o_socket_t *sock;
 
     if (H2O_UNLIKELY(err != NULL)) {
-        LOGW("%s() thread_index: %d err: %s", __FUNCTION__,
+        H2O_LOGW("%s() thread_index: %d err: %s", __FUNCTION__,
              get_current_thread_index(c), err);
         return;
     }
@@ -560,7 +560,7 @@ static void on_accept(h2o_socket_t *listener, const char *err)
     if ((sock = h2o_evloop_socket_accept(listener)) == NULL) {
         return;
     }
-    // LOGD("%s() thread_index: %d sock: %p data: %p", __FUNCTION__,
+    // H2O_LOGD("%s() thread_index: %d sock: %p data: %p", __FUNCTION__,
     // get_current_thread_index(c), sock, ctx->accept_ctx.ctx);
 
     num_connections(c, 1);
@@ -648,7 +648,7 @@ static int open_tcp_listener(struct server_context_t *c, const char *hostname,
         int flag = 1;
         if (setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &flag, sizeof(flag)) !=
             0) {
-            LOGW("failed to set SO_REUSEPORT:%s", strerror(errno));
+            H2O_LOGW("failed to set SO_REUSEPORT:%s", strerror(errno));
             *so_reuseport = 0;
         }
     }
@@ -685,7 +685,7 @@ static int open_tcp_listener(struct server_context_t *c, const char *hostname,
 #endif
         if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, (const void *)&tfo_queues,
                        sizeof(tfo_queues)) != 0)
-            LOGW("[warning] failed to set TCP_FASTOPEN:%s", strerror(errno));
+            H2O_LOGW("[warning] failed to set TCP_FASTOPEN:%s", strerror(errno));
 #else
         ASSERT(!"conf.tfo_queues not zero on platform without TCP_FASTOPEN");
 #endif
@@ -695,7 +695,7 @@ static int open_tcp_listener(struct server_context_t *c, const char *hostname,
 
 Error:
     if (fd != -1) close(fd);
-    LOGE("failed to listen to port %s:%s: %s",
+    H2O_LOGE("failed to listen to port %s:%s: %s",
          hostname != NULL ? hostname : "ANY", servname, strerror(errno));
     return -1;
 }
@@ -720,11 +720,11 @@ static int create_listener(struct server_context_t *c)
         hints.ai_protocol = IPPROTO_TCP;
         hints.ai_flags = AI_ADDRCONFIG | AI_NUMERICSERV | AI_PASSIVE;
         if ((error = getaddrinfo(hostname, *servname, &hints, &res)) != 0) {
-            LOGE("failed to resolve the listening address: %s",
+            H2O_LOGE("failed to resolve the listening address: %s",
                  gai_strerror(error));
             return -1;
         } else if (res == NULL) {
-            LOGE("failed to resolve the listening address: getaddrinfo "
+            H2O_LOGE("failed to resolve the listening address: getaddrinfo "
                  "returned an empty list");
             return -1;
         }
@@ -747,20 +747,20 @@ static int create_listener(struct server_context_t *c)
                 }
                 listener =
                     add_listener(c, fd, ai->ai_addr, ai->ai_addrlen, 1, 0);
-                LOGD("create_listener() fd: %d num_listeners: %u host: %s "
+                H2O_LOGD("create_listener() fd: %d num_listeners: %u host: %s "
                      "port: %s addrlen: %d (sa_family:%d)",
                      fd, (unsigned)c->num_listeners, hostname, *servname,
                      ai->ai_addrlen, ai->ai_addr->sa_family);
                 if (ai->ai_addr->sa_family == AF_INET) {
                     struct sockaddr_in *p = (struct sockaddr_in *)ai->ai_addr;
-                    LOGD("inet_ntoa: %s port: %d", inet_ntoa(p->sin_addr),
+                    H2O_LOGD("inet_ntoa: %s port: %d", inet_ntoa(p->sin_addr),
                          ntohs(p->sin_port));
                 } else if (ai->ai_addr->sa_family == AF_INET6) {
                     struct sockaddr_in6 *p = (struct sockaddr_in6 *)ai->ai_addr;
                     char str[INET6_ADDRSTRLEN];
                     inet_ntop(ai->ai_addr->sa_family, &p->sin6_addr, str,
                               sizeof(str));
-                    LOGD("inet_ntop: %s pott: %d", str, ntohs(p->sin6_port));
+                    H2O_LOGD("inet_ntop: %s pott: %d", str, ntohs(p->sin6_port));
                 }
 
                 listener_is_new = 1;
@@ -788,7 +788,7 @@ static int create_listener(struct server_context_t *c)
                         }
                         ASSERT(so_reuseport == 1);
                         listener->reuseport_fds[i] = fd;
-                        LOGD("create_listener() so_reuseport fd: %d for "
+                        H2O_LOGD("create_listener() so_reuseport fd: %d for "
                              "thread: %u",
                              fd, (unsigned)i);
                     }
@@ -837,16 +837,16 @@ static int setup_ssl(struct server_context_t *c, const char *cert_file,
     /* load certificate and private key */
     if (SSL_CTX_use_certificate_file(c->ssl_ctx, cert_file, SSL_FILETYPE_PEM) !=
         1) {
-        LOGE("failed to load server certificate file: %s", cert_file);
+        H2O_LOGE("failed to load server certificate file: %s", cert_file);
         return -1;
     }
     if (SSL_CTX_use_PrivateKey_file(c->ssl_ctx, key_file, SSL_FILETYPE_PEM) !=
         1) {
-        LOGE("failed to load private key file: %s", key_file);
+        H2O_LOGE("failed to load private key file: %s", key_file);
         return -1;
     }
     if (SSL_CTX_set_cipher_list(c->ssl_ctx, ciphers) != 1) {
-        LOGE("ciphers could not be set");
+        H2O_LOGE("ciphers could not be set");
         return -1;
     }
 
@@ -953,7 +953,7 @@ static void release_pending_data_linklist(struct notification_ws_conn_t *conn,
 static void release_notification_ws_conn(struct notification_ws_conn_t *conn)
 {
 #ifdef DEBUG_SERIAL
-    LOGV("release serial: %u", conn->clih.serial);
+    H2O_LOGV("release serial: %u", conn->clih.serial);
 #endif
     if (h2o_timer_is_linked(&conn->dispose_timeout)) {
         h2o_timer_unlink(&conn->dispose_timeout);
@@ -1129,7 +1129,7 @@ static void on_server_notification(h2o_multithread_receiver_t *receiver,
                 callback_on_ws_sent(conn, data->data.base, data->data.len, 1);
                 release_notification_data(data);
             } else {
-                LOGW("caller want to send data without connection");
+                H2O_LOGW("caller want to send data without connection");
                 h2o_linklist_insert(&conn->pending, &msg->link);
             }
         }
@@ -1191,7 +1191,7 @@ static void *server_loop(void *_param)
     struct listener_ctx_t *listeners;
     size_t i;
 
-    LOGV("%s(%d)...", __FUNCTION__, thread_index);
+    H2O_LOGV("%s(%d)...", __FUNCTION__, thread_index);
     ASSERT(thread_index >= 0 && thread_index < c->server_init.num_threads);
 
 #ifdef H2O_THREAD_LOCAL_UNINITIALIZED
@@ -1235,7 +1235,7 @@ static void *server_loop(void *_param)
             } else
 #endif
                 if ((fd = dup(listener_config->fd)) == -1) {
-                LOGE("failed to dup listening socket");
+                H2O_LOGE("failed to dup listening socket");
             }
             set_cloexec(fd);
         }
@@ -1264,7 +1264,7 @@ static void *server_loop(void *_param)
         h2o_evloop_run(c->threads[thread_index].ctx.loop, INT32_MAX);
     }
     if (thread_index == 0) {
-        LOGD("shutting down...");
+        H2O_LOGD("shutting down...");
     }
 
     /* shutdown requested, unregister, close the listeners and notify the
@@ -1274,7 +1274,7 @@ static void *server_loop(void *_param)
     h2o_evloop_run(c->threads[thread_index].ctx.loop, 0);
 
     while (!h2o_linklist_is_empty(&c->threads[thread_index].ws_conns)) {
-        LOGD("ws_conn list is not empty, thread_index: %d", thread_index);
+        H2O_LOGD("ws_conn list is not empty, thread_index: %d", thread_index);
         h2o_evloop_run(c->threads[thread_index].ctx.loop, DISPOSE_TIMEOUT_MS);
     }
 
@@ -1291,7 +1291,7 @@ static void *server_loop(void *_param)
 
     while (UINT64_MAX != h2o_timerwheel_get_wake_at(
                              c->threads[thread_index].ctx.loop->_timeouts)) {
-        LOGD("timeout is not empty, thread_index: %d", thread_index);
+        H2O_LOGD("timeout is not empty, thread_index: %d", thread_index);
         // h2o_timerwheel_dump(c->threads[thread_index].ctx.loop->_timeouts);
         h2o_evloop_run(c->threads[thread_index].ctx.loop, DISPOSE_TIMEOUT_MS);
     }
@@ -1340,17 +1340,17 @@ libh2o_http_server_start(const struct http_server_init_t *server_init)
 
     if (H2O_UNLIKELY(server_init->num_threads <= 0 ||
                      server_init->num_threads > 8)) {
-        LOGE("invalid num_threads: %d", server_init->num_threads);
+        H2O_LOGE("invalid num_threads: %d", server_init->num_threads);
         return NULL;
     }
 
     if (H2O_UNLIKELY(server_init->host == NULL)) {
-        LOGE("no host");
+        H2O_LOGE("no host");
         return NULL;
     }
 
     if (H2O_UNLIKELY(server_init->port == NULL || *server_init->port == NULL)) {
-        LOGE("no port");
+        H2O_LOGE("no port");
         return NULL;
     }
 
@@ -1361,7 +1361,7 @@ libh2o_http_server_start(const struct http_server_init_t *server_init)
     init_openssl();
 #endif
     if (pthread_key_create(&c->tls, server_tls_destroy) != 0) {
-        LOGE("pthread_key_create failed");
+        H2O_LOGE("pthread_key_create failed");
         return NULL;
     }
 
@@ -1378,7 +1378,7 @@ libh2o_http_server_start(const struct http_server_init_t *server_init)
     handler->super.dispose = on_handler_dispose;
     handler->c = c;
 
-    LOGD("server_init: %s\nnum_threads: %d\ndoc_root: %s\nssl_init: %s %s %s",
+    H2O_LOGD("server_init: %s\nnum_threads: %d\ndoc_root: %s\nssl_init: %s %s %s",
          server_init->host, server_init->num_threads, server_init->doc_root,
          server_init->ssl_init.cert_file, server_init->ssl_init.key_file,
          server_init->ssl_init.ciphers);
@@ -1400,7 +1400,7 @@ libh2o_http_server_start(const struct http_server_init_t *server_init)
     if (setup_ssl(c, server_init->ssl_init.cert_file,
                   server_init->ssl_init.key_file,
                   server_init->ssl_init.ciphers) != 0) {
-        LOGE("failed to setup ssl");
+        H2O_LOGE("failed to setup ssl");
         goto ERROR;
     }
 #endif
@@ -1409,7 +1409,7 @@ libh2o_http_server_start(const struct http_server_init_t *server_init)
     /* h2o_access_log_register(&config.default_host, "/dev/stdout", NULL); */
 
     if (create_listener(c) != 0) {
-        LOGE("failed to listen to %s:%s: %s", c->server_init.host,
+        H2O_LOGE("failed to listen to %s:%s: %s", c->server_init.host,
              c->server_init.port[0], strerror(errno));
         goto ERROR;
     }
@@ -1638,7 +1638,7 @@ static void registerSigHandler()
 static void http_server_on_http_request_cb(void *param,
                                            struct http_request_t *data)
 {
-// LOGD("%s() req: %p", __FUNCTION__, data->req);
+// H2O_LOGD("%s() req: %p", __FUNCTION__, data->req);
 #if 1
     data->resp.status = 200;
     data->resp.header[0].token = H2O_TOKEN_CONTENT_TYPE;
@@ -1657,13 +1657,13 @@ static void http_server_on_http_request_cb(void *param,
 static void http_server_on_http_resp_timeout_cb(void *param,
                                                 struct http_request_t *data)
 {
-    LOGD("%s() req: %p", __FUNCTION__, data->req);
+    H2O_LOGD("%s() req: %p", __FUNCTION__, data->req);
 }
 
 static void http_server_on_finish_http_request_cb(void *param,
                                                   struct http_request_t *data)
 {
-    // LOGD("%s() req: %p", __FUNCTION__, data->req);
+    // H2O_LOGD("%s() req: %p", __FUNCTION__, data->req);
 }
 
 static void http_server_on_ws_recv_cb(void *param, void *buf, size_t len,
@@ -1685,14 +1685,14 @@ static void
 http_server_on_ws_connected_cb(void *param,
                                const struct websocket_handle_t *clih)
 {
-    LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
+    H2O_LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
 }
 
 static void
 http_server_on_ws_connection_closed_cb(void *param,
                                        const struct websocket_handle_t *clih)
 {
-    LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
+    H2O_LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
 }
 
 int libh2o_http_server_test(int argc, char **argv)

@@ -57,30 +57,30 @@ void H2oHttpServer::http_server_on_finish_http_request_cb(
 void H2oHttpServer::http_server_on_ws_recv_cb(
     void *param, void *buf, size_t len, const struct websocket_handle_t *clih)
 {
-    LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
+    H2O_LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
 }
 
 void H2oHttpServer::http_server_on_ws_sent_cb(
     void *param, void *buf, size_t len, const struct websocket_handle_t *clih)
 {
-    LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
+    H2O_LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
 }
 
 void H2oHttpServer::http_server_on_ws_connected_cb(
     void *param, const struct websocket_handle_t *clih)
 {
-    LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
+    H2O_LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
 }
 
 void H2oHttpServer::http_server_on_ws_connection_closed_cb(
     void *param, const struct websocket_handle_t *clih)
 {
-    LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
+    H2O_LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
 }
 
 void H2oHttpServer::on_http_request(struct http_request_t *data)
 {
-    LOGV("%s() req: %p", __FUNCTION__, data->req);
+    H2O_LOGV("%s() req: %p", __FUNCTION__, data->req);
     l_->OnReq(data);
     libh2o_http_server_queue_response(data);
 #if 0
@@ -100,12 +100,12 @@ void H2oHttpServer::on_http_request(struct http_request_t *data)
 
 void H2oHttpServer::on_http_resp_timeout(struct http_request_t *data)
 {
-    LOGW("%s() req: %p", __FUNCTION__, data->req);
+    H2O_LOGW("%s() req: %p", __FUNCTION__, data->req);
 }
 
 void H2oHttpServer::on_finish_http_request(struct http_request_t *data)
 {
-    LOGV("%s() req: %p", __FUNCTION__, data->req);
+    H2O_LOGV("%s() req: %p", __FUNCTION__, data->req);
 }
 
 H2oHttpServer::H2oHttpServer(const char *host, const char *port,
@@ -113,7 +113,7 @@ H2oHttpServer::H2oHttpServer(const char *host, const char *port,
                              IHttpRequestListener *l)
     : l_(l), server_ctx_(NULL)
 {
-    LOGV("H2oHttpServer::H2oHttpServer()");
+    H2O_LOGV("H2oHttpServer::H2oHttpServer()");
     /* server init param */
     struct http_server_init_t server_init;
     const char *ports[2];
@@ -147,12 +147,12 @@ H2oHttpServer::H2oHttpServer(const char *host, const char *port,
 
 H2oHttpServer::~H2oHttpServer()
 {
-    LOGV("H2oHttpServer::~H2oHttpServer() in");
+    H2O_LOGV("H2oHttpServer::~H2oHttpServer() in");
     if (server_ctx_ != NULL) {
         libh2o_http_server_stop(server_ctx_);
         server_ctx_ = NULL;
     }
-    LOGV("H2oHttpServer::~H2oHttpServer() out");
+    H2O_LOGV("H2oHttpServer::~H2oHttpServer() out");
 }
 
 uint32_t H2oHttpServer::StartTimer(void (*timedout)(void *param, uint32_t),

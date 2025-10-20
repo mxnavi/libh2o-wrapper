@@ -213,7 +213,7 @@ notify_thread_connect(struct libh2o_http_client_ctx_t *c,
     } while (msg->clih.serial == 0);
     msg->clih.user = user;
 #ifdef DEBUG_SERIAL
-    LOGV("create serial: %u", msg->clih.serial);
+    H2O_LOGV("create serial: %u", msg->clih.serial);
 #endif
 
     h2o_multithread_send_message(&c->notifications, &msg->cmn.super);
@@ -257,7 +257,7 @@ static void notify_thread_stop_timer(struct libh2o_http_client_ctx_t *c,
 static void release_notification_conn(struct notification_conn_t *conn)
 {
 #ifdef DEBUG_SERIAL
-    LOGV("release serial: %u", conn->clih.serial);
+    H2O_LOGV("release serial: %u", conn->clih.serial);
 #endif
     if (h2o_linklist_is_linked(&conn->cmn.super.link)) {
         h2o_linklist_unlink(&conn->cmn.super.link);
@@ -287,7 +287,7 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
             /* parse URL */
             if (h2o_url_parse(conn->req.url, SIZE_MAX, &conn->url_parsed) !=
                 0) {
-                LOGW("unrecognized type of URL: %s", conn->req.url);
+                H2O_LOGW("unrecognized type of URL: %s", conn->req.url);
                 on_error(conn, "on_notification", __httpclient_error_url);
                 continue;
             }
@@ -402,7 +402,7 @@ static void on_error(struct notification_conn_t *conn, const char *prefix,
                      const char *err)
 {
     ASSERT(err != NULL);
-    // LOGW("%s:%s", prefix, err);
+    // H2O_LOGW("%s:%s", prefix, err);
     callback_on_on_finish(conn, err);
     release_notification_conn(conn);
 }
@@ -701,7 +701,7 @@ static void init_openssl(struct libh2o_http_client_ctx_t *c)
                 c->ssl_ctx, c->client_init.ssl_init.cli_cert_file, type);
             ASSERT(rc > 0);
             if (rc <= 0) {
-                LOGW("Error setting the certificate file");
+                H2O_LOGW("Error setting the certificate file");
                 goto ERROR;
             }
         }
@@ -719,7 +719,7 @@ static void init_openssl(struct libh2o_http_client_ctx_t *c)
                 c->ssl_ctx, c->client_init.ssl_init.cli_key_file, type);
             ASSERT(rc > 0);
             if (rc <= 0) {
-                LOGW("Error setting the key file");
+                H2O_LOGW("Error setting the key file");
                 goto ERROR;
             }
 
@@ -727,7 +727,7 @@ static void init_openssl(struct libh2o_http_client_ctx_t *c)
             rc = SSL_CTX_check_private_key(c->ssl_ctx);
             ASSERT(rc > 0);
             if (rc <= 0) {
-                LOGW("Private key does not match the certificate public key");
+                H2O_LOGW("Private key does not match the certificate public key");
                 goto ERROR;
             }
         }
@@ -848,20 +848,20 @@ libh2o_http_client_start(const struct http_client_init_t *client_init)
 
     if (client_init->ssl_init.cli_cert_file &&
         !client_init->ssl_init.cli_key_file) {
-        LOGW("missing client key file");
+        H2O_LOGW("missing client key file");
         return NULL;
     }
 
     if (client_init->ssl_init.cli_key_file &&
         !client_init->ssl_init.cli_cert_file) {
-        LOGW("missing client certificate file");
+        H2O_LOGW("missing client certificate file");
         return NULL;
     }
 
     if (client_init->ssl_init.cli_cert_file ||
         client_init->ssl_init.cli_key_file) {
         if (!client_init->ssl_init.cert_file) {
-            LOGW("missing server certificate file");
+            H2O_LOGW("missing server certificate file");
             return NULL;
         }
     }
@@ -995,7 +995,7 @@ void libh2o_http_evloop_stop_timer(struct libh2o_http_client_ctx_t *c,
 static int cb_http_client_on_connected(void *param,
                                        const struct http_client_handle_t *clih)
 {
-    // LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
+    // H2O_LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
     return 0;
 }
 
@@ -1006,7 +1006,7 @@ static int cb_http_client_on_head(void *param, int version, int status,
 {
 #if 0
     size_t i;
-    LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
+    H2O_LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
     printf("HTTP/%d", (version >> 8));
     if ((version & 0xff) != 0) {
         printf(".%d", version & 0xff);
@@ -1030,7 +1030,7 @@ static int cb_http_client_on_head(void *param, int version, int status,
 static int cb_http_client_on_body(void *param, void *buf, size_t len,
                                   const struct http_client_handle_t *clih)
 {
-    // LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
+    // H2O_LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
     // fwrite(buf, 1, len, stdout);
     return 0;
 }
@@ -1039,7 +1039,7 @@ static void cb_http_client_on_finish(void *param, const char *err,
                                      const struct data_statistics_t *statistics,
                                      const struct http_client_handle_t *clih)
 {
-    LOGV("%s() @line: %d err: %s", __FUNCTION__, __LINE__, err);
+    H2O_LOGV("%s() @line: %d err: %s", __FUNCTION__, __LINE__, err);
 }
 
 int libh2o_http_client_test(int argc, char **argv)

@@ -46,7 +46,7 @@ int H2oHttpClient::cb_http_client_on_connected(
     void *param, const struct http_client_handle_t *clih)
 {
     H2oHttpClient *_this = (H2oHttpClient *)param;
-    LOGV("H2oHttpClient %s() @line: %d clih: %p %u", __FUNCTION__,
+    H2O_LOGV("H2oHttpClient %s() @line: %d clih: %p %u", __FUNCTION__,
               __LINE__, clih, clih->serial);
     return _this->on_connected(clih);
 }
@@ -57,7 +57,7 @@ int H2oHttpClient::cb_http_client_on_head(
     const struct http_client_handle_t *clih)
 {
     H2oHttpClient *_this = (H2oHttpClient *)param;
-    LOGV("H2oHttpClient %s() @line: %d clih: %p %u", __FUNCTION__,
+    H2O_LOGV("H2oHttpClient %s() @line: %d clih: %p %u", __FUNCTION__,
               __LINE__, clih, clih->serial);
     return _this->on_head(version, status, msg, headers, num_headers, clih);
 }
@@ -66,7 +66,7 @@ int H2oHttpClient::cb_http_client_on_body(
     void *param, void *buf, size_t len, const struct http_client_handle_t *clih)
 {
     H2oHttpClient *_this = (H2oHttpClient *)param;
-    LOGV("H2oHttpClient %s() @line: %d clih: %p %u", __FUNCTION__,
+    H2O_LOGV("H2oHttpClient %s() @line: %d clih: %p %u", __FUNCTION__,
               __LINE__, clih, clih->serial);
     return _this->on_body(buf, len, clih);
 }
@@ -116,7 +116,7 @@ H2oHttpClient::H2oHttpClient(bool async, const char *cert_file,
                              uint32_t timeout, uint32_t connect_timeout)
     : IClient(async), mutex_(), cond_(), client_ctx_(NULL), reqs_()
 {
-    LOGV("H2oHttpClient::H2oHttpClient()");
+    H2O_LOGV("H2oHttpClient::H2oHttpClient()");
     /* client init param */
     struct http_client_init_t client_init;
     memset(&client_init, 0x00, sizeof(client_init));
@@ -140,14 +140,14 @@ H2oHttpClient::H2oHttpClient(bool async, const char *cert_file,
 
 H2oHttpClient::~H2oHttpClient()
 {
-    LOGV("H2oHttpClient::~H2oHttpClient() in");
+    H2O_LOGV("H2oHttpClient::~H2oHttpClient() in");
     if (client_ctx_ != NULL) {
         struct libh2o_http_client_ctx_t *tmp = client_ctx_;
         client_ctx_ = NULL;
         libh2o_http_client_stop(tmp);
     }
     ASSERT(reqs_.empty());
-    LOGV("H2oHttpClient::~H2oHttpClient() out");
+    H2O_LOGV("H2oHttpClient::~H2oHttpClient() out");
 }
 
 int H2oHttpClient::on_connected(const struct http_client_handle_t *clih)
@@ -236,7 +236,7 @@ void H2oHttpClient::on_finish(const char *err,
     struct http_client_status_t *p = NULL;
 
     if (err && err != h2o_httpclient_error_is_eos) {
-        LOGI("H2oHttpClient::on_finish serial=%u err='%s'", clih->serial,
+        H2O_LOGI("H2oHttpClient::on_finish serial=%u err='%s'", clih->serial,
                   err);
     }
     {
@@ -339,12 +339,12 @@ int H2oHttpClient::DoRequest(const struct cli_req_t *_req,
             cond_.wait(mutex_);
         }
     }
-    LOGV("H2oHttpClient::DoRequest(%s) OK", req->req.url);
+    H2O_LOGV("H2oHttpClient::DoRequest(%s) OK", req->req.url);
     cli->id = serial;
     return SUCCESS;
 
 error:
-    LOGW("H2oHttpClient::DoRequest() error");
+    H2O_LOGW("H2oHttpClient::DoRequest() error");
     cli->id = CLI_INVALID_ID;
     return FAILURE;
 }
@@ -353,7 +353,7 @@ int H2oHttpClient::Cancel(const struct cli_identity_t *cli)
 {
     xmap<uint32_t, struct http_client_status_t *>::iterator it;
 
-    LOGV("H2oHttpClient::Cancel()");
+    H2O_LOGV("H2oHttpClient::Cancel()");
     if (cli == NULL) return FAILURE;
     if (cli->id == CLI_INVALID_ID) return FAILURE;
 

@@ -84,10 +84,10 @@ void libh2o_show_socket_err(const char *prefix, int fd)
     int so_err = 0;
     socklen_t l = sizeof(so_err);
     if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &so_err, &l) != 0) {
-        LOGW("%s:getsockopt(%d) error: %d %s", prefix, fd, errno,
+        H2O_LOGW("%s:getsockopt(%d) error: %d %s", prefix, fd, errno,
              strerror(errno));
     } else if (so_err != 0) {
-        LOGW("%s:getsockopt(%d) error: %d %s", prefix, fd, so_err,
+        H2O_LOGW("%s:getsockopt(%d) error: %d %s", prefix, fd, so_err,
              strerror(so_err));
     } else {
         /* No error */

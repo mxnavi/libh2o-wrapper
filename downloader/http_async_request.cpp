@@ -37,7 +37,7 @@ int HttpAsyncRequest::cli_callback(void *user, int evt, void *data,
                                    const struct cli_identity_t *cli)
 {
     HttpAsyncRequest *_this = (HttpAsyncRequest *)user;
-    LOGV(
+    H2O_LOGV(
         "HttpAsyncRequest: cli_callback: evt=0x%08x data=%p length=%zu id=%u",
         evt, data, length, cli->id);
     switch (evt) {
@@ -64,19 +64,19 @@ int HttpAsyncRequest::on_finish(const char *err)
 {
     Mutex::Autolock _l(mutex_);
     struct http_req_meta_t *meta = &meta_;
-    LOGD("HttpAsyncRequest::on_finish() status=%d version=0x%x body=(%p "
+    H2O_LOGD("HttpAsyncRequest::on_finish() status=%d version=0x%x body=(%p "
               "%zu) '%.*s'",
               meta->status, meta->version, meta->body.entries, meta->body.size,
               (int)meta->body.size, meta->body.entries);
     meta->state = CLI_EVT_CLOSED;
     if (err && err != h2o_httpclient_error_is_eos) {
         meta->network_error = err;
-        LOGI("HttpAsyncRequest: err='%s'", err);
+        H2O_LOGI("HttpAsyncRequest: err='%s'", err);
     }
 #ifdef ENABLE_TEST
     if (!is_status_ok()) {
         if (meta->content_type_text && meta->body.size > 0) {
-            LOGD("HttpAsyncRequest: response body='%.*s'",
+            H2O_LOGD("HttpAsyncRequest: response body='%.*s'",
                       MIN_T((int)meta->body.size, LOG_MAX_MSG_SIZE),
                       meta->body.entries);
         }
@@ -90,7 +90,7 @@ int HttpAsyncRequest::on_head(int version, int status, h2o_iovec_t msg,
                               const h2o_headers_t *headers)
 {
     struct http_req_meta_t *meta = &meta_;
-    LOGV("HttpAsyncRequest::on_head() status=%d version=%d", status,
+    H2O_LOGV("HttpAsyncRequest::on_head() status=%d version=%d", status,
               version);
     meta->status = status;
     meta->version = version;
@@ -102,7 +102,7 @@ int HttpAsyncRequest::on_head(int version, int status, h2o_iovec_t msg,
         if (index != -1) {
             const char *name = headers->entries[index].orig_name;
             if (name == NULL) name = headers->entries[index].name->base;
-            LOGV("%.*s: %.*s", (int)headers->entries[index].name->len,
+            H2O_LOGV("%.*s: %.*s", (int)headers->entries[index].name->len,
                       name, (int)headers->entries[index].value.len,
                       headers->entries[index].value.base);
             h2o_iovec_t value =
@@ -119,7 +119,7 @@ int HttpAsyncRequest::on_head(int version, int status, h2o_iovec_t msg,
         if (index != -1) {
             const char *name = headers->entries[index].orig_name;
             if (name == NULL) name = headers->entries[index].name->base;
-            LOGV("%.*s: %.*s", (int)headers->entries[index].name->len,
+            H2O_LOGV("%.*s: %.*s", (int)headers->entries[index].name->len,
                       name, (int)headers->entries[index].value.len,
                       headers->entries[index].value.base);
             if (h2o_strstr(headers->entries[index].value.base,
@@ -232,13 +232,13 @@ int HttpAsyncRequest::DoHttpAsyncRequest(const struct http_client_req_t *req)
     }
 
     if (!http_client_->IsAsync()) {
-        LOGW("http client context is sync");
+        H2O_LOGW("http client context is sync");
         return FAILURE;
     }
 
     {
         Mutex::Autolock _l(mutex_);
-        LOGD("HttpAsyncRequest: doing '%s %.*s'",
+        H2O_LOGD("HttpAsyncRequest: doing '%s %.*s'",
                   req->method ? req->method : "GET", LOG_MAX_MSG_SIZE,
                   req->url);
 

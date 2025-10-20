@@ -8,8 +8,8 @@
  *   MEMO        :
  *****************************************************************************/
 
-#define LOG_TAG "libh2o"
-// #define LOG_NDEBUG 0
+#define H2O_LOG_TAG "libh2o"
+// #define H2O_LOG_NDEBUG 0
 /****************************************************************************
  *                       Include File Section                                *
  *****************************************************************************/
@@ -44,5 +44,5 @@ void libh2o_error_printf(const char *format, ...)
     va_start(args, format);
     vsnprintf(buf, sizeof(buf), format, args);
     va_end(args);
-    LOGW("libh2o error: %s", buf);
+    H2O_LOGW("libh2o error: %s", buf);
 }

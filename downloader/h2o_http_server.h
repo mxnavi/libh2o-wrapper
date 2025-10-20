@@ -21,6 +21,7 @@
 #include <common_defines.h>
 using namespace foundation;
 
+#include <libh2o_log.h>
 #include <libh2o_http_server/libh2o_http_server.h>
 
 /*****************************************************************************

@@ -47,7 +47,7 @@ extern "C" {
         } else {                                                               \
             r += snprintf(__buf + r, sizeof(__buf) - r, "\n");                 \
         }                                                                      \
-        LOGI("%.*s", r, __buf);                                                \
+        H2O_LOGI("%.*s", r, __buf);                                                \
     } while (0)
 
 #define SHOW_RESPONSE_HEADERS(version, status, msg, headers, num_headers)      \
@@ -56,7 +56,7 @@ extern "C" {
         for (size_t i = 0; i != num_headers; ++i) {                            \
             const char *name = headers[i].orig_name;                           \
             if (name == NULL) name = headers[i].name->base;                    \
-            LOGI("%.*s: %.*s\n", (int)headers[i].name->len, name,              \
+            H2O_LOGI("%.*s: %.*s\n", (int)headers[i].name->len, name,              \
                  (int)headers[i].value.len, headers[i].value.base);            \
         }                                                                      \
     } while (0)

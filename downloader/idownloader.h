@@ -36,11 +36,11 @@ extern "C" {
         if (m->range > 0) {                                                    \
             struct stat sb;                                                    \
             if (stat(m->save_path, &sb) == -1) {                               \
-                LOGW("stat(%s) error: %s, force 0 range", m->save_path,   \
+                H2O_LOGW("stat(%s) error: %s, force 0 range", m->save_path,   \
                           strerror(errno));                                    \
                 m->range = 0;                                                  \
             } else if (sb.st_size < m->range) {                                \
-                LOGW("invalid range: %zu, force 0 range", m->range);      \
+                H2O_LOGW("invalid range: %zu, force 0 range", m->range);      \
                 m->range = 0;                                                  \
             }                                                                  \
         }                                                                      \

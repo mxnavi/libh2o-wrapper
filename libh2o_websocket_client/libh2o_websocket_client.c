@@ -14,8 +14,8 @@
 
 // #define LOG_NDEBUG 0
 /****************************************************************************
-*                       Include File Section                                *
-*****************************************************************************/
+ *                       Include File Section                                *
+ *****************************************************************************/
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -182,7 +182,7 @@ notify_thread_connect(struct libh2o_websocket_client_ctx_t *c,
     } while (msg->clih.serial == 0);
     msg->clih.user = user;
 #ifdef DEBUG_SERIAL
-    LOGV("create serial: %u", msg->clih.serial);
+    H2O_LOGV("create serial: %u", msg->clih.serial);
 #endif
 
     dup_req(&msg->req, req);
@@ -205,7 +205,7 @@ static void notify_thread_data(struct notification_conn_t *conn,
 #ifdef ENABLE_DATA_SERIAL
     msg->serial = (uint64_t)conn->clih.serial << 32 |
                   __sync_add_and_fetch(&conn->serial_counter, 1);
-// LOGV("create data serial: %lld", (long long)msg->serial);
+// H2O_LOGV("create data serial: %lld", (long long)msg->serial);
 #endif
 
     h2o_multithread_send_message(&msg->cmn.c->notifications, &msg->cmn.super);
@@ -227,7 +227,7 @@ static void notify_thread_release(struct notification_conn_t *conn)
 static void release_notification_data(struct notification_data_t *msg)
 {
 #ifdef ENABLE_DATA_SERIAL
-// LOGV("release data serial: %lld", (long long)msg->serial);
+// H2O_LOGV("release data serial: %lld", (long long)msg->serial);
 #endif
     if (h2o_linklist_is_linked(&msg->cmn.super.link)) {
         h2o_linklist_unlink(&msg->cmn.super.link);
@@ -257,7 +257,7 @@ static void release_pending_data_linklist(struct notification_conn_t *conn,
 static void release_notification_conn(struct notification_conn_t *conn)
 {
 #ifdef DEBUG_SERIAL
-    LOGV("release serial: %u", conn->clih.serial);
+    H2O_LOGV("release serial: %u", conn->clih.serial);
 #endif
     if (h2o_timer_is_linked(&conn->_timeout)) {
         h2o_timer_unlink(&conn->_timeout);
@@ -371,7 +371,7 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
                 callback_on_sent(conn, data->data.base, data->data.len, 1);
                 release_notification_data(data);
             } else {
-                LOGW("caller want to send data without connection");
+                H2O_LOGW("caller want to send data without connection");
                 h2o_linklist_insert(&conn->pending, &msg->link);
             }
         } else if (cmn->cmd == NOTIFICATION_CONN) {
@@ -381,7 +381,7 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
             /* parse URL */
             if (h2o_url_parse(conn->req.url, SIZE_MAX, &conn->url_parsed) !=
                 0) {
-                LOGW("unrecognized type of URL: %s", conn->req.url);
+                H2O_LOGW("unrecognized type of URL: %s", conn->req.url);
                 on_error(conn, "on_notification", "URL error");
                 continue;
             }
@@ -395,7 +395,7 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
             struct notification_conn_t *conn = data->conn;
             conn->cmn.cmd = NOTIFICATION_CLOSE;
             if (conn->wsconn == NULL) {
-                LOGW("caller want to close without connection");
+                H2O_LOGW("caller want to close without connection");
             } else {
                 queue_websocket_close_cb(conn, NULL);
             }
@@ -499,7 +499,7 @@ static void on_error(struct notification_conn_t *conn, const char *prefix,
 {
     struct libh2o_websocket_client_ctx_t *c;
     ASSERT(err != NULL);
-    LOGW("%s:%s", prefix, err);
+    H2O_LOGW("%s:%s", prefix, err);
 
     /* if connec timeout pending, unlink it first */
     if (h2o_timer_is_linked(&conn->_timeout)) {
@@ -526,7 +526,7 @@ static void on_ws_message(h2o_websocket_client_conn_t *_conn,
         return;
     }
 
-    // LOGV("on_ws_message() opcode: %d", arg->opcode);
+    // H2O_LOGV("on_ws_message() opcode: %d", arg->opcode);
     if (!wslay_is_ctrl_frame(arg->opcode)) {
         callback_on_recv(conn, (void *)arg->msg, arg->msg_length);
     }
@@ -546,7 +546,7 @@ h2o_httpclient_body_cb on_head(h2o_httpclient_t *client, const char *errstr,
 
 #if 0
     size_t i;
-    LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
+    H2O_LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
     printf("HTTP/%d", (version >> 8));
     if ((version & 0xff) != 0) {
         printf(".%d", version & 0xff);
@@ -616,15 +616,15 @@ on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *_method,
     ASSERT(*num_headers > 0);
     ASSERT(_headers != NULL);
 #if 0
-    LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
-    LOGV("method: %s", _method->base);
+    H2O_LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
+    H2O_LOGV("method: %s", _method->base);
     size_t i;
 
     for (i = 0; i != *num_headers; ++i)
         printf("%.*s: %.*s\n", (int)_headers[i].name->len, _headers[i].name->base, (int)_headers[i].value.len,
                _headers[i].value.base);
     printf("\n");
-    LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
+    H2O_LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
 #endif
     *headers = _headers;
     *body = h2o_iovec_init(NULL, 0);
@@ -670,7 +670,7 @@ static void init_openssl(struct libh2o_websocket_client_ctx_t *c)
                 c->ssl_ctx, c->client_init.ssl_init.cli_cert_file, type);
             ASSERT(rc > 0);
             if (rc <= 0) {
-                LOGW("Error setting the certificate file");
+                H2O_LOGW("Error setting the certificate file");
                 goto ERROR;
             }
         }
@@ -688,7 +688,7 @@ static void init_openssl(struct libh2o_websocket_client_ctx_t *c)
                 c->ssl_ctx, c->client_init.ssl_init.cli_key_file, type);
             ASSERT(rc > 0);
             if (rc <= 0) {
-                LOGW("Error setting the key file");
+                H2O_LOGW("Error setting the key file");
                 goto ERROR;
             }
 
@@ -696,7 +696,7 @@ static void init_openssl(struct libh2o_websocket_client_ctx_t *c)
             rc = SSL_CTX_check_private_key(c->ssl_ctx);
             ASSERT(rc > 0);
             if (rc <= 0) {
-                LOGW("Private key does not match the certificate public key");
+                H2O_LOGW("Private key does not match the certificate public key");
                 goto ERROR;
             }
         }
@@ -801,20 +801,20 @@ libh2o_websocket_client_start(const struct websocket_client_init_t *client_init)
 
     if (client_init->ssl_init.cli_cert_file &&
         !client_init->ssl_init.cli_key_file) {
-        LOGW("missing client key file");
+        H2O_LOGW("missing client key file");
         return NULL;
     }
 
     if (client_init->ssl_init.cli_key_file &&
         !client_init->ssl_init.cli_cert_file) {
-        LOGW("missing client certificate file");
+        H2O_LOGW("missing client certificate file");
         return NULL;
     }
 
     if (client_init->ssl_init.cli_cert_file ||
         client_init->ssl_init.cli_key_file) {
         if (!client_init->ssl_init.cert_file) {
-            LOGW("missing server certificate file");
+            H2O_LOGW("missing server certificate file");
             return NULL;
         }
     }
@@ -924,7 +924,7 @@ static void
 cb_websocket_client_on_connected(void *param,
                                  const struct websocket_client_handle_t *clih)
 {
-    LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
+    H2O_LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
     struct websock_clients_t *clients = param;
     int i;
     for (i = 0; i < clients->nclients; ++i) {
@@ -939,7 +939,7 @@ static void
 cb_websocket_client_on_handshaked(void *param,
                                   const struct websocket_client_handle_t *clih)
 {
-    LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
+    H2O_LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
     struct websock_clients_t *clients = param;
     int i;
     for (i = 0; i < clients->nclients; ++i) {
@@ -972,7 +972,7 @@ static void
 cb_websocket_client_on_closed(void *param, const char *err,
                               const struct websocket_client_handle_t *clih)
 {
-    LOGV("%s() @line: %d err: %s", __FUNCTION__, __LINE__, err ? err : "");
+    H2O_LOGV("%s() @line: %d err: %s", __FUNCTION__, __LINE__, err ? err : "");
     struct websock_clients_t *clients = param;
     int i;
     for (i = 0; i < clients->nclients; ++i) {

@@ -37,7 +37,7 @@ int HttpAsyncStreamingRequest::cli_callback(void *user, int evt, void *data,
                                             const struct cli_identity_t *cli)
 {
     HttpAsyncStreamingRequest *_this = (HttpAsyncStreamingRequest *)user;
-    LOGV("HttpAsyncStreamingRequest: cli_callback: evt=0x%08x data=%p "
+    H2O_LOGV("HttpAsyncStreamingRequest: cli_callback: evt=0x%08x data=%p "
               "length=%zu id=%u",
               evt, data, length, cli->id);
     switch (evt) {
@@ -67,7 +67,7 @@ int HttpAsyncStreamingRequest::cli_callback(void *user, int evt, void *data,
 int HttpAsyncStreamingRequest::on_finish(const char *err)
 {
     struct http_req_meta_t *meta = &meta_;
-    LOGD("HttpAsyncStreamingRequest::on_finish() status=%d version=0x%x "
+    H2O_LOGD("HttpAsyncStreamingRequest::on_finish() status=%d version=0x%x "
               "streaming=%d body=(%p %zu)",
               meta->status, meta->version, streaming_, meta->body.entries,
               meta->body.size);
@@ -93,7 +93,7 @@ int HttpAsyncStreamingRequest::on_head(int version, int status, h2o_iovec_t msg,
                                        const h2o_headers_t *headers)
 {
     struct http_req_meta_t *meta = &meta_;
-    LOGV("HttpAsyncStreamingRequest::on_head() status=%d version=%d",
+    H2O_LOGV("HttpAsyncStreamingRequest::on_head() status=%d version=%d",
               status, version);
     meta->status = status;
     meta->version = version;
@@ -169,12 +169,12 @@ int HttpAsyncStreamingRequest::DoHttpAsyncStreamingRequest(
         return FAILURE;
     }
     if (!http_client_->IsAsync()) {
-        LOGW("http client context is sync");
+        H2O_LOGW("http client context is sync");
         return FAILURE;
     }
 
     {
-        LOGD("HttpAsyncStreamingRequest: doing '%s %.*s'",
+        H2O_LOGD("HttpAsyncStreamingRequest: doing '%s %.*s'",
                   req->method ? req->method : "GET", LOG_MAX_MSG_SIZE,
                   req->url);
 

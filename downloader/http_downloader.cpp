@@ -22,12 +22,12 @@
  *****************************************************************************/
 #define CONTENT_CHANGED(meta)                                                  \
     do {                                                                       \
-        LOGI("%s content changed, range=%zu", (meta)->super.url,          \
+        H2O_LOGI("%s content changed, range=%zu", (meta)->super.url,          \
                   (meta)->super.range);                                        \
         (meta)->super.range = 0;                                               \
         lseek((meta)->fd, 0, SEEK_SET);                                        \
         if (ftruncate((meta)->fd, (meta)->super.range) < 0) {                  \
-            LOGW("ftruncate error: %s", strerror(errno));                 \
+            H2O_LOGW("ftruncate error: %s", strerror(errno));                 \
             return -1;                                                         \
         }                                                                      \
     } while (0)
@@ -79,7 +79,7 @@ int HttpDownloader::cli_callback(void *user, int evt, void *data, size_t length,
                                  const struct cli_identity_t *cli)
 {
     HttpDownloader *_this = (HttpDownloader *)user;
-    LOGV(
+    H2O_LOGV(
         "HttpDownloader: cli_callback: evt=0x%08x data=%p length=%zu id=%u",
         evt, data, length, cli->id);
     switch (evt) {
@@ -114,7 +114,7 @@ int HttpDownloader::on_finish(const char *err)
         }
     }
     if (is_dl_ok(&meta->super) && meta->state > 0) {
-        LOGD("HttpDownloader: '%s' range=%zu len=%zu OK, ETag: '%s' "
+        H2O_LOGD("HttpDownloader: '%s' range=%zu len=%zu OK, ETag: '%s' "
                   "coding=%u max_age=%u",
                   meta->super.url, meta->super.range, meta->super.len,
                   meta->super.http.etag, meta->super.http.coding,
@@ -125,7 +125,7 @@ int HttpDownloader::on_finish(const char *err)
     if (err && err != h2o_httpclient_error_is_eos) {
         meta->super.network_error = err;
     }
-    LOGW("HttpDownloader: '%s' range=%zu len=%zu error '%s'",
+    H2O_LOGW("HttpDownloader: '%s' range=%zu len=%zu error '%s'",
               meta->super.url, meta->super.range, meta->super.len,
               meta->super.network_error ? meta->super.network_error : "");
     return call_dl_cb(&meta->super, DL_EVT_ERROR);
@@ -137,25 +137,25 @@ int HttpDownloader::on_head(int version, int status, h2o_iovec_t msg,
     struct http_dl_meta_t *meta = &meta_;
     meta->super.http.status = status;
 
-    LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
+    H2O_LOGV("%s() @line: %d", __FUNCTION__, __LINE__);
 
     const h2o_header_t *headers = _headers->entries;
     if (status == 206) { /* Partial Content */
         ssize_t index = h2o_find_header(_headers, H2O_TOKEN_CONTENT_RANGE, -1);
         if (index == -1) {
-            LOGW("missing header: %s", H2O_TOKEN_CONTENT_RANGE->buf.base);
+            H2O_LOGW("missing header: %s", H2O_TOKEN_CONTENT_RANGE->buf.base);
             return -1;
         } else {
             const char *name = headers[index].orig_name;
             if (name == NULL) name = headers[index].name->base;
-            LOGD("%.*s: %.*s", (int)headers[index].name->len, name,
+            H2O_LOGD("%.*s: %.*s", (int)headers[index].name->len, name,
                       (int)headers[index].value.len, headers[index].value.base);
             const char *len_str = strchr(headers[index].value.base, '/');
             if (len_str != NULL) {
                 len_str += 1;
                 size_t len_sz = headers[index].value.len -
                                 (len_str - headers[index].value.base);
-                // LOGD("%.*s", len_sz, len_str);
+                // H2O_LOGD("%.*s", len_sz, len_str);
                 size_t len = h2o_strtosize(len_str, len_sz);
                 if (len == SIZE_MAX) {
                     ASSERT(0);
@@ -175,10 +175,10 @@ int HttpDownloader::on_head(int version, int status, h2o_iovec_t msg,
         }
         ssize_t index = h2o_find_header(_headers, H2O_TOKEN_CONTENT_LENGTH, -1);
         if (index == -1) {
-            LOGW("missing header: %s", H2O_TOKEN_CONTENT_LENGTH->buf.base);
+            H2O_LOGW("missing header: %s", H2O_TOKEN_CONTENT_LENGTH->buf.base);
             index = h2o_find_header(_headers, H2O_TOKEN_TRANSFER_ENCODING, -1);
             if (index == -1) {
-                LOGW("missing header: %s",
+                H2O_LOGW("missing header: %s",
                           H2O_TOKEN_TRANSFER_ENCODING->buf.base);
                 return -1;
             }
@@ -191,13 +191,13 @@ int HttpDownloader::on_head(int version, int status, h2o_iovec_t msg,
                 }
                 meta->chunked = 0x01;
             } else {
-                LOGW("not chunked");
+                H2O_LOGW("not chunked");
                 return -1;
             }
         } else {
             const char *name = headers[index].orig_name;
             if (name == NULL) name = headers[index].name->base;
-            LOGD("%.*s: %.*s", (int)headers[index].name->len, name,
+            H2O_LOGD("%.*s: %.*s", (int)headers[index].name->len, name,
                       (int)headers[index].value.len, headers[index].value.base);
             meta->super.len = h2o_strtosize(headers[index].value.base,
                                             headers[index].value.len);
@@ -209,7 +209,7 @@ int HttpDownloader::on_head(int version, int status, h2o_iovec_t msg,
                 CONTENT_CHANGED(meta);
             }
             if (doFallocate(meta->fd, 0, (off_t)meta->super.len) != 0) {
-                LOGW("fallocate error: %s", strerror(errno));
+                H2O_LOGW("fallocate error: %s", strerror(errno));
             }
         }
     } else if (status == 204) { /* No Content */
@@ -225,42 +225,42 @@ int HttpDownloader::on_head(int version, int status, h2o_iovec_t msg,
                || (status == 301) /* Moved Permanetly */) {
         ssize_t index = h2o_find_header(_headers, H2O_TOKEN_LOCATION, -1);
         if (index == -1) {
-            LOGW("missing header: %s", H2O_TOKEN_LOCATION->buf.base);
+            H2O_LOGW("missing header: %s", H2O_TOKEN_LOCATION->buf.base);
             meta->super.url[0] = '\0';
         } else {
             const char *name = headers[index].orig_name;
             if (name == NULL) name = headers[index].name->base;
-            LOGV("%.*s: %.*s", (int)headers[index].name->len, name,
+            H2O_LOGV("%.*s: %.*s", (int)headers[index].name->len, name,
                       (int)headers[index].value.len, headers[index].value.base);
             if (headers[index].value.len < sizeof(meta->super.url)) {
                 snprintf(meta->super.url, sizeof(meta->super.url), "%.*s",
                          (int)headers[index].value.len,
                          headers[index].value.base);
-                LOGV("url='%s'", meta->super.url);
+                H2O_LOGV("url='%s'", meta->super.url);
             } else {
-                LOGW("location size=%zu too big",
+                H2O_LOGW("location size=%zu too big",
                           headers[index].value.len);
                 meta->super.url[0] = '\0';
             }
         }
         return -1;
     } else {
-        LOGW("unexpected status: %d", status);
+        H2O_LOGW("unexpected status: %d", status);
         return -1;
     }
 
     if (meta->super.http.want_etag) {
         ssize_t index = h2o_find_header(_headers, H2O_TOKEN_ETAG, -1);
         if (index == -1) {
-            LOGW("missing header: '%s'", H2O_TOKEN_ETAG->buf.base);
+            H2O_LOGW("missing header: '%s'", H2O_TOKEN_ETAG->buf.base);
         } else {
             const char *name = headers[index].orig_name;
             if (name == NULL) name = headers[index].name->base;
-            LOGD("%.*s: %.*s", (int)headers[index].name->len, name,
+            H2O_LOGD("%.*s: %.*s", (int)headers[index].name->len, name,
                       (int)headers[index].value.len, headers[index].value.base);
             size_t etag_len = headers[index].value.len;
             if (etag_len >= sizeof(meta->super.http.etag)) {
-                LOGW("etag too long, etag_len=%zu + 1 > %zu", etag_len,
+                H2O_LOGW("etag too long, etag_len=%zu + 1 > %zu", etag_len,
                           sizeof(meta->super.http.etag));
             } else {
                 strncpy(meta->super.http.etag, headers[index].value.base,
@@ -274,13 +274,13 @@ int HttpDownloader::on_head(int version, int status, h2o_iovec_t msg,
         ssize_t index =
             h2o_find_header(_headers, H2O_TOKEN_CONTENT_ENCODING, -1);
         if (index == -1) {
-            LOGW("missing header: '%s'",
+            H2O_LOGW("missing header: '%s'",
                       H2O_TOKEN_CONTENT_ENCODING->buf.base);
             meta->super.http.coding = __CODING_INVALID;
         } else {
             const char *name = headers[index].orig_name;
             if (name == NULL) name = headers[index].name->base;
-            LOGD("%.*s: %.*s", (int)headers[index].name->len, name,
+            H2O_LOGD("%.*s: %.*s", (int)headers[index].name->len, name,
                       (int)headers[index].value.len, headers[index].value.base);
             size_t coding_len = headers[index].value.len;
             if (h2o_memis(headers[index].value.base, coding_len,
@@ -298,12 +298,12 @@ int HttpDownloader::on_head(int version, int status, h2o_iovec_t msg,
     if (meta->super.http.want_cache_control) {
         ssize_t index = h2o_find_header(_headers, H2O_TOKEN_CACHE_CONTROL, -1);
         if (index == -1) {
-            LOGW("missing header: '%s'",
+            H2O_LOGW("missing header: '%s'",
                       H2O_TOKEN_CACHE_CONTROL->buf.base);
         } else {
             const char *name = headers[index].orig_name;
             if (name == NULL) name = headers[index].name->base;
-            LOGD("%.*s: %.*s", (int)headers[index].name->len, name,
+            H2O_LOGD("%.*s: %.*s", (int)headers[index].name->len, name,
                       (int)headers[index].value.len, headers[index].value.base);
             size_t cache_control_len = headers[index].value.len;
             size_t off;
@@ -336,7 +336,7 @@ int HttpDownloader::on_head(int version, int status, h2o_iovec_t msg,
 #endif
     if (meta->notify_size < HTTP_DOWNLOADER_NOTIFY_MIN_SIZE)
         meta->notify_size = HTTP_DOWNLOADER_NOTIFY_MIN_SIZE;
-    LOGV("notify_size: %zu", meta->notify_size);
+    H2O_LOGV("notify_size: %zu", meta->notify_size);
     if (meta->super.http.want_speed) {
         meta->notify_time = systemTime();
     }
@@ -349,7 +349,7 @@ int HttpDownloader::on_body(void *buf, size_t len)
     ASSERT(meta->fd > 0);
     if (!isHttpStatusOkOrPartialContent(&meta->super)) {
 #ifdef ENABLE_TEST
-        LOGD("body='%.*s'", (int)len, (char *)buf);
+        H2O_LOGD("body='%.*s'", (int)len, (char *)buf);
 #endif
         return 0;
     }
@@ -359,7 +359,7 @@ int HttpDownloader::on_body(void *buf, size_t len)
         ssize_t rc = TEMP_FAILURE_RETRY(
             write(meta->fd, (char *)buf + (len - left), left));
         if (rc < 0) {
-            LOGW("write error: %s", strerror(errno));
+            H2O_LOGW("write error: %s", strerror(errno));
             return -1;
         }
         left -= rc;
@@ -431,12 +431,12 @@ int HttpDownloader::DownloadFile(const struct dl_meta_t *m)
         return FAILURE;
     }
 
-    LOGD("HttpDownloader: '%s' to '%s' range=%zu len=%zu", m->url,
+    H2O_LOGD("HttpDownloader: '%s' to '%s' range=%zu len=%zu", m->url,
               m->save_path, m->range, m->len);
 
     if (m->range > 0 && m->range == m->len) {
         if (m->http.etag[0] == '\0') {
-            LOGW("missing ETag");
+            H2O_LOGW("missing ETag");
             return FAILURE;
         }
     }
@@ -446,15 +446,15 @@ int HttpDownloader::DownloadFile(const struct dl_meta_t *m)
         if (fd == -1) {
             struct stat sb;
             if (stat(m->save_path, &sb) == -1) {
-                LOGW("stat(%s) error: %s", m->save_path, strerror(errno));
+                H2O_LOGW("stat(%s) error: %s", m->save_path, strerror(errno));
                 return FAILURE;
             } else if (sb.st_size < m->range) {
-                LOGW("inavlid range: %zu", m->range);
+                H2O_LOGW("inavlid range: %zu", m->range);
                 return FAILURE;
             }
             fd = open(m->save_path, O_RDWR | O_CLOEXEC);
             if (fd < 0) {
-                LOGW("open(%s) error: %s", m->save_path, strerror(errno));
+                H2O_LOGW("open(%s) error: %s", m->save_path, strerror(errno));
                 return FAILURE;
             }
         }
@@ -476,7 +476,7 @@ int HttpDownloader::DownloadFile(const struct dl_meta_t *m)
     if (m->range > 0) {
         if (m->range != m->len) {
             if (ftruncate(fd, m->range) < 0) {
-                LOGW("ftruncate error: %s", strerror(errno));
+                H2O_LOGW("ftruncate error: %s", strerror(errno));
                 goto error;
             }
         }
