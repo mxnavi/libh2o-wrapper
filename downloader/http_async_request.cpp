@@ -99,6 +99,9 @@ int HttpAsyncRequest::on_head(int version, int status, h2o_iovec_t msg,
         const h2o_token_t *token = meta->tokens[i];
         if (!token) break;
         ssize_t index = h2o_find_header(headers, token, -1);
+        if (index == -1)
+            index = h2o_find_header_by_str(headers, token->buf.base,
+                                           token->buf.len, -1);
         if (index != -1) {
             const char *name = headers->entries[index].orig_name;
             if (name == NULL) name = headers->entries[index].name->base;
@@ -176,6 +179,9 @@ HttpAsyncRequest::GetResponseHeader(const h2o_token_t *token)
     assure_request_finished();
     const struct http_req_meta_t *meta = &meta_;
     ssize_t index = h2o_find_header(&meta->headers, token, -1);
+    if (index == -1)
+        index = h2o_find_header_by_str(&meta->headers, token->buf.base,
+                                       token->buf.len, -1);
     if (index != -1) {
         return &meta->headers.entries[index];
     }
