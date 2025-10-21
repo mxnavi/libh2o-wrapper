@@ -9,7 +9,7 @@
 *****************************************************************************/
 
 #ifndef LOG_TAG
-#define LOG_TAG "libh2o.websocket"
+#define LOG_TAG "H2O.websocket"
 #endif
 
 // #define LOG_NDEBUG 0

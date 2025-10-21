@@ -9,7 +9,7 @@
  *****************************************************************************/
 
 #ifndef LOG_TAG
-#define LOG_TAG "libh2o.socketserver"
+#define LOG_TAG "H2O.socket"
 #endif
 
 // #define LOG_NDEBUG 0
