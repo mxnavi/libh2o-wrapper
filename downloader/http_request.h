@@ -106,9 +106,9 @@ class HttpRequest : public IHttpRequest
         struct cli_identity_t cli;
         int version;
         int status;
-        const h2o_token_t *tokens[4];
         h2o_headers_t headers;
         H2O_VECTOR(char) body;
+        const h2o_token_t *tokens[NUM_RESPONSE_HEADER_TOKENS];
         const char *network_error;
 #ifdef ENABLE_TEST
         uint8_t content_type_text; /* show response body when text */
