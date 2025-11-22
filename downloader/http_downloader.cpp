@@ -311,7 +311,7 @@ int HttpDownloader::on_head(int version, int status, h2o_iovec_t msg,
             if ((off = h2o_strstr(headers[index].value.base, cache_control_len,
                                   H2O_STRLIT("s-maxage="))) != SIZE_MAX) {
                 char *p = (char *)headers[index].value.base + off;
-                uint32_t max_age = __MAX_AGE_DEFAULT;
+                uint32_t max_age = 0;
                 if (1 == sscanf(p, "s-maxage=%u", &max_age)) {
                     meta->super.http.max_age = max_age;
                 }
@@ -319,7 +319,7 @@ int HttpDownloader::on_head(int version, int status, h2o_iovec_t msg,
                                          cache_control_len,
                                          H2O_STRLIT("max-age="))) != SIZE_MAX) {
                 char *p = (char *)headers[index].value.base + off;
-                uint32_t max_age = __MAX_AGE_DEFAULT;
+                uint32_t max_age = 0;
                 if (1 == sscanf(p, "max-age=%u", &max_age)) {
                     meta->super.http.max_age = max_age;
                 }
