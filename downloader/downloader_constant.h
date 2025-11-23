@@ -42,6 +42,8 @@ __BEGIN_DECLS
 
 #define __MAX_AGE_DEFAULT (24 * 7 * 60) // Minutes
 #define __MAX_AGE_RETRY_AFTER (3)       // Minutes
+#define EXPIRE_TO_SECONDS(x) ((x) * 60u)
+#define EXPIRE_FROM_SECONDS(x) ((x) / 60u)
 
 /*****************************************************************************
  *                       Type Definition Section                             *
