@@ -82,7 +82,7 @@ class IHttpRequest : public RefBase
      */
     virtual const char *GetErrorMessage() { return NULL; }
 
-    static const CONSTEXPR size_t NUM_RESPONSE_HEADER_TOKENS = 4;
+    static const CONSTEXPR size_t NUM_RESPONSE_HEADER_TOKENS = 5;
 
   protected:
     virtual ~IHttpRequest() {}
