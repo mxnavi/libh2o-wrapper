@@ -174,9 +174,8 @@ int HttpAsyncStreamingRequest::DoHttpAsyncStreamingRequest(
     }
 
     {
-        H2O_LOGD("HttpAsyncStreamingRequest: doing '%s %.*s'",
-                  req->method ? req->method : "GET", LOG_MAX_MSG_SIZE,
-                  req->url);
+        H2O_LOGD("HttpAsyncStreamingRequest: doing %s '%.*s'",
+                 req->method ? req->method : "GET", LOG_MAX_MSG_SIZE, req->url);
 
         struct http_cli_req_t r;
         memset(&r, 0x00, sizeof(r));

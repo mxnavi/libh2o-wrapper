@@ -244,9 +244,8 @@ int HttpAsyncRequest::DoHttpAsyncRequest(const struct http_client_req_t *req)
 
     {
         Mutex::Autolock _l(mutex_);
-        H2O_LOGD("HttpAsyncRequest: doing '%s %.*s'",
-                  req->method ? req->method : "GET", LOG_MAX_MSG_SIZE,
-                  req->url);
+        H2O_LOGD("HttpAsyncRequest: doing %s '%.*s'",
+                 req->method ? req->method : "GET", LOG_MAX_MSG_SIZE, req->url);
 
         struct http_cli_req_t r;
         memset(&r, 0x00, sizeof(r));

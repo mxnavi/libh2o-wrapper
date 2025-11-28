@@ -199,8 +199,8 @@ int HttpRequest::DoHttpRequest(const struct http_client_req_t *req)
         return FAILURE;
     }
 
-    H2O_LOGD("HttpRequest: doing '%s %.*s'", req->method ? req->method : "GET",
-              LOG_MAX_MSG_SIZE, req->url);
+    H2O_LOGD("HttpRequest: doing %s '%.*s'", req->method ? req->method : "GET",
+             LOG_MAX_MSG_SIZE, req->url);
 #ifdef ENABLE_TEST
     const size_t len = strlen(req->url);
     if (len > LOG_MAX_MSG_SIZE) {
