@@ -79,7 +79,6 @@ struct notification_conn_t {
     h2o_timer_t _timeout;
     h2o_url_t url_parsed;
     struct http_client_req_t req;
-    h2o_iovec_t org_body;
     h2o_mem_pool_t pool;
     struct http_client_handle_t clih;
     struct data_statistics_t statistics;
@@ -182,9 +181,6 @@ static void free_req(struct notification_conn_t *conn)
     int i;
     ASSERT(req->url);
     free(req->url);
-    if (conn->org_body.base != NULL && req->body.base != conn->org_body.base) {
-        req->body.base = conn->org_body.base;
-    }
     if (req->body.base) {
         free(req->body.base);
     }
@@ -454,25 +450,6 @@ h2o_httpclient_body_cb on_head(h2o_httpclient_t *client, const char *errstr,
     return on_body;
 }
 
-static void do_fill_request_body(struct notification_conn_t *conn,
-                                 h2o_iovec_t *reqbuf)
-{
-    if (conn->req.body.len > 0) {
-        if (conn->org_body.len == 0) {
-            conn->org_body = conn->req.body;
-        }
-#define MIN(a, b) (((a) > (b)) ? (b) : (a))
-        reqbuf->len =
-            MIN(conn->req.body.len, conn->cmn.c->client_init.chunk_size);
-#undef MIN
-        reqbuf->base = conn->req.body.base;
-        conn->req.body.len -= reqbuf->len;
-        conn->req.body.base += reqbuf->len;
-    } else {
-        *reqbuf = h2o_iovec_init(NULL, 0);
-    }
-}
-
 static void timeout_cb(h2o_timer_t *entry)
 {
     h2o_iovec_t reqbuf;
@@ -605,7 +582,9 @@ on_connect(h2o_httpclient_t *client, const char *errstr, h2o_iovec_t *_method,
         size_t clbuf_len = sprintf(clbuf, "%d", (int)conn->req.body.len);
         h2o_add_header(&conn->pool, &headers_vec, H2O_TOKEN_CONTENT_LENGTH,
                        NULL, clbuf, clbuf_len);
-        *body = h2o_iovec_init(conn->req.body.base, conn->req.body.len);
+        clbuf = h2o_mem_alloc_pool(&conn->pool, char, conn->req.body.len);
+        h2o_memcpy(clbuf, conn->req.body.base, conn->req.body.len);
+        *body = h2o_iovec_init(clbuf, conn->req.body.len);
         conn->statistics.bytes_written += conn->req.body.len;
     } else if (conn->req.fill_request_body) {
         *proceed_req_cb = proceed_request;
@@ -947,8 +926,12 @@ int libh2o_http_client_send_request_body(
     if (!conn->client) return -1;
     if (is_end_stream) conn->req.fill_request_body = NULL;
 
+    // FIXME: for h1 client, the copy is not needed
+    char *clbuf = h2o_mem_alloc_pool(&conn->pool, char, reqbuf.len);
+    h2o_memcpy(clbuf, reqbuf.base, reqbuf.len);
     conn->statistics.bytes_written += reqbuf.len;
-    return conn->client->write_req(conn->client, reqbuf, is_end_stream);
+    return conn->client->write_req(
+        conn->client, h2o_iovec_init(clbuf, reqbuf.len), is_end_stream);
 }
 
 void libh2o_http_client_cancel(const struct http_client_handle_t *clih)
