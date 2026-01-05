@@ -153,40 +153,26 @@ static void notify_thread_quit(struct libh2o_http_client_ctx_t *c)
     h2o_multithread_send_message(&c->notifications, &msg->cmn.super);
 }
 
-static void dup_req(struct http_client_req_t *dst,
+static void dup_req(h2o_mem_pool_t *pool, struct http_client_req_t *dst,
                     const struct http_client_req_t *src)
 {
     int i;
-    dst->url = strdup(src->url);
+    dst->url = h2o_mem_alloc_shared(pool, strlen(src->url) + 1, NULL);
+    memcpy(dst->url, src->url, strlen(src->url) + 1);
     dst->method = src->method; /* const string */
     if (src->body.base != NULL && src->body.len > 0) {
         dst->body.len = src->body.len;
-        dst->body.base = h2o_mem_alloc(dst->body.len);
+        dst->body.base = h2o_mem_alloc_shared(pool, dst->body.len, NULL);
         memcpy(dst->body.base, src->body.base, dst->body.len);
     }
     dst->fill_request_body = src->fill_request_body;
 
     for (i = 0; i < HTTP_REQUEST_HEADER_MAX; ++i) {
         if (src->header[i].token == NULL) break;
-        // ASSERT(h2o_iovec_is_token(&src->header[i].token->buf));
         dst->header[i].token = src->header[i].token;
-        dst->header[i].value = h2o_strdup(NULL, src->header[i].value.base,
-                                          src->header[i].value.len);
-    }
-}
-
-static void free_req(struct notification_conn_t *conn)
-{
-    struct http_client_req_t *req = &conn->req;
-    int i;
-    ASSERT(req->url);
-    free(req->url);
-    if (req->body.base) {
-        free(req->body.base);
-    }
-    for (i = 0; i < HTTP_REQUEST_HEADER_MAX; ++i) {
-        if (req->header[i].token == NULL) break;
-        if (req->header[i].value.base) free(req->header[i].value.base);
+        ASSERT(src->header[i].value.len > 0 && src->header[i].value.base);
+        dst->header[i].value = h2o_strdup_shared(
+            pool, src->header[i].value.base, src->header[i].value.len);
     }
 }
 
@@ -200,7 +186,8 @@ notify_thread_connect(struct libh2o_http_client_ctx_t *c,
     msg->cmn.cmd = NOTIFICATION_CONN;
     msg->cmn.c = c;
 
-    dup_req(&msg->req, req);
+    h2o_mem_init_pool(&msg->pool);
+    dup_req(&msg->pool, &msg->req, req);
 
     do {
         msg->clih.serial = __sync_add_and_fetch(&c->serial_counter, 1);
@@ -259,7 +246,6 @@ static void release_notification_conn(struct notification_conn_t *conn)
     if (h2o_timer_is_linked(&conn->_timeout)) {
         h2o_timer_unlink(&conn->_timeout);
     }
-    free_req(conn);
     h2o_mem_clear_pool(&conn->pool);
     free(conn);
 }
@@ -277,7 +263,6 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
         if (cmn->cmd == NOTIFICATION_CONN) {
             struct notification_conn_t *conn =
                 (struct notification_conn_t *)cmn;
-            h2o_mem_init_pool(&conn->pool);
             /* parse URL */
             if (h2o_url_parse(conn->req.url, SIZE_MAX, &conn->url_parsed) !=
                 0) {
