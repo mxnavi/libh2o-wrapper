@@ -276,7 +276,7 @@ int HttpDownloader::on_head(int version, int status, h2o_iovec_t msg,
         if (index == -1) {
             H2O_LOGW("missing header: '%s'",
                       H2O_TOKEN_CONTENT_ENCODING->buf.base);
-            meta->super.http.coding = __CODING_INVALID;
+            meta->super.http.coding = __CONTENT_CODING_INVALID;
         } else {
             const char *name = headers[index].orig_name;
             if (name == NULL) name = headers[index].name->base;
@@ -285,12 +285,12 @@ int HttpDownloader::on_head(int version, int status, h2o_iovec_t msg,
             size_t coding_len = headers[index].value.len;
             if (h2o_memis(headers[index].value.base, coding_len,
                           H2O_STRLIT("gzip"))) {
-                meta->super.http.coding = __CODING_GZIP;
+                meta->super.http.coding = __CONTENT_CODING_GZIP;
             } else if (h2o_memis(headers[index].value.base, coding_len,
                                  H2O_STRLIT("deflate"))) {
-                meta->super.http.coding = __CODING_ZLIB;
+                meta->super.http.coding = __CONTENT_CODING_ZLIB;
             } else {
-                meta->super.http.coding = __CODING_INVALID;
+                meta->super.http.coding = __CONTENT_CODING_INVALID;
             }
         }
     }

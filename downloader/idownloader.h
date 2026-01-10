@@ -13,7 +13,6 @@
 /*****************************************************************************
  *                       Include File Section                                *
  *****************************************************************************/
-#include "downloader_constant.h"
 #include "h2o_http_client.h"
 
 #ifdef __cplusplus
@@ -46,7 +45,13 @@ extern "C" {
         }                                                                      \
     } while (0)
 
+/* max length of etag for http downloader */
+#define __HTTP_ETAG_MAXLEN (34 /* hexstring(md5()) */ + 1)
 
+#define __CONTENT_CODING_INVALID 0
+#define __CONTENT_CODING_GZIP 1
+#define __CONTENT_CODING_ZLIB 2
+#define __CONTENT_CODING_NONE 3
 /*****************************************************************************
  *                       Type Definition Section                             *
  *****************************************************************************/
