@@ -595,6 +595,23 @@ static int cli_key_file_passwd_cb(char *buf, int size, int rwflag, void *u)
     return 0;
 }
 
+static void init_openssl_verify(SSL_CTX *ssl_ctx, const char *cert_file)
+{
+    struct stat st;
+    int r = stat(cert_file, &st);
+    if (r != 0) {
+        H2O_LOGI("stat cert '%s' failed: %s", cert_file, strerror(errno));
+        return;
+    }
+    if (S_ISDIR(st.st_mode)) {
+        H2O_LOGV("using cert path '%s'", cert_file);
+        SSL_CTX_load_verify_locations(ssl_ctx, NULL, cert_file);
+    } else {
+        H2O_LOGV("using cert file '%s'", cert_file);
+        SSL_CTX_load_verify_locations(ssl_ctx, cert_file, NULL);
+    }
+}
+
 static void init_openssl(struct libh2o_http_client_ctx_t *c)
 {
     if (c->client_init.ssl_init.cert_file) {
@@ -604,8 +621,7 @@ static void init_openssl(struct libh2o_http_client_ctx_t *c)
 
         c->ssl_ctx = SSL_CTX_new(TLSv1_2_client_method());
         if (strchr(c->client_init.ssl_init.cert_file, ':') == NULL) {
-            SSL_CTX_load_verify_locations(
-                c->ssl_ctx, c->client_init.ssl_init.cert_file, NULL);
+            init_openssl_verify(c->ssl_ctx, c->client_init.ssl_init.cert_file);
         } else {
             char *tmp = strdup(c->client_init.ssl_init.cert_file);
             if (tmp) {
@@ -613,11 +629,11 @@ static void init_openssl(struct libh2o_http_client_ctx_t *c)
                 while (*cer) {
                     char *p = strchr(cer, ':');
                     if (p == NULL) {
-                        SSL_CTX_load_verify_locations(c->ssl_ctx, cer, NULL);
+                        init_openssl_verify(c->ssl_ctx, cer);
                         break;
                     }
                     *p++ = '\0';
-                    SSL_CTX_load_verify_locations(c->ssl_ctx, cer, NULL);
+                    init_openssl_verify(c->ssl_ctx, cer);
                     cer = p;
                 }
                 free(tmp);
