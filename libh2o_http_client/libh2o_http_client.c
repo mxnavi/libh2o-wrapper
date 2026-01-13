@@ -639,16 +639,14 @@ static void init_openssl(struct libh2o_http_client_ctx_t *c)
                 free(tmp);
             }
         }
+#if 0 // !defined(__ANDROID__)
 #define LOAD_VERIFY_LOCATION(location)                                         \
     do {                                                                       \
-        if (0 == access(location, R_OK)) {                                     \
-            init_openssl_verify(c->ssl_ctx, location);                         \
+        if (0 == access(location, F_OK)) {                                     \
+            SSL_CTX_load_verify_locations(c->ssl_ctx, location, NULL);         \
         }                                                                      \
     } while (0)
-#if defined(__ANDROID__)
-        LOAD_VERIFY_LOCATION("/system/etc/security/cacerts");
-#endif
-#if 0
+
         /* Debian/Ubuntu/Gentoo etc. */
         LOAD_VERIFY_LOCATION("/etc/ssl/certs/ca-certificates.crt");
         /* Fedora/RHEL 6 */
@@ -660,8 +658,8 @@ static void init_openssl(struct libh2o_http_client_ctx_t *c)
         // LOAD_VERIFY_LOCATION("/etc/ssl/ca-bundle.pem");
         /* OpenELEC */
         // LOAD_VERIFY_LOCATION("/etc/pki/tls/cacert.pem");
-#endif
 #undef LOAD_VERIFY_LOCATION
+#endif
         SSL_CTX_set_verify(c->ssl_ctx,
                            c->client_init.verify_none
                                ? SSL_VERIFY_NONE
