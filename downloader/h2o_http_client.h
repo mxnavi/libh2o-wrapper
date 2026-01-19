@@ -152,6 +152,7 @@ class H2oHttpClient : public IClient
     Condition cond_;
     struct libh2o_http_client_ctx_t *client_ctx_;
     xmap<uint32_t, struct http_client_status_t *> reqs_;
+    struct data_statistics_t stat_;
 
   private:
     DISALLOW_COPY_AND_ASSIGN(H2oHttpClient);

@@ -77,6 +77,8 @@ void H2oHttpClient::cb_http_client_on_finish(
 {
     H2oHttpClient *_this = (H2oHttpClient *)param;
     _this->on_finish(err, clih);
+    _this->stat_.bytes_read += statistics->bytes_read;
+    _this->stat_.bytes_written += statistics->bytes_written;
 }
 
 void H2oHttpClient::cb_http_client_fill_request_body(
@@ -114,7 +116,7 @@ static uint8_t __verify_none(void)
 H2oHttpClient::H2oHttpClient(bool async, const char *cert_file,
                              const char *cli_cer, const char *cli_key,
                              uint32_t timeout, uint32_t connect_timeout)
-    : IClient(async), mutex_(), cond_(), client_ctx_(NULL), reqs_()
+    : IClient(async), mutex_(), cond_(), client_ctx_(NULL), reqs_(), stat_()
 {
     H2O_LOGV("H2oHttpClient::H2oHttpClient()");
     /* client init param */
@@ -147,6 +149,8 @@ H2oHttpClient::~H2oHttpClient()
         libh2o_http_client_stop(tmp);
     }
     ASSERT(reqs_.empty());
+    H2O_LOGD("http statistics=(%zu %zu)", stat_.bytes_read,
+             stat_.bytes_written);
     H2O_LOGV("H2oHttpClient::~H2oHttpClient() out");
 }
 
