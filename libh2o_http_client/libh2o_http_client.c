@@ -619,7 +619,9 @@ static void init_openssl(struct libh2o_http_client_ctx_t *c)
 
         libh2o_ssl_init();
 
-        c->ssl_ctx = SSL_CTX_new(TLSv1_2_client_method());
+        /* Negotiate highest available SSL/TLS version */
+        c->ssl_ctx = SSL_CTX_new(TLS_client_method());
+        // SSL_CTX_set_min_proto_version(c->ssl_ctx, TLS1_2_VERSION);
         if (strchr(c->client_init.ssl_init.cert_file, ':') == NULL) {
             init_openssl_verify(c->ssl_ctx, c->client_init.ssl_init.cert_file);
         } else {
