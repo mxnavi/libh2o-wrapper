@@ -90,6 +90,14 @@ int libh2o_http_client_send_request_body(
     int is_end_stream);
 
 /**
+ * get client request information from request handle
+ * @param clih http client handle
+ * @return client request pointer when success or else error
+ */
+const struct http_client_req_t *
+libh2o_http_client_get_request(const struct http_client_handle_t *clih);
+
+/**
  * create timer on the event loop
  * @param c http client context pointer
  * @param to  timedout info

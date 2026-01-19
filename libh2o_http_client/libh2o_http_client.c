@@ -935,6 +935,17 @@ int libh2o_http_client_send_request_body(
         conn->client, h2o_iovec_init(clbuf, reqbuf.len), is_end_stream);
 }
 
+const struct http_client_req_t *
+libh2o_http_client_get_request(const struct http_client_handle_t *clih)
+{
+    if (clih == NULL || clih->serial == 0) {
+        return NULL;
+    }
+    struct notification_conn_t *conn =
+        H2O_STRUCT_FROM_MEMBER(struct notification_conn_t, clih, clih);
+    return &conn->req;
+}
+
 void libh2o_http_client_cancel(const struct http_client_handle_t *clih)
 {
     if (clih == NULL || clih->serial == 0) {
