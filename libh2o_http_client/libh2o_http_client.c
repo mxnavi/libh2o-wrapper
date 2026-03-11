@@ -82,6 +82,7 @@ struct notification_conn_t {
     h2o_mem_pool_t pool;
     struct http_client_handle_t clih;
     struct data_statistics_t statistics;
+    h2o_timer_t defer_release;
 };
 
 struct libh2o_evloop_timer_t {
@@ -246,8 +247,31 @@ static void release_notification_conn(struct notification_conn_t *conn)
     if (h2o_timer_is_linked(&conn->_timeout)) {
         h2o_timer_unlink(&conn->_timeout);
     }
+    if (h2o_timer_is_linked(&conn->defer_release)) {
+        h2o_timer_unlink(&conn->defer_release);
+    }
     h2o_mem_clear_pool(&conn->pool);
     free(conn);
+}
+
+static void defer_release_cb(h2o_timer_t *entry)
+{
+    struct notification_conn_t *conn = H2O_STRUCT_FROM_MEMBER(
+        struct notification_conn_t, defer_release, entry);
+    ASSERT(!h2o_timer_is_linked(&conn->defer_release));
+    release_notification_conn(conn);
+}
+
+static void release_notification_conn_defer(struct notification_conn_t *conn)
+{
+#ifdef DEBUG_SERIAL
+    H2O_LOGV("defer release serial: %u", conn->clih.serial);
+#endif
+    if (!h2o_timer_is_linked(&conn->defer_release)) {
+        struct libh2o_http_client_ctx_t *c = conn->cmn.c;
+        conn->defer_release.cb = defer_release_cb;
+        h2o_timer_link(c->ctx.loop, 0, &conn->defer_release);
+    }
 }
 
 static void on_notification(h2o_multithread_receiver_t *receiver,
@@ -383,7 +407,7 @@ static void on_error(struct notification_conn_t *conn, const char *prefix,
     ASSERT(err != NULL);
     // H2O_LOGW("%s:%s", prefix, err);
     callback_on_on_finish(conn, err);
-    release_notification_conn(conn);
+    release_notification_conn_defer(conn);
 }
 
 static int on_body(h2o_httpclient_t *client, const char *errstr)
