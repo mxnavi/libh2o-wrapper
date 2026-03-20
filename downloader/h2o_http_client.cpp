@@ -77,8 +77,13 @@ void H2oHttpClient::cb_http_client_on_finish(
 {
     H2oHttpClient *_this = (H2oHttpClient *)param;
     _this->on_finish(err, clih);
+#ifdef ENABLE_TEST
     _this->stat_.bytes_read += statistics->bytes_read;
     _this->stat_.bytes_written += statistics->bytes_written;
+    if (clih->serial > _this->max_serial_) {
+        _this->max_serial_ = clih->serial;
+    }
+#endif
 }
 
 void H2oHttpClient::cb_http_client_fill_request_body(
@@ -116,7 +121,16 @@ static uint8_t __verify_none(void)
 H2oHttpClient::H2oHttpClient(bool async, const char *cert_file,
                              const char *cli_cer, const char *cli_key,
                              uint32_t timeout, uint32_t connect_timeout)
-    : IClient(async), mutex_(), cond_(), client_ctx_(NULL), reqs_(), stat_()
+    : IClient(async),
+      mutex_(),
+      cond_(),
+      client_ctx_(NULL),
+      reqs_()
+#ifdef ENABLE_TEST
+      ,
+      stat_(),
+      max_serial_()
+#endif
 {
     H2O_LOGV("H2oHttpClient::H2oHttpClient()");
     /* client init param */
@@ -149,8 +163,10 @@ H2oHttpClient::~H2oHttpClient()
         libh2o_http_client_stop(tmp);
     }
     ASSERT(reqs_.empty());
-    H2O_LOGD("http statistics=(%zu %zu)", stat_.bytes_read,
-             stat_.bytes_written);
+#ifdef ENABLE_TEST
+    H2O_LOGI("http statistics=(%zu %zu) max_serial=%u", stat_.bytes_read,
+             stat_.bytes_written, max_serial_);
+#endif
     H2O_LOGV("H2oHttpClient::~H2oHttpClient() out");
 }
 
