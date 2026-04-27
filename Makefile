@@ -26,12 +26,26 @@ h2o_SRC_FILES := \
     h2o/deps/cloexec/cloexec.c \
     h2o/deps/libgkc/gkc.c \
     h2o/deps/picohttpparser/picohttpparser.c \
+    h2o/deps/picotls/deps/cifra/src/blockwise.c \
+    h2o/deps/picotls/deps/cifra/src/chash.c \
+    h2o/deps/picotls/deps/cifra/src/curve25519.c \
+    h2o/deps/picotls/deps/cifra/src/drbg.c \
+    h2o/deps/picotls/deps/cifra/src/hmac.c \
+    h2o/deps/picotls/deps/cifra/src/sha256.c \
+    h2o/deps/picotls/lib/certificate_compression.c \
+    h2o/deps/picotls/lib/hpke.c \
+    h2o/deps/picotls/lib/pembase64.c \
+    h2o/deps/picotls/lib/picotls.c \
+    h2o/deps/picotls/lib/openssl.c \
+    h2o/deps/picotls/lib/cifra/random.c \
+    h2o/deps/picotls/lib/cifra/x25519.c \
     h2o/lib/common/cache.c \
     h2o/lib/common/file.c \
     h2o/lib/common/filecache.c \
     h2o/lib/common/hostinfo.c \
     h2o/lib/common/http1client.c \
     h2o/lib/common/http2client.c \
+    h2o/lib/common/http3client.c \
     h2o/lib/common/httpclient.c \
     h2o/lib/common/memory.c \
     h2o/lib/common/multithread.c \
@@ -39,17 +53,20 @@ h2o_SRC_FILES := \
     h2o/lib/common/socket.c \
     h2o/lib/common/socketpool.c \
     h2o/lib/common/string.c \
+    h2o/lib/common/rand.c \
     h2o/lib/common/time.c \
     h2o/lib/common/timerwheel.c \
     h2o/lib/common/token.c \
     h2o/lib/common/url.c \
     h2o/lib/common/balancer/roundrobin.c \
     h2o/lib/common/balancer/least_conn.c \
+    h2o/lib/common/absprio.c \
     h2o/lib/core/config.c \
     h2o/lib/core/configurator.c \
     h2o/lib/core/context.c \
     h2o/lib/core/headers.c \
     h2o/lib/core/logconf.c \
+    h2o/lib/core/pipe_sender.c \
     h2o/lib/core/proxy.c \
     h2o/lib/core/request.c \
     h2o/lib/core/util.c \
@@ -90,7 +107,6 @@ h2o_SRC_FILES := \
     h2o/lib/handler/configurator/http2_debug_state.c \
     h2o/lib/handler/configurator/headers_util.c \
     h2o/lib/http1.c \
-    h2o/lib/tunnel.c \
     h2o/lib/http2/cache_digests.c \
     h2o/lib/http2/casper.c \
     h2o/lib/http2/connection.c \
@@ -99,6 +115,28 @@ h2o_SRC_FILES := \
     h2o/lib/http2/scheduler.c \
     h2o/lib/http2/stream.c \
     h2o/lib/http2/http2_debug_state.c \
+    \
+    h2o/deps/quicly/lib/cc-cubic.c \
+    h2o/deps/quicly/lib/cc-pico.c \
+    h2o/deps/quicly/lib/cc-reno.c \
+    h2o/deps/quicly/lib/defaults.c \
+    h2o/deps/quicly/lib/frame.c \
+    h2o/deps/quicly/lib/local_cid.c \
+    h2o/deps/quicly/lib/loss.c \
+    h2o/deps/quicly/lib/quicly.c \
+    h2o/deps/quicly/lib/ranges.c \
+    h2o/deps/quicly/lib/rate.c \
+    h2o/deps/quicly/lib/recvstate.c \
+    h2o/deps/quicly/lib/remote_cid.c \
+    h2o/deps/quicly/lib/sendstate.c \
+    h2o/deps/quicly/lib/sentmap.c \
+    h2o/deps/quicly/lib/streambuf.c \
+    \
+    h2o/lib/http3/frame.c \
+    h2o/lib/http3/qpack.c \
+    h2o/lib/http3/common.c \
+    h2o/lib/http3/server.c \
+
 
 h2o_wrapper_SRC_FILES := \
     libh2o_log.c \
@@ -167,6 +205,12 @@ LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/h2o/include \
     $(LOCAL_PATH)/h2o/deps/klib \
     $(LOCAL_PATH)/h2o/deps/picohttpparser \
+    $(LOCAL_PATH)/h2o/deps/picotls/deps/cifra/src/ext \
+    $(LOCAL_PATH)/h2o/deps/picotls/deps/cifra/src \
+    $(LOCAL_PATH)/h2o/deps/picotls/deps/micro-ecc \
+    $(LOCAL_PATH)/h2o/deps/picotls/include \
+    $(LOCAL_PATH)/h2o/deps/quicly/include \
+    $(LOCAL_PATH)/h2o/deps/brotli/c/include \
     $(LOCAL_PATH)/h2o/deps/libyrmcds \
     $(LOCAL_PATH)/h2o/deps/cloexec \
     $(LOCAL_PATH)/h2o/deps/hiredis \
@@ -189,11 +233,11 @@ ifeq ($(H2O_HAS_WSLAY), true)
 h2o_cmn_clfags += -DH2O_HAS_WSLAY
 endif
 
-ifeq ($(H2O_HAS_HIREDIS), true)
-h2o_cmn_clfags += -DH2O_HAS_HIREDIS
+ifneq ($(H2O_HAS_HIREDIS), true)
+h2o_cmn_clfags += -DH2O_NO_HIREDIS
 endif
-ifeq ($(H2O_HAS_LIBYRMCDS), true)
-h2o_cmn_clfags += -DH2O_HAS_LIBYRMCDS
+ifneq ($(H2O_HAS_LIBYRMCDS), true)
+h2o_cmn_clfags += -DH2O_NO_LIBYRMCDS
 endif
 
 LOCAL_CFLAGS := $(h2o_cmn_clfags)

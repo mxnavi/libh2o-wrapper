@@ -530,7 +530,7 @@ static void on_getaddr(h2o_hostinfo_getaddr_req_t *getaddr_req, const char *err,
 
     selected = h2o_hostinfo_select_one(res);
     sock = h2o_socket_connect(c->loop, selected->ai_addr, selected->ai_addrlen,
-                              on_connect);
+                              on_connect, NULL);
     if (sock == NULL) {
         /* create socket failed */
         on_error(conn, "on_getaddr", strerror(errno));
@@ -631,8 +631,8 @@ static void on_notification(h2o_multithread_receiver_t *receiver,
                            strlen(sa.sun_path + 1) + 1;
                 }
                 h2o_socket_t *sock;
-                sock = h2o_socket_connect(c->loop, (struct sockaddr *)&sa,
-                                          alen, on_connect);
+                sock = h2o_socket_connect(c->loop, (struct sockaddr *)&sa, alen,
+                                          on_connect, NULL);
                 if (sock == NULL) {
                     /* create socket failed */
                     on_error(conn, "on_notification", strerror(errno));
@@ -762,10 +762,6 @@ static void *client_loop(void *arg)
 {
     struct libh2o_socket_client_ctx_t *c = arg;
 
-#ifdef H2O_THREAD_LOCAL_UNINITIALIZED
-    h2o_init_thread();
-#endif
-
     c->loop = h2o_evloop_create();
 
     c->queue = h2o_multithread_create_queue(c->loop);
@@ -802,7 +798,7 @@ static void *client_loop(void *arg)
     /**
      * this will clean thread local data used by pool
      */
-    h2o_cleanup_thread();
+    h2o_cleanup_thread(0, NULL); // TODO
     return 0;
 }
 

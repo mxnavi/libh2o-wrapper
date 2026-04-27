@@ -723,6 +723,12 @@ static void init_conn_poll(struct libh2o_websocket_client_ctx_t *c)
     connpool = h2o_mem_alloc(sizeof(*connpool));
     sockpool = h2o_mem_alloc(sizeof(*sockpool));
     h2o_socketpool_init_global(sockpool, 128);
+#ifdef H2O_HOSTINFO_SELECT_AF /* AF_INET, AF_INET6 */
+    H2O_BUILD_ASSERT(H2O_HOSTINFO_SELECT_AF == AF_INET ||
+                     H2O_HOSTINFO_SELECT_AF == AF_INET6 ||
+                     H2O_HOSTINFO_SELECT_AF == AF_UNSPEC);
+    sockpool->address_family = H2O_HOSTINFO_SELECT_AF;
+#endif
     h2o_socketpool_set_timeout(sockpool,
                                c->client_init.io_timeout + 10000 /* in msec */);
     h2o_socketpool_register_loop(sockpool, c->ctx.loop);
@@ -741,10 +747,6 @@ static void release_conn_poll(struct libh2o_websocket_client_ctx_t *c)
 static void *client_loop(void *arg)
 {
     struct libh2o_websocket_client_ctx_t *c = arg;
-
-#ifdef H2O_THREAD_LOCAL_UNINITIALIZED
-    h2o_init_thread();
-#endif
 
     c->ctx.loop = h2o_evloop_create();
 
@@ -786,7 +788,7 @@ static void *client_loop(void *arg)
     /**
      * this will clean thread local data used by pool
      */
-    h2o_cleanup_thread();
+    h2o_cleanup_thread(0, NULL);
     return 0;
 }
 

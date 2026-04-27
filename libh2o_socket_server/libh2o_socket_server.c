@@ -825,10 +825,6 @@ static void *server_loop(void *arg)
 {
     struct libh2o_socket_server_ctx_t *c = arg;
 
-#ifdef H2O_THREAD_LOCAL_UNINITIALIZED
-    h2o_init_thread();
-#endif
-
     c->loop = h2o_evloop_create();
 
     c->queue = h2o_multithread_create_queue(c->loop);
@@ -860,7 +856,7 @@ static void *server_loop(void *arg)
     /**
      * this will clean thread local data used by pool
      */
-    h2o_cleanup_thread();
+    h2o_cleanup_thread(0, NULL);
     return 0;
 }
 

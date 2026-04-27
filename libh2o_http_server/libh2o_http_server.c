@@ -578,7 +578,7 @@ static struct listener_config_t *find_listener(struct server_context_t *c,
     for (i = 0; i != c->num_listeners; ++i) {
         struct listener_config_t *listener = c->listeners[i];
         if (listener->addrlen == addrlen &&
-            h2o_socket_compare_address((void *)&listener->addr, addr) == 0)
+            h2o_socket_compare_address((void *)&listener->addr, addr, 1) == 0)
             return listener;
     }
 
@@ -1193,10 +1193,6 @@ static void *server_loop(void *_param)
     H2O_LOGV("%s(%d)...", __FUNCTION__, thread_index);
     ASSERT(thread_index >= 0 && thread_index < c->server_init.num_threads);
 
-#ifdef H2O_THREAD_LOCAL_UNINITIALIZED
-    h2o_init_thread();
-#endif
-
     free(_param);
 
     set_current_thread_index(c, thread_index);
@@ -1308,7 +1304,7 @@ static void *server_loop(void *_param)
     /**
      * this will clean thread local data used by pool
      */
-    h2o_cleanup_thread();
+    h2o_cleanup_thread(0, NULL);
 
     return 0;
 }
