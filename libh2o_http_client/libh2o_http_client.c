@@ -898,10 +898,6 @@ libh2o_http_client_start(const struct http_client_init_t *client_init)
         }
 
         memcpy(&c->client_init, client_init, sizeof(*client_init));
-        if (!c->client_init.chunk_size) {
-            c->client_init.chunk_size =
-                H2O_SOCKET_INITIAL_INPUT_BUFFER_SIZE * 2;
-        }
 
         h2o_sem_init(&c->sem, 0);
         h2o_multithread_create_thread(&c->tid, NULL, client_loop, (void *)c);
