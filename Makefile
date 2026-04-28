@@ -18,6 +18,7 @@ LOCAL_PATH:= $(shell pwd)
 H2O_HAS_WSLAY ?= false
 H2O_HAS_HIREDIS ?= false
 H2O_HAS_LIBYRMCDS ?= false
+H2O_HAS_BROTLI ?= false
 
 LIBH2O_HAS_DL ?= false
 
@@ -32,7 +33,6 @@ h2o_SRC_FILES := \
     h2o/deps/picotls/deps/cifra/src/drbg.c \
     h2o/deps/picotls/deps/cifra/src/hmac.c \
     h2o/deps/picotls/deps/cifra/src/sha256.c \
-    h2o/deps/picotls/lib/certificate_compression.c \
     h2o/deps/picotls/lib/hpke.c \
     h2o/deps/picotls/lib/pembase64.c \
     h2o/deps/picotls/lib/picotls.c \
@@ -137,6 +137,12 @@ h2o_SRC_FILES := \
     h2o/lib/http3/common.c \
     h2o/lib/http3/server.c \
 
+ifeq ($(H2O_HAS_BROTLI), true)
+h2o_SRC_FILES += \
+    h2o/deps/picotls/lib/certificate_compression.c \
+    h2o/lib/handler/compress/brotli.c \
+
+endif
 
 h2o_wrapper_SRC_FILES := \
     libh2o_log.c \
@@ -210,7 +216,6 @@ LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/h2o/deps/picotls/deps/micro-ecc \
     $(LOCAL_PATH)/h2o/deps/picotls/include \
     $(LOCAL_PATH)/h2o/deps/quicly/include \
-    $(LOCAL_PATH)/h2o/deps/brotli/c/include \
     $(LOCAL_PATH)/h2o/deps/libyrmcds \
     $(LOCAL_PATH)/h2o/deps/cloexec \
     $(LOCAL_PATH)/h2o/deps/hiredis \
@@ -218,6 +223,7 @@ LOCAL_C_INCLUDES:= \
     $(LOCAL_PATH)/h2o/deps/libgkc \
     $(LOCAL_PATH)/h2o/deps/golombset \
     $(ROOT_DIR)/foundation/include \
+    $(ROOT_DIR)/external/brotli/c/include \
 
 ifeq ($(LIBH2O_HAS_DL), true)
 LOCAL_SRC_FILES += $(downloader_SRC_FILES)
