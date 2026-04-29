@@ -896,6 +896,9 @@ libh2o_http_client_start(const struct http_client_init_t *client_init)
             c->ctx.http2.max_concurrent_streams = 100;
             c->ctx.http2.ratio = client_init->http2_ratio;
         }
+        if (client_init->max_buffer_size != 0) {
+            c->ctx.max_buffer_size = client_init->max_buffer_size;
+        }
 
         memcpy(&c->client_init, client_init, sizeof(*client_init));
 
