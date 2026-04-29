@@ -12,6 +12,7 @@
  *                       Include File Section                                *
  *****************************************************************************/
 #include "h2o_http_client.h"
+#include "cutils/helpers.h"
 
 /*****************************************************************************
  *                       Macro Definition Section                            *
@@ -93,12 +94,10 @@ void H2oHttpClient::cb_http_client_fill_request_body(
     _this->on_fill_request_body(clih);
 }
 
-static int8_t __http2_ratio(void)
+static int8_t __http2_ratio(const char *env)
 {
-    const char *env = NULL;
-    env = getenv("H2O_HTTP_CLIENT_H2_RATIO");
     if (env) {
-        long v = strtol(env, NULL, 0);
+        int32_t v = int_from_config_string(env, "h2_ratio=", -1);
         if (v == -1)
             return -1;
         else if (v >= 0 && v <= 100) {
@@ -108,12 +107,10 @@ static int8_t __http2_ratio(void)
     return -1;
 }
 
-static uint8_t __verify_none(void)
+static uint8_t __verify_none(const char *env)
 {
-    const char *env = NULL;
-    env = getenv("H2O_HTTP_CLIENT_VERIFY_NONE");
     if (env) {
-        return 1;
+        return (uint8_t)int_from_config_string(env, "verify_none=", 0);
     }
     return 0;
 }
@@ -146,8 +143,9 @@ H2oHttpClient::H2oHttpClient(bool async, const char *cert_file,
     client_init.ssl_init.cert_file = cert_file;
     client_init.ssl_init.cli_cert_file = cli_cer;
     client_init.ssl_init.cli_key_file = cli_key;
-    client_init.http2_ratio = __http2_ratio();
-    client_init.verify_none = __verify_none();
+    const char *env = getenv("H2O_HTTP_CLIENT_CONFIG");
+    client_init.http2_ratio = __http2_ratio(env);
+    client_init.verify_none = __verify_none(env);
     client_init.cb.param = this;
 
     libh2o_signal_init();
