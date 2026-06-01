@@ -96,15 +96,14 @@ void H2oHttpClient::cb_http_client_fill_request_body(
 
 static int8_t __http2_ratio(const char *env)
 {
+    int8_t ret = -1;
     if (env) {
         int32_t v = int_from_config_string(env, "h2_ratio=", -1);
-        if (v == -1)
-            return -1;
-        else if (v >= 0 && v <= 100) {
-            return (int8_t)v;
+        if (v >= 0 && v <= 100) {
+            ret = (int8_t)v;
         }
     }
-    return -1;
+    return ret;
 }
 
 static uint8_t __verify_none(const char *env)
