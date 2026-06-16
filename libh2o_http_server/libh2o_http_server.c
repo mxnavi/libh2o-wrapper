@@ -338,7 +338,7 @@ static void callback_on_http_resp_timeout(struct notification_http_conn_t *conn)
     struct server_context_t *c = conn->cmn.c;
     struct http_server_init_t *p = &c->server_init;
 
-    if (p->cb.on_http_req) {
+    if (p->cb.on_http_resp_timeout) {
         p->cb.on_http_resp_timeout(p->cb.param, &conn->req);
     }
 }
